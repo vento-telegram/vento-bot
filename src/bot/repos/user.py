@@ -21,7 +21,7 @@ class UserRepo(AbcUserRepo, BaseRepo):
         if user:
             return self.map_model_to_entity(user), False
 
-        stmt = insert(UserOrm).values(**user_data.model_dump()).returning(UserOrm)
+        stmt = insert(UserOrm).values(**user_data.model_dump(exclude_none=True)).returning(UserOrm)
         result = await self.session.execute(stmt)
         user = result.scalar_one()
         return self.map_model_to_entity(user), True

@@ -4,9 +4,9 @@ import logging
 from aiogram import Bot, Dispatcher
 from dependency_injector.wiring import Provide, inject
 
-from bot.di.container import Container
-from bot.di.lifecycle import container_lifecycle
-from bot.handlers import common
+from bot.container import Container
+from bot.container import lifecycle
+from bot.handlers import router
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -15,12 +15,12 @@ async def _run(
     bot: Bot = Provide[Container.bot],
     dp: Dispatcher = Provide[Container.dispatcher],
 ) -> None:
-    dp.include_router(chat.router)
+    dp.include_router(router)
     await dp.start_polling(bot)
 
 def start_bot():
     async def main():
-        async with container_lifecycle():
+        async with lifecycle():
             await _run()
 
     asyncio.run(main())
