@@ -16,6 +16,6 @@ async def set_mode_chatgpt(call: CallbackQuery, state: FSMContext):
     await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.chatgpt))
     await call.message.answer(
         "🤖 Теперь на твои сообщения будет отвечать *ChatGPT*.\n\n"
-        "🔄 Если захочешь сменить режим — используй команду /start",
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
         parse_mode="Markdown",
     )

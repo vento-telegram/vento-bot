@@ -22,6 +22,9 @@ async def start_handler(
     state: FSMContext,
     service: AbcUserService = Provide[Container.user_service],
 ):
+    data = await state.get_data()
+    data.pop("history", None)
+    await state.set_data(data)
     await state.update_data(mode=BotModeEnum.passive)
     text = await service.get_start_message(message.from_user)
     await message.answer(text, reply_markup=mode_keyboard(BotModeEnum.passive), parse_mode="Markdown")

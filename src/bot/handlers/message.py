@@ -25,8 +25,15 @@ async def common_message_handler(
     if mode == BotModeEnum.chatgpt:
         status_msg = await message.answer("🔄 *Генерация ответа...*", parse_mode="Markdown")
         try:
-            text = await openai_service.process_message(message)
-            await status_msg.edit_text(text, parse_mode="Markdown")
+            response = await openai_service.process_message(message, state)
+            if response.image_url:
+                await status_msg.edit_text(
+                    f"🖼️ *Ваше изображение:*",
+                    parse_mode="Markdown"
+                )
+                await message.answer_photo(response.image_url)
+            else:
+                await status_msg.edit_text(response.text, parse_mode="Markdown")
         except Exception as e:
             await status_msg.edit_text("❌ Произошла ошибка при генерации ответа.", parse_mode="Markdown")
             raise e
