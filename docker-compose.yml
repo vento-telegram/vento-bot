@@ -1,0 +1,26 @@
+services:
+  bot:
+    container_name: bot
+    restart: on-failure
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: sh -c "alembic upgrade head && python cli.py start"
+    volumes:
+      - ./src:/bot/code
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_USER=vento
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=vento
+    volumes:
+      - vento_db:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+volumes:
+  vento_db:
