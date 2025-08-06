@@ -1,6 +1,5 @@
 import logging
 import re
-from io import BytesIO
 
 from aiohttp import ClientSession
 from aiogram.fsm.context import FSMContext
@@ -47,25 +46,17 @@ class OpenAIService(AbcOpenAIService):
         history: list[ChatCompletionMessageParam] = (await state.get_data()).get("history", [])
 
         if message.photo:
-            await self._handle_photo(message, history)
+            response = await self._handle_photo(message, history)
 
         elif message.voice:
-            await self._handle_voice(message, history)
+            response = await self._handle_voice(message, history)
 
         else:
-            await self._handle_text(message, history)
+            response = await self._handle_text(message, history)
 
-        response = await self._client.chat.completions.create(
-            model="gpt-4o",
-            messages=history,
-        )
-
-        reply = response.choices[0].message.content
-
-        history.append(ChatCompletionAssistantMessageParam(role="assistant", content=reply))
         await state.update_data(history=history[-10:])
 
-        return GPTMessageResponse(text=reply)
+        return response
 
     async def process_dalle_request(self, message: Message, history: list[ChatCompletionMessageParam] | None = None):
         try:
@@ -123,14 +114,14 @@ class OpenAIService(AbcOpenAIService):
         return None
 
 
-    async def _handle_photo(self, message, history):
+    async def _handle_photo(self, message: Message, history):
         photo = message.photo[-1]
         file = await message.bot.get_file(photo.file_id)
         url = f"https://api.telegram.org/file/bot{message.bot.token}/{file.file_path}"
-        if image_prompt := self._parse_image_prompt(message.caption):
+        if image_prompt := self._parse_image_prompt(message.caption) if message.caption else None:
             logger.info(f"Detected image generation prompt: {image_prompt}")
-            message.text = image_prompt
-            await self.process_dalle_request(message, history)
+            text_message = Message(**{**message.model_dump(), "text": image_prompt})
+            return await self.process_dalle_request(text_message, history)
         else:
             history.append(
                 ChatCompletionUserMessageParam(
@@ -141,22 +132,52 @@ class OpenAIService(AbcOpenAIService):
                     ],
                 )
             )
+            response = await self._client.chat.completions.create(
+                model="gpt-4o",
+                messages=history,
+            )
 
-    async def _handle_voice(self, message, history):
+            reply = response.choices[0].message.content
+
+            history.append(ChatCompletionAssistantMessageParam(role="assistant", content=reply))
+
+            return GPTMessageResponse(text=reply)
+
+    async def _handle_voice(self, message: Message, history):
         file = await message.bot.get_file(message.voice.file_id)
         url = f"https://api.telegram.org/file/bot{message.bot.token}/{file.file_path}"
         transcript = await self._transcribe_audio(url)
         if image_prompt := self._parse_image_prompt(transcript):
             logger.info(f"Detected image generation prompt: {image_prompt}")
-            message.text = image_prompt
-            await self.process_dalle_request(message)
+            text_message = Message(**{**message.model_dump(), "text": image_prompt})
+            return await self.process_dalle_request(text_message, history)
         else:
             history.append(ChatCompletionUserMessageParam(role="user", content=transcript))
+            response = await self._client.chat.completions.create(
+                model="gpt-4o",
+                messages=history,
+            )
 
-    async def _handle_text(self, message, history):
+            reply = response.choices[0].message.content
+
+            history.append(ChatCompletionAssistantMessageParam(role="assistant", content=reply))
+
+            return GPTMessageResponse(text=reply)
+
+    async def _handle_text(self, message: Message, history):
         if image_prompt := self._parse_image_prompt(message.text):
             logger.info(f"Detected image generation prompt: {image_prompt}")
-            message.text = image_prompt
-            await self.process_dalle_request(message)
+            text_message = Message(**{**message.model_dump(), "text": image_prompt})
+            return await self.process_dalle_request(text_message, history)
         else:
             history.append(ChatCompletionUserMessageParam(role="user", content=message.text))
+            response = await self._client.chat.completions.create(
+                model="gpt-4o",
+                messages=history,
+            )
+
+            reply = response.choices[0].message.content
+
+            history.append(ChatCompletionAssistantMessageParam(role="assistant", content=reply))
+
+            return GPTMessageResponse(text=reply)
