@@ -59,7 +59,7 @@ class OpenAIService(AbcOpenAIService):
         if prompt:
             logger.info(f"Detected image generation prompt: {prompt}")
             return GPTMessageResponse(
-                image_url=await self._generate_image(prompt)
+                image_url=await self.generate_image(prompt)
             )
 
         data = await state.get_data()
@@ -113,7 +113,7 @@ class OpenAIService(AbcOpenAIService):
         )
         return transcript.text
 
-    async def _generate_image(self, prompt: str) -> str:
+    async def generate_image(self, prompt: str) -> str:
         try:
             response = await self._client.images.generate(
                 model="dall-e-3",

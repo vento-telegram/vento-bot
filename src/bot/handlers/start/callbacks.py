@@ -19,3 +19,14 @@ async def set_mode_chatgpt(call: CallbackQuery, state: FSMContext):
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
         parse_mode="Markdown",
     )
+
+@router.callback_query(F.data == "set_mode:dalle")
+async def set_mode_dalle(call: CallbackQuery, state: FSMContext):
+    await state.update_data(mode=BotModeEnum.dalle)
+    await call.answer("Режим DALL-E активирован")
+    await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.dalle))
+    await call.message.answer(
+        "🖼️ Теперь в ответ на твои сообщения *DALL-E* будет генерировать изображения.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
+        parse_mode="Markdown",
+    )

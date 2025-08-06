@@ -10,3 +10,7 @@ class AbcOpenAIService(ABC):
     @abstractmethod
     async def process_message(self, message: Message, state: FSMContext) -> GPTMessageResponse:
         ...
+
+    @abstractmethod
+    async def generate_image(self, prompt: str) -> str:
+        ...
