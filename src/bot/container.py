@@ -28,7 +28,7 @@ class Container(containers.DeclarativeContainer):
 @asynccontextmanager
 async def lifecycle() -> AsyncIterator[None]:
     _container = Container()
-    _container.wire(modules=["bot.main"], packages=["bot"])
+    _container.wire(packages=["bot"])
     try:
         yield
     finally:

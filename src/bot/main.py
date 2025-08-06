@@ -18,9 +18,9 @@ async def _run(
     dp.include_router(router)
     await dp.start_polling(bot)
 
-def start_bot():
-    async def main():
-        async with lifecycle():
-            await _run()
+async def main():
+    async with lifecycle():
+        await _run()
 
+def start_bot():
     asyncio.run(main())

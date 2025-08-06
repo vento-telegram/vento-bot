@@ -1,5 +1,6 @@
 import logging
 import re
+from io import BytesIO
 
 from aiohttp import ClientSession
 from aiogram.fsm.context import FSMContext
@@ -12,7 +13,7 @@ from bot.interfaces.uow import AbcUnitOfWork
 from openai.types.chat import (
     ChatCompletionUserMessageParam,
     ChatCompletionAssistantMessageParam, ChatCompletionMessageParam, ChatCompletionContentPartTextParam,
-    ChatCompletionContentPartImageParam, ChatCompletionContentPartInputAudioParam,
+    ChatCompletionContentPartImageParam
 )
 
 from bot.schemas import GPTMessageResponse
@@ -35,17 +36,6 @@ IMAGE_EXCLUDE_KEYWORDS = [
     "словами", "опиши", "текстом", "расскажи", "в виде текста"
 ]
 
-def extract_image_prompt(text: str) -> str | None:
-    if any(kw in text.lower() for kw in IMAGE_EXCLUDE_KEYWORDS):
-        return None
-
-    for pattern in IMAGE_PROMPT_PATTERNS:
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match:
-            groups = match.groups()
-            return next((g for g in groups if g), None)
-    return None
-
 logger = logging.getLogger(__name__)
 
 class OpenAIService(AbcOpenAIService):
@@ -53,42 +43,17 @@ class OpenAIService(AbcOpenAIService):
         self._uow = uow
         self._client = client
 
-    async def process_message(self, message: Message, state: FSMContext) -> GPTMessageResponse:
-        text = message.text or ""
-        prompt = extract_image_prompt(text)
-        if prompt:
-            logger.info(f"Detected image generation prompt: {prompt}")
-            return GPTMessageResponse(
-                image_url=await self.generate_image(prompt)
-            )
-
-        data = await state.get_data()
-        history: list[ChatCompletionMessageParam] = data.get("history", [])
+    async def process_gpt_request(self, message: Message, state: FSMContext) -> GPTMessageResponse:
+        history: list[ChatCompletionMessageParam] = (await state.get_data()).get("history", [])
 
         if message.photo:
-            photo = message.photo[-1]
-            file = await message.bot.get_file(photo.file_id)
-            url = f"https://api.telegram.org/file/bot{message.bot.token}/{file.file_path}"
-
-            history.append(
-                ChatCompletionUserMessageParam(
-                    role="user",
-                    content=[
-                        ChatCompletionContentPartTextParam(type="text", text=message.caption or "Посмотри на изображение"),
-                        ChatCompletionContentPartImageParam(type="image_url", image_url={"url": url}),
-                    ],
-                )
-            )
+            await self._handle_photo(message, history)
 
         elif message.voice:
-            file = await message.bot.get_file(message.voice.file_id)
-            url = f"https://api.telegram.org/file/bot{message.bot.token}/{file.file_path}"
-            transcript = await self._transcribe_audio(url)
-
-            history.append(ChatCompletionUserMessageParam(role="user", content=transcript))
+            await self._handle_voice(message, history)
 
         else:
-            history.append(ChatCompletionUserMessageParam(role="user", content=message.text))
+            await self._handle_text(message, history)
 
         response = await self._client.chat.completions.create(
             model="gpt-4o",
@@ -102,6 +67,38 @@ class OpenAIService(AbcOpenAIService):
 
         return GPTMessageResponse(text=reply)
 
+    async def process_dalle_request(self, message: Message, history: list[ChatCompletionMessageParam] | None = None):
+        try:
+            response: ImagesResponse = await self._client.images.generate(
+                model="dall-e-3",
+                prompt=message.text,
+                size="1024x1024",
+                quality="standard",
+                response_format="url",
+                n=1,
+            )
+            image_result_url = response.data[0].url
+            if history is not None:
+                history.append(
+                    ChatCompletionUserMessageParam(
+                        role="user",
+                        content=[ChatCompletionContentPartTextParam(type="text", text=message.text)],
+                    )
+                )
+                history.append(
+                    ChatCompletionAssistantMessageParam(
+                        role="assistant",
+                        content=[
+                            ChatCompletionContentPartTextParam(type="text", text=image_result_url)],
+                    )
+                )
+
+            return GPTMessageResponse(image_url=image_result_url)
+
+        except Exception as e:
+            logger.exception("Ошибка генерации/редактирования изображения: %s", e)
+            return GPTMessageResponse(text="❌ Не удалось обработать изображение.")
+
     async def _transcribe_audio(self, url: str) -> str:
         async with ClientSession() as session:
             async with session.get(url) as resp:
@@ -113,17 +110,53 @@ class OpenAIService(AbcOpenAIService):
         )
         return transcript.text
 
-    async def generate_image(self, prompt: str) -> str:
-        try:
-            response = await self._client.images.generate(
-                model="dall-e-3",
-                prompt=prompt,
-                size="1024x1024",
-                quality="standard",
-                response_format="url",
-                n=1,
+    @staticmethod
+    def _parse_image_prompt(text: str) -> str | None:
+        if any(kw in text.lower() for kw in IMAGE_EXCLUDE_KEYWORDS):
+            return None
+
+        for pattern in IMAGE_PROMPT_PATTERNS:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                groups = match.groups()
+                return next((g for g in groups if g), None)
+        return None
+
+
+    async def _handle_photo(self, message, history):
+        photo = message.photo[-1]
+        file = await message.bot.get_file(photo.file_id)
+        url = f"https://api.telegram.org/file/bot{message.bot.token}/{file.file_path}"
+        if image_prompt := self._parse_image_prompt(message.caption):
+            logger.info(f"Detected image generation prompt: {image_prompt}")
+            message.text = image_prompt
+            await self.process_dalle_request(message, history)
+        else:
+            history.append(
+                ChatCompletionUserMessageParam(
+                    role="user",
+                    content=[
+                        ChatCompletionContentPartTextParam(type="text", text=message.caption or "Посмотри на изображение"),
+                        ChatCompletionContentPartImageParam(type="image_url", image_url={"url": url}),
+                    ],
+                )
             )
-            return response.data[0].url
-        except Exception as e:
-            logger.exception("Ошибка генерации изображения: %s", e)
-            return "❌ Не удалось сгенерировать изображение."
+
+    async def _handle_voice(self, message, history):
+        file = await message.bot.get_file(message.voice.file_id)
+        url = f"https://api.telegram.org/file/bot{message.bot.token}/{file.file_path}"
+        transcript = await self._transcribe_audio(url)
+        if image_prompt := self._parse_image_prompt(transcript):
+            logger.info(f"Detected image generation prompt: {image_prompt}")
+            message.text = image_prompt
+            await self.process_dalle_request(message)
+        else:
+            history.append(ChatCompletionUserMessageParam(role="user", content=transcript))
+
+    async def _handle_text(self, message, history):
+        if image_prompt := self._parse_image_prompt(message.text):
+            logger.info(f"Detected image generation prompt: {image_prompt}")
+            message.text = image_prompt
+            await self.process_dalle_request(message)
+        else:
+            history.append(ChatCompletionUserMessageParam(role="user", content=message.text))
