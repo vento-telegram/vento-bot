@@ -5,8 +5,10 @@ from aiohttp import ClientSession
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from openai import OpenAI as OpenAIClient
+from openai import BadRequestError as OpenAIInvalidRequestError
 from openai.types import ImagesResponse
 
+from bot.errors import OpenAIBadRequestError
 from bot.interfaces.services.gpt import AbcOpenAIService
 from bot.interfaces.uow import AbcUnitOfWork
 from openai.types.chat import (
@@ -68,27 +70,26 @@ class OpenAIService(AbcOpenAIService):
                 response_format="url",
                 n=1,
             )
-            image_result_url = response.data[0].url
-            if history is not None:
-                history.append(
-                    ChatCompletionUserMessageParam(
-                        role="user",
-                        content=[ChatCompletionContentPartTextParam(type="text", text=message.text)],
-                    )
-                )
-                history.append(
-                    ChatCompletionAssistantMessageParam(
-                        role="assistant",
-                        content=[
-                            ChatCompletionContentPartTextParam(type="text", text=image_result_url)],
-                    )
-                )
+        except OpenAIInvalidRequestError:
+            raise OpenAIBadRequestError
 
-            return GPTMessageResponse(image_url=image_result_url)
+        image_result_url = response.data[0].url
+        if history is not None:
+            history.append(
+                ChatCompletionUserMessageParam(
+                    role="user",
+                    content=[ChatCompletionContentPartTextParam(type="text", text=message.text)],
+                )
+            )
+            history.append(
+                ChatCompletionAssistantMessageParam(
+                    role="assistant",
+                    content=[
+                        ChatCompletionContentPartTextParam(type="text", text=image_result_url)],
+                )
+            )
 
-        except Exception as e:
-            logger.exception("Ошибка генерации/редактирования изображения: %s", e)
-            return GPTMessageResponse(text="❌ Не удалось обработать изображение.")
+        return GPTMessageResponse(image_url=image_result_url)
 
     async def _transcribe_audio(self, url: str) -> str:
         async with ClientSession() as session:

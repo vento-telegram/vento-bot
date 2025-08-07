@@ -3,7 +3,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
 from bot.enums import BotModeEnum
-from bot.keyboards.mode import mode_keyboard
+from bot.keyboards.change_ai import mode_keyboard
 
 
 router = Router()

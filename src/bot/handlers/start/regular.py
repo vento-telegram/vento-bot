@@ -9,7 +9,7 @@ from dependency_injector.wiring import inject, Provide
 from bot.container import Container
 from bot.enums import BotModeEnum
 from bot.interfaces.services.user import AbcUserService
-from bot.keyboards.mode import mode_keyboard
+from bot.keyboards.change_ai import mode_keyboard
 
 logger = logging.getLogger(__name__)
 

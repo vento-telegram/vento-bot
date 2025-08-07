@@ -7,7 +7,6 @@ def mode_keyboard(active_mode: str = None) -> InlineKeyboardMarkup:
     emoji_mapper = {
         BotModeEnum.chatgpt: "🤖",
         BotModeEnum.dalle: "🎨",
-        BotModeEnum.midjourney: "🌌",
         BotModeEnum.veo: "🎬",
     }
 
@@ -18,11 +17,6 @@ def mode_keyboard(active_mode: str = None) -> InlineKeyboardMarkup:
 
     return InlineKeyboardMarkup(inline_keyboard=[
         [mode_button("ChatGPT", "set_mode:chatgpt", BotModeEnum.chatgpt)],
-        [
-            mode_button("DALL-E", "set_mode:dalle", BotModeEnum.dalle),
-            mode_button("Midjourney (Скоро)", "set_mode:midjourney", BotModeEnum.midjourney),
-        ],
-        [
-            mode_button("Veo-3 (Скоро)", "set_mode:veo", BotModeEnum.veo),
-        ]
+        [mode_button("DALL-E", "set_mode:dalle", BotModeEnum.dalle)],
+        [mode_button("Veo-3 (Скоро)", "set_mode:veo", BotModeEnum.veo)],
     ])

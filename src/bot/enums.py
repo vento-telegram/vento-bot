@@ -6,4 +6,3 @@ class BotModeEnum(StrEnum):
     chatgpt = auto()
     dalle = auto()
     veo = auto()
-    midjourney = auto()
