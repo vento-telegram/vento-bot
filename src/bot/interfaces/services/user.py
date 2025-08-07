@@ -5,5 +5,5 @@ from aiogram.types import User as TelegramUser
 
 class AbcUserService(ABC):
     @abstractmethod
-    async def get_start_message(self, telegram_user: TelegramUser) -> str:
+    async def is_user_new(self, telegram_user: TelegramUser) -> bool:
         ...
