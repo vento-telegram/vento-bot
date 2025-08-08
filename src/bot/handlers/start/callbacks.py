@@ -59,16 +59,14 @@ async def goto_start(
     service: AbcUserService = Provide[Container.user_service],
 ):
     await state.update_data(history=[])
-    is_new = await service.is_user_new(call.from_user)
-    if is_new:
-        pass
+    user, _ = await service.is_user_new(call.from_user)
     await call.message.edit_text(
         text=f"👋 Привет, *{call.from_user.first_name}*!\n\n"
-             f"🪙 Твой баланс: *200 токенов*\n\n"
-             f"🤖 Текущий ИИ: *GPT-4.5*\n"
+             f"🪙 Твой баланс: *{user.tokens} токенов*\n\n"
+             f"🤖 Текущий ИИ: *{(await state.get_data()).get('mode', BotModeEnum.passive)}*\n"
              f"💸 Цена за запрос: *5 токенов*\n\n"
              f"👇 Что хочешь сделать?",
-        reply_markup=start_keyboard,
+        reply_markup=start_keyboard((await state.get_data()).get('mode', BotModeEnum.passive)),
         parse_mode=ParseMode.MARKDOWN,
     )
 

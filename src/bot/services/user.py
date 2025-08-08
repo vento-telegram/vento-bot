@@ -18,6 +18,6 @@ class UserService(AbcUserService):
             user, is_new = await self._uow.user.get_or_create(user_data)
 
         if is_new:
-            logger.info(f"New user registered: {user_data.telegram_id} - {user_data.first_name} {user_data.last_name}")
+            logger.info(f"New user registered: {user.telegram_id}")
 
         return user, is_new

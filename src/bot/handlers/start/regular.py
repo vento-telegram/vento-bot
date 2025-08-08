@@ -27,13 +27,23 @@ async def start_handler(
     state_data = await state.get_data()
     user, is_new = await service.is_user_new(message.from_user)
     if is_new:
-        pass
+        await message.answer(
+            text=(
+                "🎉 Добро пожаловать, я *Vento*!\n\n"
+                "*Что я умею:*\n"
+                "— 💬 Отвечаю на самые сложные вопросы с помощью GPT-5\n"
+                "— 🎨 Генерирую изображения через DALL·E 3\n\n"
+                "🎁 Тебе уже начислены стартовые токены — можно сразу начать!\n"
+                "Если что, команда /start всегда поможет."
+            ),
+            parse_mode=ParseMode.MARKDOWN,
+        )
     await message.answer(
         text=f"👋 Привет, *{message.from_user.first_name}*!\n\n"
              f"🪙 Твой баланс: *{user.tokens} токенов*\n\n"
-             f"🤖 Текущий ИИ: *{state_data.get("mode")}*\n"
+             f"🤖 Текущий ИИ: *{state_data.get('mode')}*\n"
              f"💸 Цена за запрос: *5 токенов*\n\n"
              f"👇 Что хочешь сделать?",
-        reply_markup=start_keyboard,
+        reply_markup=start_keyboard(state_data.get('mode', BotModeEnum.passive)),
         parse_mode=ParseMode.MARKDOWN,
     )
