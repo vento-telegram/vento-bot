@@ -8,6 +8,7 @@ from aiogram.filters import CommandStart
 from dependency_injector.wiring import inject, Provide
 
 from bot.container import Container
+from bot.enums import BotModeEnum
 from bot.interfaces.services.user import AbcUserService
 from bot.keyboards.start import start_keyboard
 
@@ -22,7 +23,7 @@ async def start_handler(
     state: FSMContext,
     service: AbcUserService = Provide[Container.user_service],
 ):
-    await state.update_data(history=[])
+    await state.update_data(history=[], mode=BotModeEnum.passive)
     state_data = await state.get_data()
     user, is_new = await service.is_user_new(message.from_user)
     if is_new:

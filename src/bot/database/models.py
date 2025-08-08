@@ -29,8 +29,6 @@ class UserOrm(Base, TimeMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     telegram_id: Mapped[int] = mapped_column(unique=True, nullable=False)
-    first_name: Mapped[str] = mapped_column()
-    last_name: Mapped[str | None] = mapped_column(nullable=True)
     username: Mapped[str | None] = mapped_column(nullable=True)
     tokens: Mapped[int] = mapped_column(server_default="0", nullable=False)
 
