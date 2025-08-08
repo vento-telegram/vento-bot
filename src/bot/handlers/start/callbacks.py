@@ -7,6 +7,7 @@ from dependency_injector.wiring import Provide, inject
 from bot.container import Container
 from bot.enums import BotModeEnum
 from bot.interfaces.services.user import AbcUserService
+from bot.interfaces.services.pricing import AbcPricingService
 from bot.keyboards.change_ai import mode_keyboard
 from bot.keyboards.start import account_keyboard, start_keyboard
 
@@ -19,7 +20,7 @@ async def set_mode_chatgpt(call: CallbackQuery, state: FSMContext):
     await call.answer("Режим ChatGPT активирован")
     await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt5))
     await call.message.answer(
-        "🤖 Теперь на твои сообщения будет отвечать *ChatGPT*.\n\n"
+        "🤖 Теперь на твои сообщения будет отвечать *GPT-5*.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
         parse_mode="Markdown",
     )
@@ -30,7 +31,7 @@ async def set_mode_dalle(call: CallbackQuery, state: FSMContext):
     await call.answer("Режим DALL-E активирован")
     await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.dalle3))
     await call.message.answer(
-        "🖼️ Теперь в ответ на твои сообщения *DALL-E* будет генерировать изображения.\n\n"
+        "🖼️ Теперь в ответ на твои сообщения *DALL-E 3* будет генерировать изображения.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
         parse_mode="Markdown",
     )
@@ -57,16 +58,21 @@ async def goto_start(
     call: CallbackQuery,
     state: FSMContext,
     service: AbcUserService = Provide[Container.user_service],
+    pricing: AbcPricingService = Provide[Container.pricing_service],
 ):
     await state.update_data(history=[])
     user, _ = await service.is_user_new(call.from_user)
+    mode = (await state.get_data()).get('mode', BotModeEnum.passive)
+    price = await pricing.get_price_for_mode(mode)
     await call.message.edit_text(
-        text=f"👋 Привет, *{call.from_user.first_name}*!\n\n"
-             f"🪙 Твой баланс: *{user.tokens} токенов*\n\n"
-             f"🤖 Текущий ИИ: *{(await state.get_data()).get('mode', BotModeEnum.passive)}*\n"
-             f"💸 Цена за запрос: *5 токенов*\n\n"
-             f"👇 Что хочешь сделать?",
-        reply_markup=start_keyboard((await state.get_data()).get('mode', BotModeEnum.passive)),
+        text=(
+            f"👋 Привет, *{call.from_user.first_name}*!\n\n"
+            f"🪙 Твой баланс: *{user.balance:g} токенов*\n\n"
+            f"🤖 Текущий ИИ: *{mode}*\n"
+            f"💸 Цена за запрос: *{price} токенов*\n\n"
+            f"👇 Что хочешь сделать?"
+        ),
+        reply_markup=start_keyboard(mode),
         parse_mode=ParseMode.MARKDOWN,
     )
 

@@ -25,3 +25,8 @@ class UserRepo(AbcUserRepo, BaseRepo):
         result = await self.session.execute(stmt)
         user = result.scalar_one()
         return self.map_model_to_entity(user), True
+
+    async def get_by_telegram_id(self, telegram_id: int) -> UserEntity | None:
+        stmt = select(UserOrm).filter_by(telegram_id=telegram_id).limit(1)
+        user = await self.session.scalar(stmt)
+        return self.map_model_to_entity(user) if user else None

@@ -3,10 +3,12 @@ from types import TracebackType
 from typing import Self
 
 from bot.interfaces.repos.user import AbcUserRepo
+from bot.interfaces.repos.model_price import AbcPriceRepo
 
 
 class AbcUnitOfWork(ABC):
     user: AbcUserRepo
+    price: AbcPriceRepo
 
     async def __aenter__(self) -> Self:
         return self

@@ -8,8 +8,10 @@ from openai import OpenAI as OpenAIClient
 from openai import BadRequestError as OpenAIInvalidRequestError
 from openai.types import ImagesResponse
 
+from bot.enums import BotModeEnum
 from bot.errors import OpenAIBadRequestError
 from bot.interfaces.services.gpt import AbcOpenAIService
+from bot.interfaces.services.pricing import AbcPricingService
 from bot.interfaces.uow import AbcUnitOfWork
 from openai.types.chat import (
     ChatCompletionUserMessageParam,
@@ -40,21 +42,28 @@ IMAGE_EXCLUDE_KEYWORDS = [
 logger = logging.getLogger(__name__)
 
 class OpenAIService(AbcOpenAIService):
-    def __init__(self, uow: AbcUnitOfWork, client: OpenAIClient):
+    def __init__(self, uow: AbcUnitOfWork, client: OpenAIClient, pricing_service: AbcPricingService):
         self._uow = uow
         self._client = client
+        self._pricing_service = pricing_service
+        self._gpt5_price_tokens = 5
 
     async def process_gpt_request(self, message: Message, state: FSMContext) -> GPTMessageResponse:
         history: list[ChatCompletionMessageParam] = (await state.get_data()).get("history", [])
 
+        async with self._uow:
+            user = await self._uow.user.get_by_telegram_id(message.from_user.id)
+
+        gpt_model = "gpt-5" if user.balance >= await self._pricing_service.get_price_for_mode(BotModeEnum.gpt5) else "gpt-5-mini"
+
         if message.photo:
-            response = await self._handle_photo(message, history)
+            response = await self._handle_photo(message, history, gpt_model)
 
         elif message.voice:
-            response = await self._handle_voice(message, history)
+            response = await self._handle_voice(message, history, gpt_model)
 
         else:
-            response = await self._handle_text(message, history)
+            response = await self._handle_text(message, history, gpt_model)
 
         await state.update_data(history=history[-10:])
 
@@ -115,7 +124,7 @@ class OpenAIService(AbcOpenAIService):
         return None
 
 
-    async def _handle_photo(self, message: Message, history):
+    async def _handle_photo(self, message: Message, history, model: str):
         photo = message.photo[-1]
         file = await message.bot.get_file(photo.file_id)
         url = f"https://api.telegram.org/file/bot{message.bot.token}/{file.file_path}"
@@ -134,7 +143,7 @@ class OpenAIService(AbcOpenAIService):
                 )
             )
             response = await self._client.chat.completions.create(
-                model="gpt-5",
+                model=model,
                 messages=history,
             )
 
@@ -144,7 +153,7 @@ class OpenAIService(AbcOpenAIService):
 
             return GPTMessageResponse(text=reply)
 
-    async def _handle_voice(self, message: Message, history):
+    async def _handle_voice(self, message: Message, history, model: str):
         file = await message.bot.get_file(message.voice.file_id)
         url = f"https://api.telegram.org/file/bot{message.bot.token}/{file.file_path}"
         transcript = await self._transcribe_audio(url)
@@ -155,7 +164,7 @@ class OpenAIService(AbcOpenAIService):
         else:
             history.append(ChatCompletionUserMessageParam(role="user", content=transcript))
             response = await self._client.chat.completions.create(
-                model="gpt-5",
+                model=model,
                 messages=history,
             )
 
@@ -165,7 +174,7 @@ class OpenAIService(AbcOpenAIService):
 
             return GPTMessageResponse(text=reply)
 
-    async def _handle_text(self, message: Message, history):
+    async def _handle_text(self, message: Message, history, model: str):
         if image_prompt := self._parse_image_prompt(message.text):
             logger.info(f"Detected image generation prompt: {image_prompt}")
             text_message = Message(**{**message.model_dump(), "text": image_prompt})
@@ -173,7 +182,7 @@ class OpenAIService(AbcOpenAIService):
         else:
             history.append(ChatCompletionUserMessageParam(role="user", content=message.text))
             response = await self._client.chat.completions.create(
-                model="gpt-5",
+                model=model,
                 messages=history,
             )
 

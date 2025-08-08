@@ -7,6 +7,7 @@ from bot.database.connection import AlchemyDatabase
 from bot.database.uow import Uow
 from bot.services.gpt import OpenAIService
 from bot.services.user import UserService
+from bot.services.pricing import PricingService
 from bot.settings import settings
 
 
@@ -21,6 +22,7 @@ class Container(containers.DeclarativeContainer):
     storage = providers.Singleton(MemoryStorage)
     dispatcher = providers.Singleton(Dispatcher, storage=storage)
     user_service = providers.Factory(UserService, uow=uow)
+    pricing_service = providers.Factory(PricingService, uow=uow)
     openai_client = providers.Singleton(AsyncOpenAI, api_key=settings.OPENAI.API_KEY)
     openai_service = providers.Factory(OpenAIService, uow=uow, client=openai_client)
 

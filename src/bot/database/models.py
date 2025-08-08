@@ -30,7 +30,15 @@ class UserOrm(Base, TimeMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     telegram_id: Mapped[int] = mapped_column(unique=True, nullable=False)
     username: Mapped[str | None] = mapped_column(nullable=True)
-    tokens: Mapped[int] = mapped_column(server_default="0", nullable=False)
+    balance: Mapped[int] = mapped_column(nullable=False, server_default="0")
 
     def __str__(self):
         return f"{self.telegram_id}"
+
+
+class PriceOrm(Base, TimeMixin):
+    __tablename__ = 'prices'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    key: Mapped[str] = mapped_column(nullable=False, unique=True)
+    price: Mapped[int] = mapped_column(nullable=False, server_default="0")

@@ -10,6 +10,7 @@ from dependency_injector.wiring import inject, Provide
 from bot.container import Container
 from bot.enums import BotModeEnum
 from bot.interfaces.services.user import AbcUserService
+from bot.interfaces.services.pricing import AbcPricingService
 from bot.keyboards.start import start_keyboard
 
 logger = logging.getLogger(__name__)
@@ -21,12 +22,13 @@ router = Router()
 async def start_handler(
     message: Message,
     state: FSMContext,
-    service: AbcUserService = Provide[Container.user_service],
+    user_service: AbcUserService = Provide[Container.user_service],
+    pricing_service: AbcPricingService = Provide[Container.pricing_service],
 ):
-    await state.update_data(history=[], mode=BotModeEnum.passive)
     state_data = await state.get_data()
-    user, is_new = await service.is_user_new(message.from_user)
+    user, is_new = await user_service.is_user_new(message.from_user)
     if is_new:
+        await state.update_data(history=[], mode=BotModeEnum.passive)
         await message.answer(
             text=(
                 "🎉 Добро пожаловать, я *Vento*!\n\n"
@@ -38,12 +40,16 @@ async def start_handler(
             ),
             parse_mode=ParseMode.MARKDOWN,
         )
+    current_mode = state_data.get('mode', BotModeEnum.passive)
+    price = await pricing_service.get_price_for_mode(current_mode)
     await message.answer(
-        text=f"👋 Привет, *{message.from_user.first_name}*!\n\n"
-             f"🪙 Твой баланс: *{user.tokens} токенов*\n\n"
-             f"🤖 Текущий ИИ: *{state_data.get('mode')}*\n"
-             f"💸 Цена за запрос: *5 токенов*\n\n"
-             f"👇 Что хочешь сделать?",
-        reply_markup=start_keyboard(state_data.get('mode', BotModeEnum.passive)),
+        text=(
+            f"👋 Привет, *{message.from_user.first_name}*!\n\n"
+            f"🪙 Твой баланс: *{user.balance:g} токенов*\n\n"
+            f"🤖 Текущий ИИ: *{current_mode}*\n"
+            f"💸 Цена за запрос: *{price} токенов*\n\n"
+            f"👇 Что хочешь сделать?"
+        ),
+        reply_markup=start_keyboard(current_mode),
         parse_mode=ParseMode.MARKDOWN,
     )
