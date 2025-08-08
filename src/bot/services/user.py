@@ -1,6 +1,7 @@
 import logging
+from typing import Tuple
 
-from bot.entities.user import UserDTO
+from bot.entities.user import UserDTO, UserEntity
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.uow import AbcUnitOfWork
 from aiogram.types import User as TelegramUser
@@ -11,7 +12,7 @@ class UserService(AbcUserService):
     def __init__(self, uow: AbcUnitOfWork):
         self._uow = uow
 
-    async def is_user_new(self, telegram_user: TelegramUser) -> bool:
+    async def is_user_new(self, telegram_user: TelegramUser) -> Tuple[UserEntity, bool]:
         user_data = UserDTO(
             telegram_id=telegram_user.id,
             first_name=telegram_user.first_name,
@@ -19,7 +20,7 @@ class UserService(AbcUserService):
             username=telegram_user.username,
         )
         async with self._uow:
-            _, is_new = await self._uow.user.get_or_create(user_data)
+            user, is_new = await self._uow.user.get_or_create(user_data)
 
         if is_new:
             logger.info(
@@ -27,4 +28,4 @@ class UserService(AbcUserService):
             )
 
 
-        return is_new
+        return user, is_new

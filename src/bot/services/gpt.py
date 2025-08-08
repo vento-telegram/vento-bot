@@ -134,7 +134,7 @@ class OpenAIService(AbcOpenAIService):
                 )
             )
             response = await self._client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-5",
                 messages=history,
             )
 
@@ -155,7 +155,7 @@ class OpenAIService(AbcOpenAIService):
         else:
             history.append(ChatCompletionUserMessageParam(role="user", content=transcript))
             response = await self._client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-5",
                 messages=history,
             )
 
@@ -173,7 +173,7 @@ class OpenAIService(AbcOpenAIService):
         else:
             history.append(ChatCompletionUserMessageParam(role="user", content=message.text))
             response = await self._client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-5",
                 messages=history,
             )
 

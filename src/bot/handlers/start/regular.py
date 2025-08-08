@@ -23,13 +23,14 @@ async def start_handler(
     service: AbcUserService = Provide[Container.user_service],
 ):
     await state.update_data(history=[])
-    is_new = await service.is_user_new(message.from_user)
+    state_data = await state.get_data()
+    user, is_new = await service.is_user_new(message.from_user)
     if is_new:
         pass
     await message.answer(
         text=f"👋 Привет, *{message.from_user.first_name}*!\n\n"
-             f"🪙 Твой баланс: *200 токенов*\n\n"
-             f"🤖 Текущий ИИ: *GPT-4.5*\n"
+             f"🪙 Твой баланс: *{user.tokens} токенов*\n\n"
+             f"🤖 Текущий ИИ: *{state_data.get("mode")}*\n"
              f"💸 Цена за запрос: *5 токенов*\n\n"
              f"👇 Что хочешь сделать?",
         reply_markup=start_keyboard,

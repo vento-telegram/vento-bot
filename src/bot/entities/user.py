@@ -9,6 +9,7 @@ class UserDTO(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     username: str | None = None
+    tokens: int | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC).replace(tzinfo=None))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC).replace(tzinfo=None))
 

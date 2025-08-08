@@ -15,9 +15,9 @@ router = Router()
 
 @router.callback_query(F.data == "set_mode:chatgpt")
 async def set_mode_chatgpt(call: CallbackQuery, state: FSMContext):
-    await state.update_data(mode=BotModeEnum.chatgpt)
+    await state.update_data(mode=BotModeEnum.gpt5)
     await call.answer("Режим ChatGPT активирован")
-    await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.chatgpt))
+    await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt5))
     await call.message.answer(
         "🤖 Теперь на твои сообщения будет отвечать *ChatGPT*.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
@@ -26,9 +26,9 @@ async def set_mode_chatgpt(call: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "set_mode:dalle")
 async def set_mode_dalle(call: CallbackQuery, state: FSMContext):
-    await state.update_data(mode=BotModeEnum.dalle)
+    await state.update_data(mode=BotModeEnum.dalle3)
     await call.answer("Режим DALL-E активирован")
-    await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.dalle))
+    await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.dalle3))
     await call.message.answer(
         "🖼️ Теперь в ответ на твои сообщения *DALL-E* будет генерировать изображения.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
@@ -71,3 +71,12 @@ async def goto_start(
         reply_markup=start_keyboard,
         parse_mode=ParseMode.MARKDOWN,
     )
+
+@router.callback_query(F.data == "goto:switch")
+async def goto_switch(call: CallbackQuery):
+    await call.message.edit_text(
+        text="👇 Выбери режим, в котором будем работать:",
+        reply_markup=mode_keyboard(BotModeEnum.passive),
+        parse_mode=ParseMode.MARKDOWN,
+    )
+    await call.answer("Выбери режим работы")

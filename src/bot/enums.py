@@ -2,7 +2,7 @@ from enum import StrEnum, auto
 
 
 class BotModeEnum(StrEnum):
-    passive = auto()
-    chatgpt = auto()
-    dalle = auto()
-    veo = auto()
+    passive = "Не выбрано"
+    gpt5 = "GPT-5"
+    dalle3 = "DALL-E 3"
+    veo = "Veo-3"

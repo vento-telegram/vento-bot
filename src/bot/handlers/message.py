@@ -35,7 +35,7 @@ async def common_message_handler(
     state_data = await state.get_data()
     mode = state_data.get("mode")
 
-    if mode == BotModeEnum.chatgpt:
+    if mode == BotModeEnum.gpt5:
         status_msg = await message.answer("🔄 *Генерация ответа...*", parse_mode="Markdown")
         try:
             response = await openai_service.process_gpt_request(message, state)
@@ -46,7 +46,7 @@ async def common_message_handler(
         except OpenAIBadRequestError:
             await status_msg.edit_text("❗️ *OpenAI отклонил твой запрос :(*\nПожалуйста, попробуй изменить его.", parse_mode="Markdown")
 
-    elif mode == BotModeEnum.dalle:
+    elif mode == BotModeEnum.dalle3:
         status_msg = await message.answer("🔄 *Генерация изображения...*", parse_mode="Markdown")
         try:
             response = await openai_service.process_dalle_request(message)

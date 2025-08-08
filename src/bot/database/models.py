@@ -32,6 +32,7 @@ class UserOrm(Base, TimeMixin):
     first_name: Mapped[str] = mapped_column()
     last_name: Mapped[str | None] = mapped_column(nullable=True)
     username: Mapped[str | None] = mapped_column(nullable=True)
+    tokens: Mapped[int] = mapped_column(server_default="0", nullable=False)
 
     def __str__(self):
         return f"{self.telegram_id}"
