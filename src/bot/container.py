@@ -21,10 +21,10 @@ class Container(containers.DeclarativeContainer):
     bot = providers.Singleton(Bot, token=settings.MAIN_TOKEN)
     storage = providers.Singleton(MemoryStorage)
     dispatcher = providers.Singleton(Dispatcher, storage=storage)
-    user_service = providers.Factory(UserService, uow=uow)
     pricing_service = providers.Factory(PricingService, uow=uow)
+    user_service = providers.Factory(UserService, uow=uow)
     openai_client = providers.Singleton(AsyncOpenAI, api_key=settings.OPENAI.API_KEY)
-    openai_service = providers.Factory(OpenAIService, uow=uow, client=openai_client)
+    openai_service = providers.Factory(OpenAIService, uow=uow, client=openai_client, pricing_service=pricing_service)
 
 
 @asynccontextmanager

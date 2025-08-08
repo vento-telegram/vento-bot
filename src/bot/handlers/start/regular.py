@@ -47,7 +47,7 @@ async def start_handler(
             f"👋 Привет, *{message.from_user.first_name}*!\n\n"
             f"🪙 Твой баланс: *{user.balance:g} токенов*\n\n"
             f"🤖 Текущий ИИ: *{current_mode}*\n"
-            f"💸 Цена за запрос: *{price} токенов*\n\n"
+            f"💸 Цена запроса: *{price} токенов*\n\n"
             f"👇 Что хочешь сделать?"
         ),
         reply_markup=start_keyboard(current_mode),

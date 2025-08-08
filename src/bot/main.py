@@ -6,7 +6,6 @@ from dependency_injector.wiring import Provide, inject
 
 from bot.container import Container
 from bot.container import lifecycle
-from bot.enums import BotModeEnum
 from bot.handlers import router
 
 logging.basicConfig(level=logging.DEBUG)

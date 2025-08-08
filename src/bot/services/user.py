@@ -21,3 +21,8 @@ class UserService(AbcUserService):
             logger.info(f"New user registered: {user.telegram_id}")
 
         return user, is_new
+
+    async def get_user(self, telegram_id: int) -> UserEntity | None:
+        async with self._uow:
+            user = await self._uow.user.get_by_telegram_id(telegram_id)
+        return user

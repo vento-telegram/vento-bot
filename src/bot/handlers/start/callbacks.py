@@ -37,20 +37,28 @@ async def set_mode_dalle(call: CallbackQuery, state: FSMContext):
     )
 
 @router.callback_query(F.data == "goto:account")
-async def goto_account(call: CallbackQuery):
+@inject
+async def goto_account(
+    call: CallbackQuery,
+    service: AbcUserService = Provide[Container.user_service],
+):
+    await call.answer()
+
     first_name = call.from_user.first_name
     last_name = call.from_user.last_name if call.from_user.last_name else None
     username = call.from_user.username if call.from_user.username else None
+    user = await service.get_user(call.from_user.id)
     await call.message.edit_text(
         text=f"🎟️ *Аккаунт*\n\n"
-             f"*{first_name}{f" {last_name}" if last_name else ""}{f" (@{username})" if username else ""}*\n\n"
-             f"🪙 Баланс: *200* токенов\n\n"
-             f"🎁 Ежедневное пополнение: *200* токенов\n"
-             f"📊 Лимит бесплатного пополнения: *300* токенов\n\n"
+             f"🐻‍❄️ *{first_name}{f" {last_name}" if last_name else ""}{f" (@{username})" if username else ""}*\n\n"
+             f"🪙 Баланс: *{user.balance}* токенов\n"
+             f"🎁 Ежедневно: *+200* токенов\n\n"
              f"👇 Действия:",
         reply_markup=account_keyboard,
         parse_mode=ParseMode.MARKDOWN,
     )
+
+
 
 @router.callback_query(F.data == "goto:start")
 @inject
@@ -60,6 +68,8 @@ async def goto_start(
     service: AbcUserService = Provide[Container.user_service],
     pricing: AbcPricingService = Provide[Container.pricing_service],
 ):
+    await call.answer()
+
     await state.update_data(history=[])
     user, _ = await service.is_user_new(call.from_user)
     mode = (await state.get_data()).get('mode', BotModeEnum.passive)
@@ -69,7 +79,7 @@ async def goto_start(
             f"👋 Привет, *{call.from_user.first_name}*!\n\n"
             f"🪙 Твой баланс: *{user.balance:g} токенов*\n\n"
             f"🤖 Текущий ИИ: *{mode}*\n"
-            f"💸 Цена за запрос: *{price} токенов*\n\n"
+            f"💸 Цена запроса: *{price} токенов*\n\n"
             f"👇 Что хочешь сделать?"
         ),
         reply_markup=start_keyboard(mode),
@@ -79,7 +89,7 @@ async def goto_start(
 @router.callback_query(F.data == "goto:switch")
 async def goto_switch(call: CallbackQuery):
     await call.message.edit_text(
-        text="👇 Выбери режим, в котором будем работать:",
+        text="👇 Выбери нужный ИИ:",
         reply_markup=mode_keyboard(BotModeEnum.passive),
         parse_mode=ParseMode.MARKDOWN,
     )
