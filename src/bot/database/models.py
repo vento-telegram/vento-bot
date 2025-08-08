@@ -42,3 +42,13 @@ class PriceOrm(Base, TimeMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     key: Mapped[str] = mapped_column(nullable=False, unique=True)
     price: Mapped[int] = mapped_column(nullable=False, server_default="0")
+
+
+class LedgerOrm(Base, TimeMixin):
+    __tablename__ = 'ledger'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(nullable=False)
+    delta: Mapped[int] = mapped_column(nullable=False)
+    reason: Mapped[str] = mapped_column(nullable=False)
+    meta: Mapped[str | None] = mapped_column(nullable=True)

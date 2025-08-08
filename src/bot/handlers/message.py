@@ -7,7 +7,7 @@ from dependency_injector.wiring import inject, Provide
 
 from bot.container import Container
 from bot.enums import BotModeEnum
-from bot.errors import OpenAIBadRequestError
+from bot.errors import OpenAIBadRequestError, InsufficientBalanceError
 from bot.interfaces.services.gpt import AbcOpenAIService
 from bot.keyboards.change_ai import mode_keyboard
 
@@ -43,6 +43,8 @@ async def common_message_handler(
                 await message.answer_photo(response.image_url, caption="🖼️ Вот твоё изображение\n\n[Сделано в Vento](https://t.me/vento_toolbot)", parse_mode="Markdown")
             else:
                 await status_msg.edit_text(response.text, parse_mode="Markdown")
+        except InsufficientBalanceError:
+            await status_msg.edit_text("❗️ Недостаточно токенов для запроса. Пополни баланс или попробуй позже.", parse_mode="Markdown")
         except OpenAIBadRequestError:
             await status_msg.edit_text("❗️ *OpenAI отклонил твой запрос :(*\nПожалуйста, попробуй изменить его.", parse_mode="Markdown")
 
@@ -51,6 +53,8 @@ async def common_message_handler(
         try:
             response = await openai_service.process_dalle_request(message)
             await message.answer_photo(response.image_url, caption="🖼️ Вот твоё изображение\n\n[Сделано в Vento](https://t.me/vento_toolbot)", parse_mode="Markdown")
+        except InsufficientBalanceError:
+            await status_msg.edit_text("❗️ Недостаточно токенов для генерации DALL·E 3.", parse_mode="Markdown")
         except OpenAIBadRequestError:
             await status_msg.edit_text("❗️ *К сожалению, OpenAI отклонил ваш запрос*\nПожалуйста, попробуйте изменить его.", parse_mode="Markdown")
 

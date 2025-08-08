@@ -1,4 +1,4 @@
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, update
 
 from bot.database.models import UserOrm
 from bot.entities.user import UserEntity, UserDTO
@@ -29,4 +29,26 @@ class UserRepo(AbcUserRepo, BaseRepo):
     async def get_by_telegram_id(self, telegram_id: int) -> UserEntity | None:
         stmt = select(UserOrm).filter_by(telegram_id=telegram_id).limit(1)
         user = await self.session.scalar(stmt)
+        return self.map_model_to_entity(user) if user else None
+
+    async def update_balance_by_telegram_id(self, telegram_id: int, delta: int) -> UserEntity | None:
+        stmt = (
+            update(UserOrm)
+            .where(UserOrm.telegram_id == telegram_id)
+            .values(balance=UserOrm.balance + delta)
+            .returning(UserOrm)
+        )
+        result = await self.session.execute(stmt)
+        user = result.scalar_one_or_none()
+        return self.map_model_to_entity(user) if user else None
+
+    async def update_balance_by_user_id(self, user_id: int, delta: int) -> UserEntity | None:
+        stmt = (
+            update(UserOrm)
+            .where(UserOrm.id == user_id)
+            .values(balance=UserOrm.balance + delta)
+            .returning(UserOrm)
+        )
+        result = await self.session.execute(stmt)
+        user = result.scalar_one_or_none()
         return self.map_model_to_entity(user) if user else None

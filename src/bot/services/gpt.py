@@ -9,7 +9,7 @@ from openai import BadRequestError as OpenAIInvalidRequestError
 from openai.types import ImagesResponse
 
 from bot.enums import BotModeEnum
-from bot.errors import OpenAIBadRequestError
+from bot.errors import OpenAIBadRequestError, InsufficientBalanceError
 from bot.interfaces.services.gpt import AbcOpenAIService
 from bot.interfaces.services.pricing import AbcPricingService
 from bot.interfaces.uow import AbcUnitOfWork
@@ -53,8 +53,33 @@ class OpenAIService(AbcOpenAIService):
 
         async with self._uow:
             user = await self._uow.user.get_by_telegram_id(message.from_user.id)
+            # Determine model and charge
+            gpt5_price = await self._pricing_service.get_price_for_mode(BotModeEnum.gpt5)
+            mini_price = await self._pricing_service.get_price_for_mode(BotModeEnum.gpt5_mini)
+            if user.balance >= gpt5_price:
+                gpt_model = "gpt-5"
+                charge = gpt5_price
+                reason = "gpt-5 request"
+            elif user.balance >= mini_price:
+                gpt_model = "gpt-5-mini"
+                charge = mini_price
+                reason = "gpt-5-mini request"
+            else:
+                raise InsufficientBalanceError
 
-        gpt_model = "gpt-5" if user.balance >= await self._pricing_service.get_price_for_mode(BotModeEnum.gpt5) else "gpt-5-mini"
+            # If user intended GPT-5 but we have to use mini, notify and switch FSM mode
+            state_mode = (await state.get_data()).get("mode")
+            if state_mode == BotModeEnum.gpt5 and gpt_model == "gpt-5-mini":
+                await state.update_data(mode=BotModeEnum.gpt5_mini)
+                await message.answer("ℹ️ Недостаточно токенов для GPT‑5 — переключаю на GPT‑5 Mini.")
+
+            # Charge now atomically and write ledger
+            updated_user = await self._uow.user.update_balance_by_user_id(user.id, -charge)
+            from bot.entities.ledger import LedgerEntity
+            await self._uow.ledger.add(LedgerEntity(user_id=user.id, delta=-charge, reason=reason, meta=message.text))
+            user = updated_user if updated_user else user
+
+        
 
         if message.photo:
             response = await self._handle_photo(message, history, gpt_model)
@@ -70,6 +95,16 @@ class OpenAIService(AbcOpenAIService):
         return response
 
     async def process_dalle_request(self, message: Message, history: list[ChatCompletionMessageParam] | None = None):
+        # Ensure balance and charge
+        async with self._uow:
+            user = await self._uow.user.get_by_telegram_id(message.from_user.id)
+            dalle_price = await self._pricing_service.get_price_for_mode(BotModeEnum.dalle3)
+            if user.balance < dalle_price:
+                raise InsufficientBalanceError
+            user.balance -= dalle_price
+            from bot.entities.ledger import LedgerEntity
+            await self._uow.ledger.add(LedgerEntity(user_id=user.id, delta=-dalle_price, reason="dalle3 image", meta=message.text))
+
         try:
             response: ImagesResponse = await self._client.images.generate(
                 model="dall-e-3",
@@ -131,6 +166,7 @@ class OpenAIService(AbcOpenAIService):
         if image_prompt := self._parse_image_prompt(message.caption) if message.caption else None:
             logger.info(f"Detected image generation prompt: {image_prompt}")
             text_message = Message(**{**message.model_dump(), "text": image_prompt})
+            # Delegate to DALL·E generation; it will handle balance charging and history
             return await self.process_dalle_request(text_message, history)
         else:
             history.append(
