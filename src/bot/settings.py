@@ -22,6 +22,15 @@ class OpenAISettings(BaseSettings):
     API_KEY: str
 
 
+class LavaSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="LAVA__",
+        env_file=".env",
+        extra="ignore",
+    )
+    API_KEY: str
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -30,6 +39,7 @@ class Settings(BaseSettings):
     WELCOME_BONUS_AMOUNT: int = 150
     POSTGRES: PostgresSettings = PostgresSettings()
     OPENAI: OpenAISettings = OpenAISettings()
+    LAVA: LavaSettings = LavaSettings()
 
 
 settings = Settings()

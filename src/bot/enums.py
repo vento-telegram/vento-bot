@@ -13,3 +13,4 @@ class LedgerReasonEnum(StrEnum):
     gpt5_request = auto()
     gpt5_mini_request = auto()
     dalle3_image = auto()
+    purchase_tokens = auto()
