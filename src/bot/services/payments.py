@@ -61,15 +61,6 @@ class PaymentsService(AbcPaymentsService):
             return pay_url
 
     async def handle_webhook(self, payload: dict) -> None:
-        """
-        Expected payload example:
-        {
-          "eventType": "payment.success",
-          "buyer": {"email": "<telegram_id>@mail.com"},
-          "amount": 1000.00,
-          ...
-        }
-        """
         event_type = payload.get("eventType")
         if event_type != "payment.success":
             return
@@ -85,8 +76,6 @@ class PaymentsService(AbcPaymentsService):
             logger.warning("Webhook email doesn't contain telegram id: %s", email)
             return
 
-        # Determine purchased tokens by matching product/contract to offers.
-        # We can't rely on amount rub here due to bonuses, so we map by product.id if present.
         tokens = None
         product = payload.get("product") or {}
         product_id = product.get("id")
@@ -96,10 +85,8 @@ class PaymentsService(AbcPaymentsService):
                     tokens = t
                     break
 
-        # Fallback: infer by approximate RUB amount if product id isn't present
         if tokens is None:
             rub = float(payload.get("amount") or 0)
-            # simple mapping by price
             if 90 <= rub < 150:
                 tokens = 1000
             elif 450 <= rub < 650:

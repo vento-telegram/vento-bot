@@ -6,6 +6,5 @@ bukhavets.com {
         reverse_proxy bot:8080
     }
 
-    # fallback для всех остальных путей
     respond 404
 }

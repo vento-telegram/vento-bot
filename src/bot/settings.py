@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     )
     MAIN_TOKEN: str
     WELCOME_BONUS_AMOUNT: int = 150
+    PAYMENTS_WEBHOOK_API_KEY: str
     POSTGRES: PostgresSettings = PostgresSettings()
     OPENAI: OpenAISettings = OpenAISettings()
     LAVA: LavaSettings = LavaSettings()

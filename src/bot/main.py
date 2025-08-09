@@ -1,4 +1,6 @@
 import asyncio
+import base64
+import hmac
 import logging
 
 from aiogram import Bot, Dispatcher
@@ -9,8 +11,24 @@ from bot.container import Container
 from bot.container import lifecycle
 from bot.handlers import router
 from bot.interfaces.services.payments import AbcPaymentsService
+from bot.settings import settings
 
 logging.basicConfig(level=logging.DEBUG)
+
+logger = logging.getLogger(__name__)
+
+def _safe_eq(a: str, b: str) -> bool:
+    a = a or ""
+    b = b or ""
+    try:
+        return hmac.compare_digest(a, b)
+    except Exception:
+        return False
+
+def _check_api_key(request: web.Request, api_key: str) -> bool:
+    if _safe_eq(request.headers.get("X-Api-Key"), api_key):
+        return True
+    return False
 
 @inject
 async def _run(
@@ -24,7 +42,17 @@ async def _run(
     app = web.Application()
 
     async def webhook(request: web.Request) -> web.Response:
-        payload = await request.json()
+        logger.info(f"Webhook received for {request.method} {request.path}. Headers: {request.headers}. Payload: {await request.text()}")
+        ok = _check_api_key(request, settings.PAYMENTS_WEBHOOK_API_KEY)
+        if not ok:
+            return web.Response(status=401, text="Unauthorized")
+
+        # ---- payload ----
+        try:
+            payload = await request.json()
+        except Exception:
+            return web.Response(status=400, text="Bad JSON")
+
         await payments.handle_webhook(payload)
         return web.Response(status=200, text="OK")
 
