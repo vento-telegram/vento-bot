@@ -1,7 +1,7 @@
 from datetime import datetime, UTC
 from typing import Annotated
 
-from sqlalchemy import MetaData, func
+from sqlalchemy import MetaData, func, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, declarative_mixin, DeclarativeBase
 
 metadata = MetaData()
@@ -31,6 +31,8 @@ class UserOrm(Base, TimeMixin):
     telegram_id: Mapped[int] = mapped_column(unique=True, nullable=False)
     username: Mapped[str | None] = mapped_column(nullable=True)
     balance: Mapped[int] = mapped_column(nullable=False, server_default="0")
+    is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    is_blocked: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
 
     def __str__(self):
         return f"{self.telegram_id}"
@@ -42,3 +44,13 @@ class PriceOrm(Base, TimeMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     key: Mapped[str] = mapped_column(nullable=False, unique=True)
     price: Mapped[int] = mapped_column(nullable=False, server_default="0")
+
+
+class LedgerOrm(Base, TimeMixin):
+    __tablename__ = 'ledger'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(nullable=False)
+    delta: Mapped[int] = mapped_column(nullable=False)
+    reason: Mapped[str] = mapped_column(nullable=False)
+    meta: Mapped[str | None] = mapped_column(nullable=True)

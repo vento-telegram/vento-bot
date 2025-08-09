@@ -1,4 +1,4 @@
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, update
 
 from bot.database.models import UserOrm
 from bot.entities.user import UserEntity, UserDTO

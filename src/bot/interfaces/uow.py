@@ -4,11 +4,13 @@ from typing import Self
 
 from bot.interfaces.repos.user import AbcUserRepo
 from bot.interfaces.repos.model_price import AbcPriceRepo
+from bot.interfaces.repos.ledger import AbcLedgerRepo
 
 
 class AbcUnitOfWork(ABC):
     user: AbcUserRepo
     price: AbcPriceRepo
+    ledger: AbcLedgerRepo
 
     async def __aenter__(self) -> Self:
         return self

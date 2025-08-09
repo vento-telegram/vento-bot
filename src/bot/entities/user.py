@@ -8,6 +8,8 @@ class UserDTO(BaseModel):
     telegram_id: int | None = None
     username: str | None = None
     balance: int | None = None
+    is_admin: bool | None = None
+    is_blocked: bool | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC).replace(tzinfo=None))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC).replace(tzinfo=None))
 

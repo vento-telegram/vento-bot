@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from bot.interfaces.uow import AbcUnitOfWork
 from bot.repos.user import UserRepo
 from bot.repos.model_price import PriceRepo
+from bot.repos.ledger import LedgerRepo
 
 
 class Uow(AbcUnitOfWork):
@@ -14,6 +15,7 @@ class Uow(AbcUnitOfWork):
 
         self.user = UserRepo(self.session)
         self.price = PriceRepo(self.session)
+        self.ledger = LedgerRepo(self.session)
 
         return await super().__aenter__()
 

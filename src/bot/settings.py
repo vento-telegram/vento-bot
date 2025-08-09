@@ -27,6 +27,7 @@ class Settings(BaseSettings):
         env_file=".env",
     )
     MAIN_TOKEN: str
+    WELCOME_BONUS_AMOUNT: int = 150
     POSTGRES: PostgresSettings = PostgresSettings()
     OPENAI: OpenAISettings = OpenAISettings()
 
