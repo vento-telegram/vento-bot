@@ -1,0 +1,11 @@
+bukhavets.com {
+    encode gzip
+    log
+
+    handle /lava/webhook* {
+        reverse_proxy bot:8080
+    }
+
+    # fallback для всех остальных путей
+    respond 404
+}
