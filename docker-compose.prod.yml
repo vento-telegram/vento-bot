@@ -25,14 +25,13 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
-    # Передаём Alembic синхронный URL через переменную среды
-    command: sh -c "DATABASE_URL=${POSTGRES__SYNC_URI} alembic upgrade head && python cli.py start"
+    command: sh -c " alembic upgrade head && python cli.py start"
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
     expose:
-      - "8080"   # только во внутренней сети
+      - "8080"
     networks: [internal]
 
   caddy:
