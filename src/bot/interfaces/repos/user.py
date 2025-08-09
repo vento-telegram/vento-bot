@@ -6,6 +6,10 @@ from bot.interfaces.repos.base import AbcRepo
 
 class AbcUserRepo(AbcRepo[UserEntity]):
     @abstractmethod
+    async def get_by_id(self, user_id: int) -> UserEntity | None:
+        """Fetch a user by id or return None if not found."""
+
+    @abstractmethod
     async def get_or_create(self, user: UserDTO) -> tuple[UserEntity, bool]:
         """Get or create a user entity."""
 
