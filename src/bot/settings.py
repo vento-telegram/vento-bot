@@ -49,7 +49,7 @@ class Settings(BaseSettings):
         env_file=".env",
     )
     MAIN_TOKEN: str
-    WELCOME_BONUS_AMOUNT: int = 1000
+    WELCOME_BONUS_AMOUNT: int = 150
     # Removed external payments webhook
     POSTGRES: PostgresSettings = PostgresSettings()
     OPENAI: OpenAISettings = OpenAISettings()
