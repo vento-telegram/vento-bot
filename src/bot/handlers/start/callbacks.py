@@ -303,11 +303,11 @@ async def stars_create_invoice(
 
     # Convert tokens to stars based on your mapping (1 ₽ ~= 1 ⭐ in your tiers)
     token_to_star = {
-        1000: 100,
-        5500: 500,
-        12000: 1000,
-        32500: 2500,
-        70000: 5000,
+        1000: 170,
+        5000: 810,
+        10500: 1650,
+        21600: 3300,
+        55500: 8100,
     }
     stars = token_to_star.get(amount_tokens)
     if not stars:

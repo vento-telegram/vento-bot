@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 
 _OFFER_BY_TOKENS: dict[int, str] = {
     1000: "a69b0010-7c27-4014-ab49-5aaf83e03dac",
-    5500: "423bce7a-8f67-42aa-bb13-64540dad285b",
-    12000: "e59c2ed6-b031-4320-9f90-bee50d6a1f87",
-    32500: "cbaa6578-9b2c-40ae-91b8-c95491b1e2e8",
-    70000: "c36bfcec-97ba-4732-9e8d-2e2cb9f0aceb",
+    5000: "423bce7a-8f67-42aa-bb13-64540dad285b",
+    10500: "e59c2ed6-b031-4320-9f90-bee50d6a1f87",
+    21600: "cbaa6578-9b2c-40ae-91b8-c95491b1e2e8",
+    55500: "c36bfcec-97ba-4732-9e8d-2e2cb9f0aceb",
 }
 
 
@@ -89,16 +89,16 @@ class PaymentsService(AbcPaymentsService):
 
         if tokens is None:
             rub = float(payload.get("amount") or 0)
-            if 90 <= rub < 150:
+            if rub == 100:
                 tokens = 1000
-            elif 450 <= rub < 650:
-                tokens = 5500
-            elif 900 <= rub < 1500:
-                tokens = 12000
-            elif 2000 <= rub < 3000:
-                tokens = 32500
-            elif 4500 <= rub < 5500:
-                tokens = 70000
+            elif rub == 500:
+                tokens = 5000
+            elif rub == 1000:
+                tokens = 10500
+            elif rub == 2000:
+                tokens = 21600
+            elif rub == 5000:
+                tokens = 55500
 
         if not tokens:
             logger.error("Cannot determine tokens for webhook: %s", payload)
