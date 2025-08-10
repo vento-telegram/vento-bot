@@ -5,6 +5,7 @@ from typing import Final
 from aiohttp import ClientSession
 from aiogram.types import Message
 
+from bot.entities.ledger import LedgerEntity
 from bot.enums import BotModeEnum, LedgerReasonEnum
 from bot.errors import InsufficientBalanceError, OpenAIBadRequestError
 from bot.interfaces.services.veo import AbcVeoService
@@ -30,9 +31,7 @@ class VeoService(AbcVeoService):
                 raise InsufficientBalanceError
             updated_user = await self._uow.user.update_balance_by_user_id(user.id, -price)
             created_ledger = await self._uow.ledger.add(
-                # type: ignore[name-defined]
-                # Import locally to avoid circular imports
-                __import__("bot.entities.ledger").bot.entities.ledger.LedgerEntity(
+                LedgerEntity(
                     user_id=user.id, delta=-price, reason=LedgerReasonEnum.veo_video, meta=message.text
                 )
             )
