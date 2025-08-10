@@ -249,7 +249,7 @@ class OpenAIService(AbcOpenAIService):
             return False
         # Basic fast-path keywords
         fast_keywords = [
-            "отредакт", "редакт", "измени", "изменить", "дорису", "добав", "убер", "удал", "замени", "перекрас", "фон", "маска",
+            "отредакт", "редакт", "измени", "изменить", "дорису", "добав", "убер", "удал", "замени", "перекрас", "фон", "маска", "сдела",
             "edit", "change", "replace", "remove", "retouch", "fix", "erase", "add",
         ]
         if any(k in lowered for k in fast_keywords):
