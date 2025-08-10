@@ -40,6 +40,16 @@ class VeoSettings(BaseSettings):
     NEXUS_API_KEY: str = ""
 
 
+class KieSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="KIE__",
+        env_file=".env",
+        extra="ignore",
+    )
+    # NOTE: override via env KIE__API_KEY in production
+    API_KEY: str
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -51,6 +61,7 @@ class Settings(BaseSettings):
     OPENAI: OpenAISettings = OpenAISettings()
     LAVA: LavaSettings = LavaSettings()
     VEO: VeoSettings = VeoSettings()
+    KIE: KieSettings = KieSettings()
 
 
 settings = Settings()

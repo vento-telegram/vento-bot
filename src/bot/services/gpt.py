@@ -22,6 +22,7 @@ from openai.types.chat import (
 )
 
 from bot.schemas import GPTMessageResponse
+from bot.settings import settings
 
 IMAGE_PROMPT_PATTERNS = [
     r"(?:^|\s)!draw\s*[:\-]?\s*(.+)",
@@ -39,6 +40,12 @@ IMAGE_PROMPT_PATTERNS = [
 
 IMAGE_EXCLUDE_KEYWORDS = [
     "словами", "опиши", "текстом", "расскажи", "в виде текста"
+]
+
+# Edit intent patterns for image edits like "добавь", "удали", "сделай фон прозрачным", etc.
+IMAGE_EDIT_PATTERNS = [
+    r"(?:^|\s)(?:измени|отредактируй|редактируй|подредактируй|дорисуй|добавь|убери|удали|замени|перекрась|изменить|ретачь|исправь)\b[\s\S]*",
+    r"(?:^|\s)(?:edit|change|replace|remove|add|retouch|fix|erase)\b[\s\S]*",
 ]
 
 logger = logging.getLogger(__name__)
@@ -77,6 +84,18 @@ class OpenAIService(AbcOpenAIService):
             await state.update_data(history=history[-20:])
             return dalle_response
 
+        # Special case: if user sent an image and asks to edit it, route to KIE 4o-image edit
+        if (message.photo or (message.document and message.document.mime_type and message.document.mime_type.startswith("image/"))):
+            edit_caption = message.caption or ""
+            if self._is_image_edit_request(edit_caption):
+                logger.info("Detected image edit intent; routing to KIE 4o-image")
+                try:
+                    result_url = await self._kie_edit_image(message)
+                    return GPTMessageResponse(image_url=result_url)
+                except Exception:
+                    logger.exception("KIE 4o-image edit failed; falling back to vision chat")
+                    # fall back to normal photo handling
+
         async with self._uow:
             user = await self._uow.user.get_by_telegram_id(message.from_user.id)
             gpt_model, charge, reason = await self._select_model_and_charge(user_balance=user.balance)
@@ -112,9 +131,20 @@ class OpenAIService(AbcOpenAIService):
             if user.balance < dalle_price:
                 raise InsufficientBalanceError
             updated_user, created_ledger = await self._deduct_balance_and_create_ledger(
-                user_id=user.id, amount=dalle_price, reason=LedgerReasonEnum.dalle3_image, meta=message.text
+                user_id=user.id, amount=dalle_price, reason=LedgerReasonEnum.dalle3_image, meta=(message.text or message.caption)
             )
 
+        # If the user attached an image and asked to edit, route to KIE
+        if (message.photo or (message.document and message.document.mime_type and message.document.mime_type.startswith("image/"))) and self._is_image_edit_request(message.caption or ""):
+            result_url = await self._kie_edit_image(message)
+            await self._safe_update_ledger_meta(
+                ledger_id=created_ledger.id,
+                request_text=message.caption or "",
+                response=GPTMessageResponse(image_url=result_url),
+            )
+            return GPTMessageResponse(image_url=result_url)
+
+        # Else, standard DALL·E generation from prompt
         try:
             response: ImagesResponse = await self._client.images.generate(
                 model="dall-e-3",
@@ -134,7 +164,7 @@ class OpenAIService(AbcOpenAIService):
             request_text=message.text or "",
             response=GPTMessageResponse(image_url=image_result_url),
         )
-        if history is not None:
+        if history is not None and message.text:
             history.append(
                 ChatCompletionUserMessageParam(
                     role="user",
@@ -209,6 +239,24 @@ class OpenAIService(AbcOpenAIService):
                 return next((g for g in groups if g), None)
         return None
 
+    @staticmethod
+    def _is_image_edit_request(text: str) -> bool:
+        lowered = (text or "").lower()
+        if not lowered:
+            return False
+        # Basic fast-path keywords
+        fast_keywords = [
+            "отредакт", "редакт", "измени", "изменить", "дорису", "добав", "убер", "удал", "замени", "перекрас", "фон", "маска",
+            "edit", "change", "replace", "remove", "retouch", "fix", "erase", "add",
+        ]
+        if any(k in lowered for k in fast_keywords):
+            return True
+        # Regex backup
+        for p in IMAGE_EDIT_PATTERNS:
+            if re.search(p, lowered, re.IGNORECASE):
+                return True
+        return False
+
 
     async def _handle_photo(self, message: Message, history, model: str):
         photo = message.photo[-1]
@@ -227,6 +275,73 @@ class OpenAIService(AbcOpenAIService):
         history.append(ChatCompletionAssistantMessageParam(role="assistant", content=reply))
 
         return GPTMessageResponse(text=reply), (message.caption or "Посмотри на изображение")
+
+    async def _kie_edit_image(self, message: Message) -> str:
+        # Collect source image URL(s)
+        files_urls: list[str] = []
+        if message.photo:
+            photo = message.photo[-1]
+            url = await self._get_telegram_file_url(message.bot, photo.file_id)
+            files_urls.append(url)
+        elif message.document and message.document.mime_type and message.document.mime_type.startswith("image/"):
+            url = await self._get_telegram_file_url(message.bot, message.document.file_id)
+            files_urls.append(url)
+
+        if not files_urls:
+            raise ValueError("No image to edit")
+
+        payload = {
+            "filesUrl": files_urls,
+            "prompt": message.caption or "Edit the image as requested",
+            "size": "1:1",
+            "isEnhance": False,
+            "uploadCn": False,
+            "nVariants": 1,
+            "enableFallback": False,
+            "fallbackModel": "FLUX_MAX",
+        }
+
+        headers = {
+            "Authorization": f"Bearer {settings.KIE.API_KEY}",
+            "Content-Type": "application/json",
+        }
+
+        # submit task
+        async with ClientSession(timeout=None) as session:
+            async with session.post(
+                "https://api.kie.ai/api/v1/gpt4o-image/generate",
+                json=payload,
+                headers=headers,
+            ) as resp:
+                data = await resp.json()
+                if data.get("code") != 200:
+                    raise RuntimeError(f"KIE submit failed: {data}")
+                task_id = (data.get("data") or {}).get("taskId")
+                if not task_id:
+                    raise RuntimeError("KIE: taskId missing")
+
+        # poll record info until success
+        for _ in range(60):  # up to ~60 * 2s = 120s
+            await asyncio.sleep(2)
+            async with ClientSession(timeout=None) as session:
+                async with session.get(
+                    "https://api.kie.ai/api/v1/gpt4o-image/record-info",
+                    params={"taskId": task_id},
+                    headers=headers,
+                ) as r:
+                    info = await r.json()
+                    if info.get("code") != 200:
+                        continue
+                    status = (info.get("data") or {}).get("status") or ""
+                    if status == "SUCCESS":
+                        result_urls = ((info.get("data") or {}).get("info") or {}).get("result_urls") or []
+                        if not result_urls:
+                            raise RuntimeError("KIE: no result_urls")
+                        return result_urls[0]
+                    if status in {"CREATE_TASK_FAILED", "GENERATE_FAILED"}:
+                        raise RuntimeError(f"KIE failed: {status}")
+
+        raise TimeoutError("KIE: timeout waiting for image edit result")
 
     async def _handle_voice(self, message: Message, history, model: str):
         url = await self._get_telegram_file_url(message.bot, message.voice.file_id)
