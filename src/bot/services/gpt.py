@@ -134,15 +134,18 @@ class OpenAIService(AbcOpenAIService):
                 user_id=user.id, amount=dalle_price, reason=LedgerReasonEnum.dalle3_image, meta=(message.text or message.caption)
             )
 
-        # If the user attached an image and asked to edit, route to KIE
+        # If the user attached an image and asked to edit, try KIE first, then fall back to DALL·E on failure
         if (message.photo or (message.document and message.document.mime_type and message.document.mime_type.startswith("image/"))) and self._is_image_edit_request(message.caption or ""):
-            result_url = await self._kie_edit_image(message)
-            await self._safe_update_ledger_meta(
-                ledger_id=created_ledger.id,
-                request_text=message.caption or "",
-                response=GPTMessageResponse(image_url=result_url),
-            )
-            return GPTMessageResponse(image_url=result_url)
+            try:
+                result_url = await self._kie_edit_image(message)
+                await self._safe_update_ledger_meta(
+                    ledger_id=created_ledger.id,
+                    request_text=message.caption or "",
+                    response=GPTMessageResponse(image_url=result_url),
+                )
+                return GPTMessageResponse(image_url=result_url)
+            except Exception:
+                logger.exception("KIE 4o-image edit failed; falling back to DALL·E 3 generation")
 
         # Else, standard DALL·E generation from prompt
         try:
@@ -334,10 +337,58 @@ class OpenAIService(AbcOpenAIService):
                         continue
                     status = (info.get("data") or {}).get("status") or ""
                     if status == "SUCCESS":
-                        result_urls = ((info.get("data") or {}).get("info") or {}).get("result_urls") or []
-                        if not result_urls:
-                            raise RuntimeError("KIE: no result_urls")
-                        return result_urls[0]
+                        data_obj = (info.get("data") or {})
+                        info_obj = data_obj.get("info")
+
+                        urls: list[str] = []
+
+                        candidate_lists: list | None = None
+                        if isinstance(info_obj, dict):
+                            candidate_lists = [
+                                info_obj.get("result_urls"),
+                                info_obj.get("resultUrls"),
+                                info_obj.get("urls"),
+                                info_obj.get("images"),
+                                info_obj.get("results"),
+                            ]
+                        elif isinstance(info_obj, list):
+                            candidate_lists = [info_obj]
+                        else:
+                            candidate_lists = []
+
+                        candidate_lists += [
+                            data_obj.get("result_urls"),
+                            data_obj.get("resultUrls"),
+                            data_obj.get("urls"),
+                            data_obj.get("images"),
+                        ]
+
+                        for cand in candidate_lists:
+                            if not cand:
+                                continue
+                            if isinstance(cand, list):
+                                for item in cand:
+                                    if isinstance(item, str):
+                                        urls.append(item)
+                                    elif isinstance(item, dict) and item.get("url"):
+                                        urls.append(item["url"])
+
+                            # Some APIs may return a single object instead of list
+                            elif isinstance(cand, dict) and cand.get("url"):
+                                urls.append(cand["url"])
+
+                            if urls:
+                                break
+
+                        if urls:
+                            return urls[0]
+
+                        # Log payload snippet to aid troubleshooting
+                        try:
+                            logger.warning("KIE SUCCESS but no URLs found. Payload snippet: %s", json.dumps(info, ensure_ascii=False)[:2000])
+                        except Exception:
+                            logger.warning("KIE SUCCESS but no URLs found and payload could not be serialized")
+                        raise RuntimeError("KIE: no result_urls")
                     if status in {"CREATE_TASK_FAILED", "GENERATE_FAILED"}:
                         raise RuntimeError(f"KIE failed: {status}")
 
