@@ -23,10 +23,16 @@ class VeoService(AbcVeoService):
         self._uow = uow
         self._pricing = pricing_service
 
-    async def process_request(self, message: Message) -> GPTMessageResponse:
+    async def process_request(self, message: Message, aspect_ratio: str | None = None) -> GPTMessageResponse:
+        ar = (aspect_ratio or "16:9").strip()
+        # Select price: 9:16 and 1:1 use separate pricing key 'veo3_quality'
+        price_key = "veo3_quality" if ar in {"9:16", "1:1"} else "veo3"
+
         async with self._uow:
             user = await self._uow.user.get_by_telegram_id(message.from_user.id)
-            price = await self._pricing.get_price_for_mode(BotModeEnum.veo)
+            # Prefer a direct key to avoid coupling to BotModeEnum mapping
+            price_obj = await self._uow.price.get_by_key(price_key)
+            price = price_obj.price if price_obj else 0
             if user.balance < price:
                 raise InsufficientBalanceError
             updated_user = await self._uow.user.update_balance_by_user_id(user.id, -price)
@@ -82,6 +88,40 @@ class VeoService(AbcVeoService):
         video_url = result.get("video_url")
         if not video_url:
             raise OpenAIBadRequestError
+
+        # If non-16:9 aspect ratio requested, run secondary transformation
+        if ar != "16:9":
+            ratio_payload = {
+                "params": {
+                    "model_name": "veo-ratio",
+                    "video_url": video_url,
+                    "aspect_ratio": ar,
+                }
+            }
+            async with ClientSession(headers=headers) as session:
+                async with session.post(self._GENERATE_URL, json=ratio_payload) as r3:
+                    r3.raise_for_status()
+                    start = await r3.json()
+                    ratio_task_id = start.get("task_id")
+                    if not ratio_task_id:
+                        raise OpenAIBadRequestError
+                # poll
+                final: dict | None = None
+                task_url = self._TASK_URL_TPL.format(task_id=ratio_task_id)
+                for _ in range(120):
+                    async with session.get(task_url) as r4:
+                        r4.raise_for_status()
+                        tdata = await r4.json()
+                    status = tdata.get("status")
+                    if status == "completed":
+                        final = tdata.get("result")
+                        break
+                    if status == "failed":
+                        raise OpenAIBadRequestError
+                    await asyncio.sleep(5)
+                if not final or not final.get("video_url"):
+                    raise OpenAIBadRequestError
+                video_url = final["video_url"]
 
         response = GPTMessageResponse(video_url=video_url)
         try:

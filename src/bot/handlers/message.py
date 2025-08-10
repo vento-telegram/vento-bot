@@ -13,6 +13,7 @@ from bot.interfaces.services.veo import AbcVeoService
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.pricing import AbcPricingService
 from bot.keyboards.change_ai import mode_keyboard
+from bot.utils.telegram_format import prepare_telegram_messages_from_markdown
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,11 @@ async def common_message_handler(
             if response.image_url:
                 await message.answer_photo(response.image_url, caption="🖼️ Вот твоё изображение\n\n[Сделано в Vento](https://t.me/vento_toolbot)", parse_mode="Markdown")
             else:
-                await status_msg.edit_text(response.text, parse_mode="Markdown")
+                parts = prepare_telegram_messages_from_markdown(response.text or "")
+                if parts:
+                    await status_msg.edit_text(parts[0], parse_mode="Markdown")
+                    for extra in parts[1:]:
+                        await message.answer(extra, parse_mode="Markdown")
         except InsufficientBalanceError:
             await status_msg.edit_text("❗️ Недостаточно токенов для запроса. Пополни баланс или попробуй позже.", parse_mode="Markdown")
         except OpenAIBadRequestError:
@@ -64,16 +69,17 @@ async def common_message_handler(
             await status_msg.edit_text("❗️ *OpenAI отклонил твой запрос :(*\nПожалуйста, попробуй изменить его.", parse_mode="Markdown")
 
     elif mode == BotModeEnum.veo:
-        status_msg = await message.answer("🔄 *Генерация видео...*", parse_mode="Markdown")
+        status_msg = await message.answer("🔄 *Генерация видео...*\n_Это может занять несколько минут_", parse_mode="Markdown")
         try:
-            response = await veo_service.process_request(message)
+            ar = (await state.get_data()).get("veo_ar", "16:9")
+            response = await veo_service.process_request(message, aspect_ratio=ar)
             if response.video_url:
                 await message.answer_video(response.video_url, caption="🎬 Вот твоё видео\n\n[Сделано в Vento](https://t.me/vento_toolbot)", parse_mode="Markdown")
             else:
                 await status_msg.edit_text("Не удалось получить ссылку на видео.")
         except InsufficientBalanceError:
             await status_msg.edit_text(
-                "❗️ Недостаточно токенов для генерации Veo‑3.\n\nЧтобы вернуться в меню, используй /start",
+                "❗️ Недостаточно токенов для генерации Veo‑3.\n\nДля 9:16 и 1:1 списывается 420 токенов.",
                 parse_mode="Markdown",
             )
         except OpenAIBadRequestError:

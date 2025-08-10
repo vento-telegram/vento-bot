@@ -63,6 +63,9 @@ class OpenAIService(AbcOpenAIService):
             except Exception:
                 transcript = ""
             image_prompt = self._parse_image_prompt(transcript) if transcript else None
+        elif message.document and message.document.mime_type and message.document.mime_type.startswith("image/"):
+            text_for_detection = message.caption or ""
+            image_prompt = self._parse_image_prompt(text_for_detection) if text_for_detection else None
         else:
             text_for_detection = message.text or ""
             image_prompt = self._parse_image_prompt(text_for_detection) if text_for_detection else None
@@ -89,6 +92,8 @@ class OpenAIService(AbcOpenAIService):
             response, request_text = await self._handle_photo(message, history, gpt_model)
         elif message.voice:
             response, request_text = await self._handle_voice(message, history, gpt_model)
+        elif message.document:
+            response, request_text = await self._handle_document(message, history, gpt_model)
         else:
             response, request_text = await self._handle_text(message, history, gpt_model)
 
@@ -240,6 +245,65 @@ class OpenAIService(AbcOpenAIService):
         history.append(ChatCompletionAssistantMessageParam(role="assistant", content=reply))
 
         return GPTMessageResponse(text=reply), message.text
+
+    async def _handle_document(self, message: Message, history, model: str):
+        # Route by mime type
+        mime = (message.document.mime_type or "").lower()
+        file_id = message.document.file_id
+        filename = message.document.file_name or "document"
+
+        # Image documents -> treat as photo (vision)
+        if mime.startswith("image/"):
+            url = await self._get_telegram_file_url(message.bot, file_id)
+            history.append(
+                ChatCompletionUserMessageParam(
+                    role="user",
+                    content=[
+                        ChatCompletionContentPartTextParam(
+                            type="text",
+                            text=message.caption or f"Проанализируй изображение из файла: {filename}",
+                        ),
+                        ChatCompletionContentPartImageParam(type="image_url", image_url={"url": url}),
+                    ],
+                )
+            )
+            reply = await self._chat_reply(history, model)
+            history.append(ChatCompletionAssistantMessageParam(role="assistant", content=reply))
+            return GPTMessageResponse(text=reply), (message.caption or f"Проанализируй изображение {filename}")
+
+        # Audio documents -> transcribe then chat
+        if mime.startswith("audio/"):
+            url = await self._get_telegram_file_url(message.bot, file_id)
+            transcript = await self._transcribe_audio(url)
+            user_text = (message.caption + "\n\n" if message.caption else "") + f"Транскрибируй и проанализируй аудио {filename}. Текст:\n" + transcript
+            history.append(ChatCompletionUserMessageParam(role="user", content=user_text))
+            reply = await self._chat_reply(history, model)
+            history.append(ChatCompletionAssistantMessageParam(role="assistant", content=reply))
+            return GPTMessageResponse(text=reply), user_text
+
+        # Text-like documents -> fetch and include excerpt
+        url = await self._get_telegram_file_url(message.bot, file_id)
+        async with ClientSession() as session:
+            async with session.get(url) as resp:
+                data = await resp.read()
+        # Try decode as UTF-8
+        try:
+            text = data.decode("utf-8", errors="replace")
+        except Exception:
+            text = "(не удалось декодировать содержимое файла как текст)"
+
+        MAX_CHARS = 20000
+        excerpt = text[:MAX_CHARS]
+        caption = message.caption or "Проанализируй содержимое файла"
+        user_payload = (
+            f"{caption}: {filename}\n\n"
+            f"```\n{excerpt}\n```\n"
+            + ("\n(Содержимое обрезано)" if len(text) > MAX_CHARS else "")
+        )
+        history.append(ChatCompletionUserMessageParam(role="user", content=user_payload))
+        reply = await self._chat_reply(history, model)
+        history.append(ChatCompletionAssistantMessageParam(role="assistant", content=reply))
+        return GPTMessageResponse(text=reply), f"{caption}: {filename}"
 
     async def _get_telegram_file_url(self, bot, file_id: str) -> str:
         file = await bot.get_file(file_id)

@@ -22,6 +22,7 @@ from bot.keyboards.start import (
     replenish_keyboard,
     replenish_stars_keyboard,
 )
+from bot.keyboards.veo import veo_prompt_keyboard, veo_ar_options_keyboard
 from bot.interfaces.services.payments import AbcPaymentsService
 from bot.interfaces.uow import AbcUnitOfWork
 from bot.entities.ledger import LedgerEntity
@@ -122,11 +123,48 @@ async def set_mode_veo(
     await call.answer("Режим Veo‑3 активирован")
     can_gpt5 = await pricing.ensure_user_can_afford(user.balance, BotModeEnum.gpt5)
     await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.veo, gpt5_available=can_gpt5))
+    await state.update_data(veo_ar="16:9")
     await call.message.answer(
-        "🎬 Теперь в ответ на твои сообщения *Veo‑3* будет генерировать видео.\n\n"
-        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
+        "💬 Напиши сценарий для видео:\n\n👇🏼👇🏼👇🏼\n\n"
+        "⏳ Важно: генерация видео занимает несколько минут — дольше, чем обычные запросы.",
+        reply_markup=veo_prompt_keyboard(selected_ar="16:9"),
         parse_mode="Markdown",
     )
+
+@router.callback_query(F.data == "veo:show_ar_options")
+async def veo_show_ar_options(call: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    current_ar = data.get("veo_ar", "16:9")
+    await call.message.edit_text(
+        "📐 Выберите соотношение сторон.\n\n"
+        "❗️Важно: создание видео 9:16 и 1:1 спишет 420 токенов.",
+        reply_markup=veo_ar_options_keyboard(selected_ar=current_ar),
+        parse_mode="Markdown",
+    )
+    await call.answer()
+
+@router.callback_query(F.data.startswith("veo:set_ar:"))
+async def veo_set_ar(call: CallbackQuery, state: FSMContext):
+    new_ar = call.data.split(":", 2)[2]
+    await state.update_data(veo_ar=new_ar)
+    await call.message.edit_text(
+        "💬 Напиши сценарий для видео:\n\n👇🏼👇🏼👇🏼\n\n"
+        "⏳ Важно: генерация видео занимает несколько минут — дольше, чем обычные запросы.",
+        reply_markup=veo_prompt_keyboard(selected_ar=new_ar),
+        parse_mode="Markdown",
+    )
+    await call.answer(f"Выбрано: {new_ar}")
+
+@router.callback_query(F.data == "veo:show_prompt")
+async def veo_show_prompt(call: CallbackQuery, state: FSMContext):
+    ar = (await state.get_data()).get("veo_ar", "16:9")
+    await call.message.edit_text(
+        "💬 Напиши сценарий для видео:\n\n👇🏼👇🏼👇🏼\n\n"
+        "⏳ Важно: генерация видео занимает несколько минут — дольше, чем обычные запросы.",
+        reply_markup=veo_prompt_keyboard(selected_ar=ar),
+        parse_mode="Markdown",
+    )
+    await call.answer()
 
 @router.callback_query(F.data == "goto:account")
 @inject
@@ -353,7 +391,7 @@ async def goto_switch(
         "Включается по истечению токенов.\n\n"
         "🎨 *DALL·E 3* (40 токенов/запрос)\n"
         "Лучший генератор изображений.\n\n"
-        "🎬 *Veo‑3* (цена зависит от тарифа)\n"
+        "🎬 *Veo‑3* (210 токенов/запрос)\n"
         "Генерация коротких видео по тексту или фото.\n\n"
         "👇 Выбери нужный ИИ:"
     )
