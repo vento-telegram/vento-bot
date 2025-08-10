@@ -29,11 +29,11 @@ async def common_message_handler(
     user_service: AbcUserService = Provide[Container.user_service],
     pricing_service: AbcPricingService = Provide[Container.pricing_service],
 ):
-    logger.info(f"Message from user {message.from_user.id} {message.from_user.username}: {message.text}.")
     state_data = await state.get_data()
     mode = state_data.get("mode")
 
     user = await user_service.get_user(message.from_user.id)
+
     if user and getattr(user, "is_blocked", False):
         await message.answer("🚫 Ваш аккаунт заблокирован. Обратитесь к администратору.")
         return
@@ -51,7 +51,7 @@ async def common_message_handler(
                     for extra in parts[1:]:
                         await message.answer(extra, parse_mode="Markdown")
         except InsufficientBalanceError:
-            await status_msg.edit_text("❗️ Недостаточно токенов для запроса. Пополни баланс или попробуй позже.", parse_mode="Markdown")
+            await status_msg.edit_text("❗️ Недостаточно ⭐ для запроса. Пополни баланс или попробуй позже.", parse_mode="Markdown")
         except OpenAIBadRequestError:
             await status_msg.edit_text("❗️ *OpenAI отклонил твой запрос :(*\nПожалуйста, попробуй изменить его.", parse_mode="Markdown")
 
@@ -62,7 +62,7 @@ async def common_message_handler(
             await message.answer_photo(response.image_url, caption="🖼️ Вот твоё изображение\n\n[Сделано в Vento](https://t.me/vento_toolbot)", parse_mode="Markdown")
         except InsufficientBalanceError:
             await status_msg.edit_text(
-                "❗️ Недостаточно токенов для генерации DALL·E 3.\n\nЧтобы вернуться в меню, используй /start",
+                "❗️ Недостаточно ⭐ для генерации DALL·E 3.\n\nЧтобы вернуться в меню, используй /start",
                 parse_mode="Markdown",
             )
         except OpenAIBadRequestError:
@@ -79,7 +79,7 @@ async def common_message_handler(
                 await status_msg.edit_text("Не удалось получить ссылку на видео.")
         except InsufficientBalanceError:
             await status_msg.edit_text(
-                "❗️ Недостаточно токенов для генерации Veo‑3.\n\nДля 9:16 и 1:1 списывается 420 токенов.",
+                "❗️ Недостаточно ⭐ для генерации Veo‑3.\n\nДля 9:16 и 1:1 списывается 61 ⭐.",
                 parse_mode="Markdown",
             )
         except OpenAIBadRequestError:

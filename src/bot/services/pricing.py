@@ -1,3 +1,4 @@
+import math
 from bot.enums import BotModeEnum
 from bot.interfaces.services.pricing import AbcPricingService
 from bot.interfaces.uow import AbcUnitOfWork
@@ -24,5 +25,5 @@ class PricingService(AbcPricingService):
         return price.price if price else 0
 
     async def ensure_user_can_afford(self, user_balance: int, mode: BotModeEnum) -> bool:
-        price = await self.get_price_for_mode(mode)
-        return user_balance >= price
+        price_stars = await self.get_price_for_mode(mode)
+        return user_balance >= price_stars

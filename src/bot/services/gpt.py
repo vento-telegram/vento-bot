@@ -199,7 +199,7 @@ class OpenAIService(AbcOpenAIService):
         state_mode = (await state.get_data()).get("mode")
         if state_mode == BotModeEnum.gpt5 and chosen_model == "gpt-5-mini":
             await state.update_data(mode=BotModeEnum.gpt5_mini)
-            await message.answer("ℹ️ Недостаточно токенов для GPT‑5 — переключаю на GPT‑5 Mini.")
+            await message.answer("ℹ️ Недостаточно ⭐ для GPT‑5 — переключаю на GPT‑5 Mini.")
 
     async def _deduct_balance_and_create_ledger(self, user_id: int, amount: int, reason: str, meta: str | None):
         from bot.entities.ledger import LedgerEntity

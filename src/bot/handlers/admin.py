@@ -39,7 +39,7 @@ async def goto_admin(
         "Доступные команды:\n"
         "- /stats — статистика за сегодня\n"
         "- /user <username> — статистика пользователя (@username или username)\n"
-        "- /grant <username> <amount> — начислить токены пользователю по юзернейму\n"
+        "- /grant <username> <amount> — начислить ⭐ пользователю по юзернейму\n"
         "- /block <username> — заблокировать пользователя\n"
         "- /unblock <username> — разблокировать пользователя\n",
         parse_mode="Markdown",
@@ -70,7 +70,7 @@ async def stats_today(
 
     lines = [
         "📊 Статистика за сегодня:",
-        f"— Потрачено токенов: {spent}",
+        f"— Потрачено ⭐: {spent}",
         f"— Запросов: {cnt}",
         f"— По моделям:",
         f"   • GPT‑5: {by_model.gpt_5}",
@@ -117,7 +117,7 @@ async def user_stats(
 
     lines = [
         f"👤 @{username}",
-        f"🪙 Баланс: {user.balance}",
+        f"⭐ Баланс: {user.balance}",
         f"🚫 Заблокирован: {'да' if user.is_blocked else 'нет'}",
         f"Всего потрачено: {totals.total_spent}",
         f"Сегодня потрачено: {totals.today_spent}",
@@ -159,7 +159,7 @@ async def grant_tokens(
     if not updated:
         await message.answer("Пользователь не найден")
         return
-    await message.answer(f"✅ Начислено {amount} токенов @{username}. Новый баланс: {updated.balance}")
+    await message.answer(f"✅ Начислено {amount} ⭐ @{username}. Новый баланс: {updated.balance}")
 
 
 @router.message(Command("block"))

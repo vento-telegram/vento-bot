@@ -3,8 +3,6 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
     LabeledPrice,
     Message,
     PreCheckoutQuery,
@@ -19,11 +17,9 @@ from bot.keyboards.change_ai import mode_keyboard
 from bot.keyboards.start import (
     account_keyboard,
     start_keyboard,
-    replenish_keyboard,
     replenish_stars_keyboard,
 )
 from bot.keyboards.veo import veo_prompt_keyboard, veo_ar_options_keyboard
-from bot.interfaces.services.payments import AbcPaymentsService
 from bot.interfaces.uow import AbcUnitOfWork
 from bot.entities.ledger import LedgerEntity
 from bot.enums import LedgerReasonEnum
@@ -45,10 +41,10 @@ async def set_mode_chatgpt(
     if not can_afford:
         # Switch to GPT-5 Mini immediately with a clear notification
         await state.update_data(mode=BotModeEnum.gpt5_mini)
-        await call.answer("Недостаточно токенов для GPT-5. Переключаю на GPT-5 Mini.", show_alert=True)
+        await call.answer("Недостаточно ⭐ для GPT-5. Переключаю на GPT-5 Mini.", show_alert=True)
         await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt5_mini, gpt5_available=False))
         await call.message.answer(
-            "ℹ️ Недостаточно токенов для GPT‑5 — активирован *GPT‑5 Mini*.",
+            "ℹ️ Недостаточно ⭐ для GPT‑5 — активирован *GPT‑5 Mini*.",
             parse_mode="Markdown",
         )
         return
@@ -72,7 +68,7 @@ async def set_mode_chatgpt_mini(
     user = await service.get_user(call.from_user.id)
     can_afford_mini = await pricing.ensure_user_can_afford(user.balance, BotModeEnum.gpt5_mini)
     if not can_afford_mini:
-        await call.answer("Недостаточно токенов для GPT-5 Mini.", show_alert=True)
+        await call.answer("Недостаточно ⭐ для GPT-5 Mini.", show_alert=True)
         return
     await state.update_data(mode=BotModeEnum.gpt5_mini)
     await call.answer("Режим GPT-5 Mini активирован")
@@ -94,7 +90,7 @@ async def set_mode_dalle(
     user = await service.get_user(call.from_user.id)
     can_afford = await pricing.ensure_user_can_afford(user.balance, BotModeEnum.dalle3)
     if not can_afford:
-        await call.answer("Недостаточно токенов для DALL·E 3.", show_alert=True)
+        await call.answer("Недостаточно ⭐ для DALL·E 3.", show_alert=True)
         return
     await state.update_data(mode=BotModeEnum.dalle3)
     await call.answer("Режим DALL-E активирован")
@@ -117,7 +113,7 @@ async def set_mode_veo(
     user = await service.get_user(call.from_user.id)
     can_afford = await pricing.ensure_user_can_afford(user.balance, BotModeEnum.veo)
     if not can_afford:
-        await call.answer("Недостаточно токенов для Veo‑3.", show_alert=True)
+        await call.answer("Недостаточно ⭐ для Veo‑3.", show_alert=True)
         return
     await state.update_data(mode=BotModeEnum.veo)
     await call.answer("Режим Veo‑3 активирован")
@@ -138,7 +134,7 @@ async def veo_show_ar_options(call: CallbackQuery, state: FSMContext):
     current_ar = data.get("veo_ar", "16:9")
     await call.message.edit_text(
         "📐 Выберите соотношение сторон.\n\n"
-        "❗️Важно: создание видео 9:16 и 1:1 спишет 420 токенов.",
+        "❗️Важно: создание видео 9:16 и 1:1 спишет 61 ⭐.",
         reply_markup=veo_ar_options_keyboard(selected_ar=current_ar),
         parse_mode="Markdown",
     )
@@ -193,8 +189,8 @@ async def goto_account(
         text=(
             f"🎟️ *Аккаунт*\n\n"
             f"🐻‍❄️ *{display_name}*\n\n"
-            f"🪙 Баланс: *{user.balance}* токенов\n"
-            f"🎁 Ежедневно: *+150* токенов\n\n"
+            f"⭐ Баланс: *{user.balance}*\n"
+            f"🎁 Ежедневно: *+22* ⭐\n\n"
             f"👇 Действия:"
         ),
         reply_markup=account_keyboard,
@@ -220,9 +216,9 @@ async def goto_start(
     await call.message.edit_text(
         text=(
             f"👋 Привет, *{call.from_user.first_name}*!\n\n"
-            f"🪙 Твой баланс: *{user.balance} токенов*\n\n"
+            f"⭐ Твой баланс: *{user.balance}* ⭐\n\n"
             f"🤖 Текущий ИИ: *{mode}*\n"
-            f"💸 Цена запроса: *{price} токенов*\n\n"
+            f"💸 Цена запроса: *{price} ⭐*\n\n"
             f"👇 Что хочешь сделать?"
         ),
         reply_markup=start_keyboard(mode, is_admin=bool(user.is_admin)),
@@ -238,43 +234,15 @@ async def goto_replenish(
     await call.answer()
     await call.message.edit_text(
         text=(
-            "*💰 Варианты оплаты:*\n\n"
-            "💳 *Оплата картой*\n"
-            "Доступна картами, выпущенными в РФ, и белорусскими картами Белкарт.\n\n"
-            "Если карта не подходит, можно оплатить:\n"
-            "⭐ *Telegram Stars* — их легко купить через Apple Store или Google Play.\n"
-            "🌐 *USDT* (криптовалюта).\n\n"
-            "Выберите пакет пополнения:"
+            "⭐ Оплата звёздами\n\n"
+            "Выберите пакет пополнения и оплатите через Telegram Stars."
         ),
-        reply_markup=replenish_keyboard,
+        reply_markup=replenish_stars_keyboard,
         parse_mode=ParseMode.MARKDOWN,
     )
 
 
-@router.callback_query(F.data.startswith("buy:"))
-@inject
-async def create_invoice(
-    call: CallbackQuery,
-    payments: AbcPaymentsService = Provide[Container.payments_service],
-):
-    await call.answer()
-    amount_tokens = int(call.data.split(":", 1)[1])
-    pay_url = await payments.create_invoice(telegram_id=call.from_user.id, amount_tokens=amount_tokens)
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="💳 Оплатить", url=pay_url)],
-            [InlineKeyboardButton(text="🔙 Назад", callback_data="goto:account")],
-        ]
-    )
-
-    await call.message.edit_text(
-        text=(
-            f"💳 Оплата {amount_tokens} токенов картой\n\n"
-            "Нажмите кнопку ниже, чтобы перейти к оплате. После успешной оплаты токены будут зачислены автоматически."
-        ),
-        reply_markup=keyboard,
-        parse_mode=ParseMode.MARKDOWN,
-    )
+## Removed card/USDT payments
 
 
 @router.callback_query(F.data == "goto:replenish_stars")
@@ -299,26 +267,17 @@ async def stars_create_invoice(
     call: CallbackQuery,
 ):
     await call.answer()
-    amount_tokens = int(call.data.split(":", 1)[1])
-
-    # Convert tokens to stars based on your mapping (1 ₽ ~= 1 ⭐ in your tiers)
-    token_to_star = {
-        1000: 170,
-        5000: 810,
-        10500: 1650,
-        21600: 3300,
-        55500: 8100,
-    }
-    stars = token_to_star.get(amount_tokens)
-    if not stars:
+    # New stars-only packages: 200, 500, 1000, 2500, 5000 ⭐
+    amount_stars = int(call.data.split(":", 1)[1])
+    if amount_stars not in {200, 500, 1000, 2500, 5000}:
         await call.message.answer("Неизвестный пакет звёзд.")
         return
 
-    title = f"Пополнение {amount_tokens} токенов Vento"
+    title = f"Пополнение {amount_stars} ⭐ в Vento"
     description = "Оплата через Telegram Stars"
-    payload = json.dumps({"type": "stars", "tokens": amount_tokens})
+    payload = json.dumps({"type": "stars", "stars": amount_stars})
 
-    prices = [LabeledPrice(label="Vento tokens", amount=stars)]
+    prices = [LabeledPrice(label="Vento stars", amount=amount_stars)]
 
     await call.message.answer_invoice(
         title=title,
@@ -353,26 +312,26 @@ async def stars_success(
     except json.JSONDecodeError:
         payload = {}
 
-    amount_tokens = int(payload.get("tokens") or 0)
-    if amount_tokens <= 0:
+    amount_stars = int(payload.get("stars") or 0)
+    if amount_stars <= 0:
         return
 
     async with uow:
         user = await uow.user.get_by_telegram_id(message.from_user.id)
         if not user:
             return
-        updated = await uow.user.update_balance_by_user_id(user.id, amount_tokens)
+        updated = await uow.user.update_balance_by_user_id(user.id, amount_stars)
         if updated:
             await uow.ledger.add(
                 LedgerEntity(
                     user_id=user.id,
-                    delta=amount_tokens,
-                    reason=LedgerReasonEnum.purchase_tokens,
+                    delta=amount_stars,
+                    reason=LedgerReasonEnum.purchase_stars,
                     meta=json.dumps({"method": "stars", "total_stars": sp.total_amount}),
                 )
             )
 
-    await message.answer("✅ Оплата прошла успешно! Токены зачислены на ваш баланс.")
+    await message.answer("✅ Оплата прошла успешно! ⭐ зачислены на ваш баланс.")
 
 @router.callback_query(F.data == "goto:switch")
 @inject
@@ -381,20 +340,28 @@ async def goto_switch(
     state: FSMContext,
     service: AbcUserService = Provide[Container.user_service],
     pricing: AbcPricingService = Provide[Container.pricing_service],
+    uow: AbcUnitOfWork = Provide[Container.uow],
 ):
     user = await service.get_user(call.from_user.id)
     can_gpt5 = await pricing.ensure_user_can_afford(user.balance, BotModeEnum.gpt5)
     current_mode = (await state.get_data()).get("mode", BotModeEnum.passive)
 
+    gpt5_price = await pricing.get_price_for_mode(BotModeEnum.gpt5)
+    mini_price = await pricing.get_price_for_mode(BotModeEnum.gpt5_mini)
+    dalle_price = await pricing.get_price_for_mode(BotModeEnum.dalle3)
+    veo_price = await pricing.get_price_for_mode(BotModeEnum.veo)
+
+    mini_line = "Бесплатно" if mini_price == 0 else f"{mini_price} ⭐/запрос"
+
     text = (
         "👾 *Выбор ИИ*\n\n"
-        "🤖 *GPT‑5* (21 токенов/запрос)\n"
+        f"🤖 *GPT‑5* ({gpt5_price} ⭐/запрос)\n"
         "Самый продвинутый ИИ-чат.\n\n"
-        "⚡ *GPT‑5 Mini* (Бесплатно)\n"
-        "Включается по истечению токенов.\n\n"
-        "🎨 *DALL·E 3* (92 токенов/запрос)\n"
+        f"⚡ *GPT‑5 Mini* ({mini_line})\n"
+        "Включается по истечению ⭐.\n\n"
+        f"🎨 *DALL·E 3* ({dalle_price} ⭐/запрос)\n"
         "Лучший генератор изображений.\n\n"
-        "🎬 *Veo‑3* (920 токенов/запрос)\n"
+        f"🎬 *Veo‑3* ({veo_price} ⭐/запрос)\n"
         "Генерация коротких видео.\n\n"
         "👇 Выбери нужный ИИ:"
     )

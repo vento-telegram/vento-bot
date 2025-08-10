@@ -18,22 +18,11 @@ account_keyboard = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 
-replenish_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="1 000 🪙 — 100 ₽", callback_data="buy:1000")],
-    [InlineKeyboardButton(text="5 000 🪙 — 500 ₽", callback_data="buy:5000")],
-    [InlineKeyboardButton(text="10 500 🪙 — 1 000 ₽", callback_data="buy:10500")],
-    [InlineKeyboardButton(text="21 600 🪙 — 2 000 ₽", callback_data="buy:21600")],
-    [InlineKeyboardButton(text="55 500 🪙 — 5 000 ₽", callback_data="buy:55500")],
-    [InlineKeyboardButton(text="⭐ Оплатить звёздами", callback_data="goto:replenish_stars")],
-    [InlineKeyboardButton(text="🔙 Назад", callback_data="goto:account")],
-])
-
-
 replenish_stars_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="1 000 🪙 — 170 ⭐", callback_data="buy_star:1000")],
-    [InlineKeyboardButton(text="5 000 🪙 — 810 ⭐", callback_data="buy_star:5000")],
-    [InlineKeyboardButton(text="10 500 🪙 — 1 650 ⭐", callback_data="buy_star:10500")],
-    [InlineKeyboardButton(text="21 600 🪙 — 3 300 ⭐", callback_data="buy_star:21600")],
-    [InlineKeyboardButton(text="55 500 🪙 — 8 100 ⭐", callback_data="buy_star:55500")],
-    [InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")],
+    [InlineKeyboardButton(text="200 ⭐", callback_data="buy_star:200")],
+    [InlineKeyboardButton(text="500 ⭐", callback_data="buy_star:500")],
+    [InlineKeyboardButton(text="1 000 ⭐", callback_data="buy_star:1000")],
+    [InlineKeyboardButton(text="2 500 ⭐", callback_data="buy_star:2500")],
+    [InlineKeyboardButton(text="5 000 ⭐", callback_data="buy_star:5000")],
+    [InlineKeyboardButton(text="🔙 Назад", callback_data="goto:account")],
 ])

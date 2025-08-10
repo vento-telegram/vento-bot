@@ -22,13 +22,7 @@ class OpenAISettings(BaseSettings):
     API_KEY: str
 
 
-class LavaSettings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_prefix="LAVA__",
-        env_file=".env",
-        extra="ignore",
-    )
-    API_KEY: str
+## Removed Lava payments settings
 
 
 class VeoSettings(BaseSettings):
@@ -56,10 +50,9 @@ class Settings(BaseSettings):
     )
     MAIN_TOKEN: str
     WELCOME_BONUS_AMOUNT: int = 1000
-    PAYMENTS_WEBHOOK_API_KEY: str
+    # Removed external payments webhook
     POSTGRES: PostgresSettings = PostgresSettings()
     OPENAI: OpenAISettings = OpenAISettings()
-    LAVA: LavaSettings = LavaSettings()
     VEO: VeoSettings = VeoSettings()
     KIE: KieSettings = KieSettings()
 

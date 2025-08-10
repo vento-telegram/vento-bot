@@ -17,7 +17,7 @@ class AbcLedgerRepo(AbcRepo[LedgerEntity]):
     # Aggregations
     @abstractmethod
     async def total_spent_today(self) -> int:
-        """Total tokens spent across all users today (sum of negative deltas as positive)."""
+        """Total stars (⭐) spent across all users today (sum of negative deltas as positive)."""
 
     @abstractmethod
     async def requests_count_today(self) -> int:
