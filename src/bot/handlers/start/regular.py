@@ -45,7 +45,7 @@ async def start_handler(
     await message.answer(
         text=(
             f"👋 Привет, *{message.from_user.first_name}*!\n\n"
-            f"💰 Твой баланс: *{user.balance}* ⭐\n\n"
+            f"🪙 Твой баланс: *{user.balance}* ⭐\n\n"
             f"🤖 Текущий ИИ: *{current_mode}*\n"
             f"💸 Цена запроса: *{price} ⭐*\n\n"
             f"👇 Что хочешь сделать?"

@@ -117,7 +117,7 @@ async def user_stats(
 
     lines = [
         f"👤 @{username}",
-        f"💰 Баланс: {user.balance} ⭐",
+        f"🪙 Баланс: {user.balance} ⭐",
         f"🚫 Заблокирован: {'да' if user.is_blocked else 'нет'}",
         f"Всего потрачено: {totals.total_spent}",
         f"Сегодня потрачено: {totals.today_spent}",

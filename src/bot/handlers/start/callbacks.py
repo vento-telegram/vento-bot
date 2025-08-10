@@ -189,7 +189,7 @@ async def goto_account(
         text=(
             f"🎟️ *Аккаунт*\n\n"
             f"🐻‍❄️ *{display_name}*\n\n"
-            f"💰 Баланс: *{user.balance}* ⭐\n"
+            f"🪙 Баланс: *{user.balance}* ⭐\n"
             f"🎁 Ежедневно: *25* ⭐\n\n"
             f"👇 Действия:"
         ),
@@ -216,7 +216,7 @@ async def goto_start(
     await call.message.edit_text(
         text=(
             f"👋 Привет, *{call.from_user.first_name}*!\n\n"
-            f"💰 Твой баланс: *{user.balance}* ⭐\n\n"
+            f"🪙 Твой баланс: *{user.balance}* ⭐\n\n"
             f"🤖 Текущий ИИ: *{mode}*\n"
             f"💸 Цена запроса: *{price} ⭐*\n\n"
             f"👇 Что хочешь сделать?"
