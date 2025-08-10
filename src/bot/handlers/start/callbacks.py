@@ -189,8 +189,8 @@ async def goto_account(
         text=(
             f"🎟️ *Аккаунт*\n\n"
             f"🐻‍❄️ *{display_name}*\n\n"
-            f"⭐ Баланс: *{user.balance}*\n"
-            f"🎁 Ежедневно: *+25* ⭐\n\n"
+            f"💰 Баланс: *{user.balance}* ⭐\n"
+            f"🎁 Ежедневно: *25* ⭐\n\n"
             f"👇 Действия:"
         ),
         reply_markup=account_keyboard,
