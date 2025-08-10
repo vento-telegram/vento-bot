@@ -105,6 +105,29 @@ async def set_mode_dalle(
         parse_mode="Markdown",
     )
 
+@router.callback_query(F.data == "set_mode:veo")
+@inject
+async def set_mode_veo(
+    call: CallbackQuery,
+    state: FSMContext,
+    pricing: AbcPricingService = Provide[Container.pricing_service],
+    service: AbcUserService = Provide[Container.user_service],
+):
+    user = await service.get_user(call.from_user.id)
+    can_afford = await pricing.ensure_user_can_afford(user.balance, BotModeEnum.veo)
+    if not can_afford:
+        await call.answer("Недостаточно токенов для Veo‑3.", show_alert=True)
+        return
+    await state.update_data(mode=BotModeEnum.veo)
+    await call.answer("Режим Veo‑3 активирован")
+    can_gpt5 = await pricing.ensure_user_can_afford(user.balance, BotModeEnum.gpt5)
+    await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.veo, gpt5_available=can_gpt5))
+    await call.message.answer(
+        "🎬 Теперь в ответ на твои сообщения *Veo‑3* будет генерировать видео.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
+        parse_mode="Markdown",
+    )
+
 @router.callback_query(F.data == "goto:account")
 @inject
 async def goto_account(
@@ -330,6 +353,8 @@ async def goto_switch(
         "Включается по истечению токенов.\n\n"
         "🎨 *DALL·E 3* (40 токенов/запрос)\n"
         "Лучший генератор изображений.\n\n"
+        "🎬 *Veo‑3* (цена зависит от тарифа)\n"
+        "Генерация коротких видео по тексту или фото.\n\n"
         "👇 Выбери нужный ИИ:"
     )
     await call.message.edit_text(

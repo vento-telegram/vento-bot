@@ -31,6 +31,15 @@ class LavaSettings(BaseSettings):
     API_KEY: str
 
 
+class VeoSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="VEO__",
+        env_file=".env",
+        extra="ignore",
+    )
+    NEXUS_API_KEY: str = ""
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -41,6 +50,7 @@ class Settings(BaseSettings):
     POSTGRES: PostgresSettings = PostgresSettings()
     OPENAI: OpenAISettings = OpenAISettings()
     LAVA: LavaSettings = LavaSettings()
+    VEO: VeoSettings = VeoSettings()
 
 
 settings = Settings()

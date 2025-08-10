@@ -3,6 +3,7 @@ import logging
 from typing import Final
 
 import httpx
+from aiogram import Bot
 
 from bot.enums import LedgerReasonEnum
 from bot.interfaces.services.payments import AbcPaymentsService
@@ -26,8 +27,9 @@ _OFFER_BY_TOKENS: dict[int, str] = {
 class PaymentsService(AbcPaymentsService):
     _LAVA_API_URL: Final[str] = "https://gate.lava.top/api/v2"
 
-    def __init__(self, uow: AbcUnitOfWork):
+    def __init__(self, uow: AbcUnitOfWork, bot: Bot):
         self._uow = uow
+        self._bot = bot
 
     async def create_invoice(self, telegram_id: int, amount_tokens: int) -> str:
         offer_id = _OFFER_BY_TOKENS.get(amount_tokens)
@@ -103,24 +105,36 @@ class PaymentsService(AbcPaymentsService):
             return
 
         # Credit tokens
+        was_credited_successfully = False
         async with self._uow:
             user = await self._uow.user.get_by_telegram_id(telegram_id)
             if not user:
                 logger.error("User not found for telegram_id=%s", telegram_id)
                 return
-            updated = await self._uow.user.update_balance_by_user_id(user.id, tokens)
-            if updated:
+            updated_user = await self._uow.user.update_balance_by_user_id(user.id, tokens)
+            if updated_user:
                 await self._uow.ledger.add(
                     LedgerEntity(
                         user_id=user.id,
                         delta=tokens,
                         reason=LedgerReasonEnum.purchase_tokens,
-                        meta=json.dumps({
-                            "contractId": payload.get("contractId"),
-                            "currency": payload.get("currency"),
-                            "amount": payload.get("amount"),
-                        }),
+                        meta=json.dumps(
+                            {
+                                "contractId": payload.get("contractId"),
+                                "currency": payload.get("currency"),
+                                "amount": payload.get("amount"),
+                            }
+                        ),
                     )
                 )
+                was_credited_successfully = True
 
-
+        # Notify user in Telegram after successful credit (outside of UoW to ensure commit first)
+        if was_credited_successfully:
+            try:
+                await self._bot.send_message(
+                    chat_id=telegram_id,
+                    text="✅ Оплата прошла успешно! Токены зачислены на ваш баланс.",
+                )
+            except Exception as exc:
+                logger.warning("Failed to send credit notification to %s: %s", telegram_id, exc)

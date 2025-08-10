@@ -1,4 +1,5 @@
 import logging
+import asyncio
 import json
 import re
 
@@ -145,6 +146,8 @@ class OpenAIService(AbcOpenAIService):
 
         return GPTMessageResponse(image_url=image_result_url)
 
+    # Veo video generation lives in a separate VeoService in clean architecture
+
     async def _select_model_and_charge(self, user_balance: int) -> tuple[str, int, str]:
         gpt5_price = await self._pricing_service.get_price_for_mode(BotModeEnum.gpt5)
         mini_price = await self._pricing_service.get_price_for_mode(BotModeEnum.gpt5_mini)
@@ -171,7 +174,7 @@ class OpenAIService(AbcOpenAIService):
 
     async def _safe_update_ledger_meta(self, ledger_id: int, request_text: str, response: GPTMessageResponse) -> None:
         try:
-            response_value = response.text or response.image_url or ""
+            response_value = response.text or response.image_url or response.video_url or ""
             meta_json = json.dumps({request_text or "": response_value}, ensure_ascii=False)
             async with self._uow:
                 await self._uow.ledger.update_meta_by_id(ledger_id, meta_json)  # type: ignore[arg-type]

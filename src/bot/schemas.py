@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 class GPTMessageResponse(BaseModel):
     text: str | None = None
     image_url: str | None = None
+    video_url: str | None = None
 
 
 class RequestsCounts(BaseModel):

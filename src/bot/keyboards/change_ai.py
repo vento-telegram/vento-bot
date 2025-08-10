@@ -25,6 +25,7 @@ def mode_keyboard(active_mode: str | None = None, gpt5_available: bool = True) -
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [gpt_button, mode_button("DALL-E 3", "set_mode:dalle", BotModeEnum.dalle3)],
+            [mode_button("Veo-3", "set_mode:veo", BotModeEnum.veo)],
             [InlineKeyboardButton(text="🔙 Назад", callback_data="goto:start")],
         ]
     )

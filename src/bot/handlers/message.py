@@ -9,6 +9,7 @@ from bot.container import Container
 from bot.enums import BotModeEnum
 from bot.errors import OpenAIBadRequestError, InsufficientBalanceError
 from bot.interfaces.services.gpt import AbcOpenAIService
+from bot.interfaces.services.veo import AbcVeoService
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.pricing import AbcPricingService
 from bot.keyboards.change_ai import mode_keyboard
@@ -23,6 +24,7 @@ async def common_message_handler(
     message: Message,
     state: FSMContext,
     openai_service: AbcOpenAIService = Provide[Container.openai_service],
+    veo_service: AbcVeoService = Provide[Container.veo_service],
     user_service: AbcUserService = Provide[Container.user_service],
     pricing_service: AbcPricingService = Provide[Container.pricing_service],
 ):
@@ -60,6 +62,22 @@ async def common_message_handler(
             )
         except OpenAIBadRequestError:
             await status_msg.edit_text("❗️ *OpenAI отклонил твой запрос :(*\nПожалуйста, попробуй изменить его.", parse_mode="Markdown")
+
+    elif mode == BotModeEnum.veo:
+        status_msg = await message.answer("🔄 *Генерация видео...*", parse_mode="Markdown")
+        try:
+            response = await veo_service.process_request(message)
+            if response.video_url:
+                await message.answer_video(response.video_url, caption="🎬 Вот твоё видео\n\n[Сделано в Vento](https://t.me/vento_toolbot)", parse_mode="Markdown")
+            else:
+                await status_msg.edit_text("Не удалось получить ссылку на видео.")
+        except InsufficientBalanceError:
+            await status_msg.edit_text(
+                "❗️ Недостаточно токенов для генерации Veo‑3.\n\nЧтобы вернуться в меню, используй /start",
+                parse_mode="Markdown",
+            )
+        except OpenAIBadRequestError:
+            await status_msg.edit_text("❗️ *Сервис видео отклонил запрос :(*\nПожалуйста, попробуй изменить его.", parse_mode="Markdown")
 
     elif mode == BotModeEnum.passive or not mode:
         can_gpt5 = await pricing_service.ensure_user_can_afford(user.balance, BotModeEnum.gpt5)
