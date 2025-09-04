@@ -8,6 +8,12 @@ class BotModeEnum(StrEnum):
     dalle3 = "DALL-E 3"
     veo = "Veo-3"
 
+class ModelNameEnum(StrEnum):
+    gpt5 = "gpt-5"
+    gpt5_mini = "gpt-5-mini"
+    dalle3 = "dall-e-3"
+    veo = "veo-3"
+
 class LedgerReasonEnum(StrEnum):
     welcome_bonus = auto()
     gpt5_request = auto()

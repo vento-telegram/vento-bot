@@ -3,13 +3,14 @@ from abc import ABC, abstractmethod
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
+from bot.entities.user import UserEntity
 from bot.schemas import GPTMessageResponse
 from openai.types.chat import ChatCompletionMessageParam
 
 
 class AbcOpenAIService(ABC):
     @abstractmethod
-    async def process_gpt_request(self, message: Message, state: FSMContext) -> GPTMessageResponse:
+    async def process_gpt_request(self, message: Message, conversation_history: list[], user: UserEntity) -> GPTMessageResponse:
         ...
 
     @abstractmethod

@@ -31,12 +31,14 @@ async def start_handler(
         await state.update_data(history=[], mode=BotModeEnum.passive)
         await message.answer(
             text=(
-                "🎉 Добро пожаловать в *Vento*!\n\n"
+                "🎉 Добро пожаловать, я *Vento*!\n\n"
                 "*Что я умею:*\n"
-                "— 💬 Отвечаю на самые сложные вопросы с помощью GPT-5\n"
-                "— 🎨 Генерирую изображения через DALL·E 3\n"
-                "— 🎬 Генерирую видео через Veo‑3\n\n"
-                "🎁 Тебе уже начислены стартовые ⭐ — можно сразу начать!"
+                "💬 Отвечаю на самые сложные вопросы с помощью GPT-5\n"
+                "⚡ Быстрые и экономные ответы в режиме GPT-5 Mini\n"
+                "🎨 Генерирую и редактирую изображения через DALL·E 3 и GPT Image\n"
+                "🎬 Создаю видео с помощью Veo-3\n\n"
+                "🎁 Тебе уже начислено 200 стартовых токенов — можно сразу начать!\n"
+                "Если что, команда /start всегда поможет."
             ),
             parse_mode=ParseMode.MARKDOWN,
         )
@@ -45,9 +47,9 @@ async def start_handler(
     await message.answer(
         text=(
             f"👋 Привет, *{message.from_user.first_name}*!\n\n"
-            f"🪙 Твой баланс: *{user.balance}* ⭐\n\n"
+            f"🪙 Твой баланс: *{user.balance}* токенов\n\n"
             f"🤖 Текущий ИИ: *{current_mode}*\n"
-            f"💸 Цена запроса: *{price} ⭐*\n\n"
+            f"💸 Цена запроса: *{price} токенов*\n\n"
             f"👇 Что хочешь сделать?"
         ),
         reply_markup=start_keyboard(current_mode, is_admin=bool(user.is_admin)),

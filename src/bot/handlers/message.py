@@ -25,35 +25,44 @@ async def common_message_handler(
     message: Message,
     state: FSMContext,
     openai_service: AbcOpenAIService = Provide[Container.openai_service],
-    veo_service: AbcVeoService = Provide[Container.veo_service],
     user_service: AbcUserService = Provide[Container.user_service],
     pricing_service: AbcPricingService = Provide[Container.pricing_service],
 ):
     state_data = await state.get_data()
     mode = state_data.get("mode")
-
     user = await user_service.get_user(message.from_user.id)
 
     if user and getattr(user, "is_blocked", False):
-        await message.answer("🚫 Ваш аккаунт заблокирован. Обратитесь к администратору.")
+        await message.answer("🚫 Ваш аккаунт заблокирован. Обратитесь в поддержку.")
         return
 
-    if mode == BotModeEnum.gpt5 or mode == BotModeEnum.gpt5_mini:
+    if mode == BotModeEnum.gpt5:
+        status_msg = await message.answer("🔄 *Генерация ответа...*", parse_mode="Markdown")
+        try:
+            response = await openai_service.process_gpt_request(message, state, user)
+            parts = prepare_telegram_messages_from_markdown(response.text or "")
+            if parts:
+                await status_msg.edit_text(parts[0], parse_mode="Markdown")
+                for extra in parts[1:]:
+                    await message.answer(extra, parse_mode="Markdown")
+        except InsufficientBalanceError:
+            await status_msg.edit_text("❗️ *☹️ Недостаточно токенов для запроса*\nПополни баланс или попробуй позже.", parse_mode="Markdown")
+        except OpenAIBadRequestError:
+            await status_msg.edit_text("❗️ *☹️ OpenAI отклонил твой запрос*\nПожалуйста, попробуй изменить его.", parse_mode="Markdown")
+
+    elif mode == BotModeEnum.gpt5_mini:
         status_msg = await message.answer("🔄 *Генерация ответа...*", parse_mode="Markdown")
         try:
             response = await openai_service.process_gpt_request(message, state)
-            if response.image_url:
-                await message.answer_photo(response.image_url, caption="🖼️ Вот твоё изображение\n\n[Сделано в Vento](https://t.me/vento_toolbot)", parse_mode="Markdown")
-            else:
-                parts = prepare_telegram_messages_from_markdown(response.text or "")
-                if parts:
-                    await status_msg.edit_text(parts[0], parse_mode="Markdown")
-                    for extra in parts[1:]:
-                        await message.answer(extra, parse_mode="Markdown")
+            parts = prepare_telegram_messages_from_markdown(response.text or "")
+            if parts:
+                await status_msg.edit_text(parts[0], parse_mode="Markdown")
+                for extra in parts[1:]:
+                    await message.answer(extra, parse_mode="Markdown")
         except InsufficientBalanceError:
-            await status_msg.edit_text("❗️ Недостаточно ⭐ для запроса. Пополни баланс или попробуй позже.", parse_mode="Markdown")
+            await status_msg.edit_text("*☹️ Недостаточно токенов для запроса*\nПополни баланс или попробуй позже.", parse_mode="Markdown")
         except OpenAIBadRequestError:
-            await status_msg.edit_text("❗️ *OpenAI отклонил твой запрос :(*\nПожалуйста, попробуй изменить его.", parse_mode="Markdown")
+            await status_msg.edit_text("*☹️ OpenAI отклонил твой запрос*\nПожалуйста, попробуй изменить его.", parse_mode="Markdown")
 
     elif mode == BotModeEnum.dalle3:
         status_msg = await message.answer("🔄 *Генерация изображения...*", parse_mode="Markdown")
@@ -61,29 +70,9 @@ async def common_message_handler(
             response = await openai_service.process_dalle_request(message)
             await message.answer_photo(response.image_url, caption="🖼️ Вот твоё изображение\n\n[Сделано в Vento](https://t.me/vento_toolbot)", parse_mode="Markdown")
         except InsufficientBalanceError:
-            await status_msg.edit_text(
-                "❗️ Недостаточно ⭐ для генерации DALL·E 3.\n\nЧтобы вернуться в меню, используй /start",
-                parse_mode="Markdown",
-            )
+            await status_msg.edit_text("*☹️ Недостаточно токенов для генерации изображения*\nПополни баланс или попробуй позже.", parse_mode="Markdown")
         except OpenAIBadRequestError:
-            await status_msg.edit_text("❗️ *OpenAI отклонил твой запрос :(*\nПожалуйста, попробуй изменить его.", parse_mode="Markdown")
-
-    elif mode == BotModeEnum.veo:
-        status_msg = await message.answer("🔄 *Генерация видео...*\n_Это может занять несколько минут_", parse_mode="Markdown")
-        try:
-            ar = (await state.get_data()).get("veo_ar", "16:9")
-            response = await veo_service.process_request(message, aspect_ratio=ar)
-            if response.video_url:
-                await message.answer_video(response.video_url, caption="🎬 Вот твоё видео\n\n[Сделано в Vento](https://t.me/vento_toolbot)", parse_mode="Markdown")
-            else:
-                await status_msg.edit_text("Не удалось получить ссылку на видео.")
-        except InsufficientBalanceError:
-            await status_msg.edit_text(
-                "❗️ Недостаточно ⭐ для генерации Veo‑3.\n\nДля 9:16 и 1:1 списывается 61 ⭐.",
-                parse_mode="Markdown",
-            )
-        except OpenAIBadRequestError:
-            await status_msg.edit_text("❗️ *Сервис видео отклонил запрос :(*\nПожалуйста, попробуй изменить его.", parse_mode="Markdown")
+            await status_msg.edit_text("*☹️ OpenAI отклонил твой запрос*\nПожалуйста, попробуй изменить или уточнить его.", parse_mode="Markdown")
 
     elif mode == BotModeEnum.passive or not mode:
         can_gpt5 = await pricing_service.ensure_user_can_afford(user.balance, BotModeEnum.gpt5)

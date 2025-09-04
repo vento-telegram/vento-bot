@@ -15,5 +15,3 @@ class LedgerDTO(BaseModel):
 
 class LedgerEntity(LedgerDTO):
     pass
-
-
