@@ -3,21 +3,12 @@ from enum import StrEnum, auto
 
 class BotModeEnum(StrEnum):
     passive = "Не выбран"
-    gpt5 = "GPT-5"
-    gpt5_mini = "GPT-5 Mini"
-    dalle3 = "DALL-E 3"
-    veo = "Veo-3"
+    gpt = "GPT-5"
+    gpt_mini = "GPT-5 Mini"
 
-class ModelNameEnum(StrEnum):
-    gpt5 = "gpt-5"
-    gpt5_mini = "gpt-5-mini"
-    dalle3 = "dall-e-3"
-    veo = "veo-3"
 
 class LedgerReasonEnum(StrEnum):
     welcome_bonus = auto()
-    gpt5_request = auto()
-    gpt5_mini_request = auto()
-    dalle3_image = auto()
-    veo_video = auto()
+    gpt_request = auto()
+    gpt_mini_request = auto()
     purchase_stars = auto()

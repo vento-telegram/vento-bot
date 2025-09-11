@@ -1,10 +1,10 @@
 from abc import abstractmethod
 
-from bot.entities.model_price import PriceEntity
+from bot.entities.settings import SettingsEntity
 from bot.interfaces.repos.base import AbcRepo
 
 
-class AbcPriceRepo(AbcRepo[PriceEntity]):
+class AbcSettingsRepo(AbcRepo[SettingsEntity]):
     @abstractmethod
-    async def get_by_key(self, key: str) -> PriceEntity | None:
+    async def get_by_key(self, key: str) -> SettingsEntity | None:
         """Fetch a model price by programmatic key (e.g., 'gpt5')."""

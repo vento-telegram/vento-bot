@@ -25,7 +25,7 @@ class Base(DeclarativeBase):
 
 
 class UserOrm(Base, TimeMixin):
-    __tablename__ = 'users'
+    __tablename__ = 'user'
 
     id: Mapped[int] = mapped_column(primary_key=True)
     telegram_id: Mapped[int] = mapped_column(unique=True, nullable=False)
@@ -38,12 +38,12 @@ class UserOrm(Base, TimeMixin):
         return f"{self.telegram_id}"
 
 
-class PriceOrm(Base, TimeMixin):
-    __tablename__ = 'prices'
+class SettingsOrm(Base, TimeMixin):
+    __tablename__ = 'settings'
 
     id: Mapped[int] = mapped_column(primary_key=True)
     key: Mapped[str] = mapped_column(nullable=False, unique=True)
-    price: Mapped[int] = mapped_column(nullable=False, server_default="0")
+    value: Mapped[str] = mapped_column(nullable=False, server_default="0")
 
 
 class LedgerOrm(Base, TimeMixin):

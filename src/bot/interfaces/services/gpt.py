@@ -10,9 +10,10 @@ from openai.types.chat import ChatCompletionMessageParam
 
 class AbcOpenAIService(ABC):
     @abstractmethod
-    async def process_gpt_request(self, message: Message, conversation_history: list[], user: UserEntity) -> GPTMessageResponse:
-        ...
-
-    @abstractmethod
-    async def process_dalle_request(self, message: Message, history: list[ChatCompletionMessageParam] | None = None) -> GPTMessageResponse:
+    async def process_gpt_request(
+        self,
+        message: Message,
+        state: FSMContext,
+        user: UserEntity
+    ) -> GPTMessageResponse:
         ...

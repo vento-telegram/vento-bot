@@ -6,9 +6,8 @@ from openai import AsyncOpenAI
 from bot.database.connection import AlchemyDatabase
 from bot.database.uow import Uow
 from bot.services.gpt import OpenAIService
-from bot.services.veo import VeoService
 from bot.services.user import UserService
-from bot.services.pricing import PricingService
+from bot.services.settings import SettingsService
 from bot.settings import settings
 
 
@@ -22,11 +21,10 @@ class Container(containers.DeclarativeContainer):
     bot = providers.Singleton(Bot, token=settings.MAIN_TOKEN)
     storage = providers.Singleton(MemoryStorage)
     dispatcher = providers.Singleton(Dispatcher, storage=storage)
-    pricing_service = providers.Factory(PricingService, uow=uow)
-    user_service = providers.Factory(UserService, uow=uow)
+    settings_service = providers.Factory(SettingsService, uow=uow)
+    user_service = providers.Factory(UserService, uow=uow, settings_service=settings_service)
     openai_client = providers.Singleton(AsyncOpenAI, api_key=settings.OPENAI.API_KEY)
-    openai_service = providers.Factory(OpenAIService, uow=uow, client=openai_client, pricing_service=pricing_service)
-    veo_service = providers.Factory(VeoService, uow=uow, pricing_service=pricing_service)
+    openai_service = providers.Factory(OpenAIService, uow=uow, client=openai_client, settings_service=settings_service)
 
 
 @asynccontextmanager

@@ -16,13 +16,3 @@ account_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:replenish")],
     [InlineKeyboardButton(text="🔙 Назад", callback_data="goto:start")],
 ])
-
-
-replenish_stars_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="200 ⭐", callback_data="buy_star:200")],
-    [InlineKeyboardButton(text="500 ⭐", callback_data="buy_star:500")],
-    [InlineKeyboardButton(text="1 000 ⭐", callback_data="buy_star:1000")],
-    [InlineKeyboardButton(text="2 500 ⭐", callback_data="buy_star:2500")],
-    [InlineKeyboardButton(text="5 000 ⭐", callback_data="buy_star:5000")],
-    [InlineKeyboardButton(text="🔙 Назад", callback_data="goto:account")],
-])

@@ -48,8 +48,8 @@ class LedgerRepo(AbcLedgerRepo, BaseRepo):
     async def requests_by_model_today(self) -> RequestsCounts:
         today = self._today()
         stmt = select(
-            self._model_case(LedgerReasonEnum.gpt5_request).label("gpt-5"),
-            self._model_case(LedgerReasonEnum.gpt5_mini_request).label("gpt-5-mini"),
+            self._model_case(LedgerReasonEnum.gpt_request).label("gpt-5"),
+            self._model_case(LedgerReasonEnum.gpt_mini_request).label("gpt-5-mini"),
             self._model_case(LedgerReasonEnum.dalle3_image).label("dalle3"),
         ).where(
             LedgerOrm.delta < 0,
@@ -71,8 +71,8 @@ class LedgerRepo(AbcLedgerRepo, BaseRepo):
             func.date(LedgerOrm.created_at) == self._today()
         )
         model_stmt = select(
-            self._model_case(LedgerReasonEnum.gpt5_request).label("gpt-5"),
-            self._model_case(LedgerReasonEnum.gpt5_mini_request).label("gpt-5-mini"),
+            self._model_case(LedgerReasonEnum.gpt_request).label("gpt-5"),
+            self._model_case(LedgerReasonEnum.gpt_mini_request).label("gpt-5-mini"),
             self._model_case(LedgerReasonEnum.dalle3_image).label("dalle3"),
             func.max(LedgerOrm.created_at).label("last_request_at"),
         ).where(
