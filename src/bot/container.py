@@ -1,4 +1,6 @@
 from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from dependency_injector import containers, providers
 from openai import AsyncOpenAI
@@ -18,7 +20,11 @@ from typing import AsyncIterator
 class Container(containers.DeclarativeContainer):
     db = providers.Singleton(AlchemyDatabase, settings=settings.POSTGRES)
     uow = providers.Factory(Uow, session_factory=db.provided.session_factory)
-    bot = providers.Singleton(Bot, token=settings.MAIN_TOKEN)
+    bot = providers.Singleton(
+        Bot,
+        token=settings.MAIN_TOKEN,
+        default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN),
+    )
     storage = providers.Singleton(MemoryStorage)
     dispatcher = providers.Singleton(Dispatcher, storage=storage)
     settings_service = providers.Factory(SettingsService, uow=uow)

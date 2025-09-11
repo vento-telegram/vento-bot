@@ -41,8 +41,7 @@ async def goto_admin(
         "- /user <username> — статистика пользователя (@username или username)\n"
         "- /grant <username> <amount> — начислить ⭐ пользователю по юзернейму\n"
         "- /block <username> — заблокировать пользователя\n"
-        "- /unblock <username> — разблокировать пользователя\n",
-        parse_mode="Markdown",
+        "- /unblock <username> — разблокировать пользователя\n"
     )
 
 

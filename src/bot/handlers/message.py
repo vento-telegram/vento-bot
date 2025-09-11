@@ -34,18 +34,18 @@ async def common_message_handler(
         return
 
     if mode == BotModeEnum.gpt or mode == BotModeEnum.gpt_mini:
-        status_msg = await message.answer("🔄 *Генерация ответа...*", parse_mode="Markdown")
+        status_msg = await message.answer("🔄 *Генерация ответа...*")
         try:
             response = await openai_service.process_gpt_request(message, state, user)
             parts = prepare_telegram_messages_from_markdown(response.text or "")
             if parts:
-                await status_msg.edit_text(parts[0], parse_mode="Markdown")
+                await status_msg.edit_text(parts[0])
                 for extra in parts[1:]:
-                    await message.answer(extra, parse_mode="Markdown")
+                    await message.answer(extra)
         except InsufficientBalanceError:
-            await status_msg.edit_text("❗️ *☹️ Недостаточно токенов для запроса*\nПополни баланс или попробуй позже.", parse_mode="Markdown")
+            await status_msg.edit_text("*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс токенов, оформить подписку на модель или выбрать более экономичную модель в меню /start.")
         except OpenAIBadRequestError:
-            await status_msg.edit_text("❗️ *☹️ OpenAI отклонил твой запрос*\nПожалуйста, попробуй изменить его.", parse_mode="Markdown")
+            await status_msg.edit_text("*☹️ OpenAI отклонил твой запрос*\n\nПожалуйста, попробуй изменить его.")
 
     elif mode == BotModeEnum.passive or not mode:
         await message.answer(

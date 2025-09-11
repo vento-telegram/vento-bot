@@ -10,6 +10,7 @@ from openai import OpenAI as OpenAIClient
 from bot.constants import settings_models_mapper
 from bot.entities.user import UserEntity
 from bot.enums import BotModeEnum, LedgerReasonEnum
+from bot.errors import InsufficientBalanceError
 from bot.interfaces.services.gpt import AbcOpenAIService
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.interfaces.uow import AbcUnitOfWork
@@ -37,9 +38,12 @@ class OpenAIService(AbcOpenAIService):
         user: UserEntity
     ) -> GPTMessageResponse:
         state_data = await state.get_data()
-
         mode: BotModeEnum = state_data.get("mode")
+        request_price = int(await self._settings_service.get_value(settings_models_mapper[mode]))
         history = state_data.get("history", [])
+
+        if user.balance < request_price:
+            raise InsufficientBalanceError
 
         gpt_request = await self._transform_for_gpt(message)
         history.append(gpt_request)
@@ -50,7 +54,7 @@ class OpenAIService(AbcOpenAIService):
 
         await self._process_tokens_transaction(
             user_id=user.id,
-            amount=int(await self._settings_service.get_value(settings_models_mapper[mode])),
+            amount=request_price,
             reason=LedgerReasonEnum.gpt_request,
             meta=self._make_meta(gpt_request, gpt_response),
         )

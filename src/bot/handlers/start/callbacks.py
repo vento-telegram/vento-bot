@@ -31,8 +31,7 @@ async def set_mode_chatgpt(
     await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt))
     await call.message.answer(
         "🤖 Теперь на твои сообщения будет отвечать *GPT-5*.\n\n"
-        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
-        parse_mode="Markdown",
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
 
 @router.callback_query(F.data == "set_mode:gpt_mini")
@@ -46,8 +45,7 @@ async def set_mode_chatgpt_mini(
     await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt_mini))
     await call.message.answer(
         "⚡ Теперь на твои сообщения будет отвечать *GPT-5 Mini*.\n\n"
-        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
-        parse_mode="Markdown",
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
 
 @router.callback_query(F.data == "goto:account")
@@ -82,7 +80,6 @@ async def goto_account(
             f"👇 Действия:"
         ),
         reply_markup=account_keyboard,
-        parse_mode=ParseMode.MARKDOWN,
     )
 
 
@@ -115,7 +112,6 @@ async def goto_start(
     await call.message.edit_text(
         text=text,
         reply_markup=start_keyboard(current_mode, is_admin=bool(user.is_admin)),
-        parse_mode=ParseMode.MARKDOWN,
     )
 
 @router.callback_query(F.data == "goto:switch")
@@ -140,7 +136,6 @@ async def goto_switch(
     )
     await call.message.edit_text(
         text=text,
-        reply_markup=mode_keyboard(current_mode),
-        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=mode_keyboard(current_mode)
     )
     await call.answer("Выбери режим работы")

@@ -40,8 +40,7 @@ async def start_handler(
                 "⚡ Быстрые и экономные ответы в режиме *GPT-5 Mini*\n\n"
                 f"🎁 Тебе уже начислено *{start_bonus}* стартовых токенов — можно сразу начать!\n"
                 "Если что, команда /start всегда поможет."
-            ),
-            parse_mode=ParseMode.MARKDOWN,
+            )
         )
     current_mode = state_data.get('mode', BotModeEnum.passive)
 
@@ -61,6 +60,5 @@ async def start_handler(
 
     await message.answer(
         text=text,
-        reply_markup=start_keyboard(current_mode, is_admin=bool(user.is_admin)),
-        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=start_keyboard(current_mode, is_admin=bool(user.is_admin))
     )
