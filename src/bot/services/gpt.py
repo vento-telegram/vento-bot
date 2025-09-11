@@ -84,29 +84,23 @@ class OpenAIService(AbcOpenAIService):
     @staticmethod
     def _make_meta(request: ChatCompletionUserMessageParam, response: ChatCompletionAssistantMessageParam) -> str:
         def _extract(msg: ChatCompletionUserMessageParam | ChatCompletionAssistantMessageParam) -> dict[str, Any]:
-            content = getattr(msg, "content", "")
-            text_parts: list[str] = []
+            content = msg.get("content")
+            text: str = ""
             images: list[str] = []
             if isinstance(content, str):
-                text_parts.append(content)
+                text = content
             elif isinstance(content, list):
                 for part in content:
                     try:
-                        p_type = part.get("type") if isinstance(part, dict) else getattr(part, "type", None)
-                        if p_type == "text":
-                            text_val = part.get("text") if isinstance(part, dict) else getattr(part, "text", "")
-                            if text_val:
-                                text_parts.append(str(text_val))
-                        elif p_type == "image_url":
-                            image_url_container = part.get("image_url") if isinstance(part, dict) else getattr(part, "image_url", {})
-                            if isinstance(image_url_container, dict):
-                                url_val = image_url_container.get("url")
-                                if url_val:
-                                    images.append(url_val)
+                        part_type = part.get("type")
+                        if part_type == "text":
+                            text = part.get("text")
+                        elif part_type == "image_url":
+                            image_url = part.get("image_url").get("url")
+                            images.append(image_url)
                     except Exception:
                         continue
-            full_text = "\n".join(t.strip() for t in text_parts if t and t.strip())
-            return {"role": getattr(msg, "role", None), "text": full_text or None, "images": images or None}
+            return {"role": msg.get("role"), "text": text or None, "images": images or None}
 
         meta = {
             "request": _extract(request),
@@ -116,9 +110,6 @@ class OpenAIService(AbcOpenAIService):
         def _prune(obj: Any):
             if isinstance(obj, dict):
                 return {k: _prune(v) for k, v in obj.items() if v is not None}
-            if isinstance(obj, list):
-                return [ _prune(v) for v in obj if v is not None]
-            return obj
         meta = _prune(meta)
         return json.dumps(meta, ensure_ascii=False)
 
