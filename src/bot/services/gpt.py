@@ -1,6 +1,7 @@
 import logging
 import json
 import asyncio
+import time
 from typing import Any
 
 from aiohttp import ClientSession
@@ -165,9 +166,10 @@ class OpenAIService(AbcOpenAIService):
         media_group_id = getattr(message, "media_group_id", None)
         if has_image and media_group_id:
             group_key = str(media_group_id)
+            now = time.monotonic()
             state_data = await state.get_data()
             groups: dict = state_data.get("nb_groups", {}) or {}
-            record = groups.get(group_key, {"images": [], "prompt": None, "submitted": False})
+            record = groups.get(group_key, {"images": [], "prompt": None, "submitted": False, "leader": None, "last_update": 0.0})
 
             # Add image URL
             if message.photo:
@@ -182,22 +184,39 @@ class OpenAIService(AbcOpenAIService):
             if caption:
                 record["prompt"] = caption
 
+            # Set last update
+            record["last_update"] = now
+
+            # Elect leader
+            if not record.get("leader"):
+                record["leader"] = message.message_id
+
             groups[group_key] = record
             await state.update_data(nb_groups=groups)
 
-            # Debounce to collect rest of the album
-            await asyncio.sleep(1.2)
-
-            # Re-read and submit if not submitted yet
-            state_data = await state.get_data()
-            groups = state_data.get("nb_groups", {}) or {}
-            record = groups.get(group_key)
-            if not record or record.get("submitted"):
+            # Only leader proceeds to submit after debounce
+            if record["leader"] != message.message_id:
                 return
+
+            # Leader waits for inactivity window
+            window = 1.0
+            max_wait = 3.0
+            start = time.monotonic()
+            while True:
+                await asyncio.sleep(0.4)
+                state_data = await state.get_data()
+                record = state_data.get("nb_groups", {}).get(group_key)
+                if not record:
+                    return
+                if record.get("submitted"):
+                    return
+                since_update = time.monotonic() - float(record.get("last_update") or 0.0)
+                if since_update >= window or (time.monotonic() - start) >= max_wait:
+                    break
+
             images: list[str] = record.get("images") or []
             prompt_text: str | None = record.get("prompt")
             if not images or not prompt_text:
-                # Not enough data to submit yet
                 return
 
             await self._submit_nano_task(
@@ -207,6 +226,9 @@ class OpenAIService(AbcOpenAIService):
             )
 
             # Mark as submitted
+            state_data = await state.get_data()
+            groups = state_data.get("nb_groups", {}) or {}
+            record = groups.get(group_key) or {}
             record["submitted"] = True
             groups[group_key] = record
             await state.update_data(nb_groups=groups)
