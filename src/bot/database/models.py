@@ -1,7 +1,7 @@
 from datetime import datetime, UTC
 from typing import Annotated
 
-from sqlalchemy import MetaData, func, Boolean
+from sqlalchemy import MetaData, func, Boolean, BigInteger
 from sqlalchemy.orm import Mapped, mapped_column, declarative_mixin, DeclarativeBase
 
 metadata = MetaData()
@@ -28,7 +28,7 @@ class UserOrm(Base, TimeMixin):
     __tablename__ = 'user'
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    telegram_id: Mapped[int] = mapped_column(unique=True, nullable=False)
+    telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
     username: Mapped[str | None] = mapped_column(nullable=True)
     balance: Mapped[int] = mapped_column(nullable=False, server_default="0")
     is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
