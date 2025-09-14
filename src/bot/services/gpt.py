@@ -82,18 +82,35 @@ class OpenAIService(AbcOpenAIService):
         state_data = await state.get_data()
         image_size = state_data.get("gpt_image_size") or "1:1"
 
-        prompt = (message.text or "").strip()
-        if not prompt:
-            await message.answer("✍️ Напиши промпт для генерации изображения.")
+        # Determine if this is text-to-image or image edit/variant
+        image_urls: list[str] = []
+        prompt_text: str = ""
+        if message.photo:
+            # Largest available size
+            url = await self._get_telegram_file_url(message.bot, message.photo[-1].file_id)
+            image_urls = [url]
+            prompt_text = (message.caption or "").strip()
+        elif message.document and (message.document.mime_type or "").lower().startswith("image/"):
+            url = await self._get_telegram_file_url(message.bot, message.document.file_id)
+            image_urls = [url]
+            prompt_text = (message.caption or "").strip()
+        else:
+            prompt_text = (message.text or "").strip()
+
+        if not image_urls and not prompt_text:
+            await message.answer("✍️ Напиши промпт для генерации изображения или пришли фото с комментарием.")
             return
 
-        payload = {
-            "prompt": prompt,
+        payload: dict[str, Any] = {
             "size": image_size,
             "nVariants": 1,
             "callBackUrl": self._build_callback_url(user.telegram_id),
             "enableFallback": True,
         }
+        if prompt_text:
+            payload["prompt"] = prompt_text
+        if image_urls:
+            payload["filesUrl"] = image_urls
 
         headers = {
             "Authorization": f"Bearer {settings.KIE.API_KEY}",
@@ -116,12 +133,17 @@ class OpenAIService(AbcOpenAIService):
             user_id=user.id,
             amount=request_price,
             reason=LedgerReasonEnum.gpt_image_request,
-            meta=json.dumps({"task_id": task_id, "size": image_size, "prompt": prompt}, ensure_ascii=False),
+            meta=json.dumps({
+                "task_id": task_id,
+                "size": image_size,
+                "prompt": prompt_text or None,
+                "filesUrl": image_urls or None,
+            }, ensure_ascii=False),
         )
 
         await message.answer(
-            "🧑‍🎨 Генерирую изображение...\n"
-            "Я пришлю его, как только оно будет готово. Это может занять несколько минут."
+            "🧑‍🎨 Обрабатываю изображение...\n"
+            "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
         )
 
     def _build_callback_url(self, telegram_id: int) -> str:
