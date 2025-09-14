@@ -117,7 +117,7 @@ async def pay_ru(
         text=(
             "🇷🇺 *SberPay | T‑Pay | ЮMoney*\n\n"
             "⚠️ Временно не принимаем оплату по номеру карты МИР.\n"
-            "Пожалуйста, используйте SberPay, T‑Pay или ЮMoney.\n\n"
+            "Пожалуйста, используй SberPay, T‑Pay или ЮMoney.\n\n"
             "Выбери пакет токенов:"),
         reply_markup=ru_bundles_keyboard(bundles),
     )
