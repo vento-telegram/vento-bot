@@ -32,18 +32,16 @@ def create_app(
             if payment_id:
                 try:
                     credited = await payments.check_payment_and_credit(payment_id)
-                    # Try to notify user
                     try:
                         obj = body.get('object', {})
                         metadata = obj.get('metadata', {}) or {}
                         telegram_id = int(metadata.get('user_id')) if metadata.get('user_id') else None
                         tokens = int(metadata.get('tokens')) if metadata.get('tokens') else None
                         if telegram_id and tokens:
-                            await bot.send_message(telegram_id, f"✅ Оплата прошла успешно! Зачислено {tokens} токенов.")
-                            # Send start menu right after
                             user = await user_service.get_user(telegram_id)
                             if user:
                                 text = (
+                                    f"✅ Оплата прошла успешно! Зачислено {tokens} токенов.\n\n"
                                     f"🪙 Твой баланс: *{user.balance}* токенов\n\n"
                                     "👇 Что хочешь сделать?"
                                 )
