@@ -61,8 +61,23 @@ async def set_mode_gpt_image(
     await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt_image))
     await call.message.answer(
         "🖼️ Теперь ты можешь генерировать изображения. Отправь промпт — получишь картинку.\n\n"
+        "📐 Текущий размер: *1:1*. Его можно сменить кнопками под сообщением.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
+
+@router.callback_query(F.data.startswith("gpt_image:size:"))
+@inject
+async def set_gpt_image_size(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    size = (call.data or "").split(":")[-1]
+    if size not in {"1:1", "3:2", "2:3"}:
+        await call.answer("Неверный размер", show_alert=True)
+        return
+    await state.update_data(gpt_image_size=size)
+    await call.answer(f"Размер изображения: {size}")
+    await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt_image))
 
 @router.callback_query(F.data == "goto:account")
 @inject

@@ -30,6 +30,16 @@ class YookassaSettings(BaseSettings):
     SHOP_ID: str
     SECRET_KEY: str
 
+class KIESettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="KIE__",
+        env_file=".env",
+        extra="ignore",
+    )
+    API_KEY: str
+    BASE_URL: str = "https://api.kie.ai"
+    CALLBACK_BASE: str = "https://bukhavets.com"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -39,6 +49,7 @@ class Settings(BaseSettings):
     POSTGRES: PostgresSettings = PostgresSettings()
     OPENAI: OpenAISettings = OpenAISettings()
     YOOKASSA: YookassaSettings = YookassaSettings()
+    KIE: KIESettings = KIESettings()
     WEB_PORT: int = 8080
 
 

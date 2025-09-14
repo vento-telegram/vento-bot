@@ -10,6 +10,7 @@ from bot.container import lifecycle
 from bot.handlers import router
 from bot.settings import settings
 from bot.webhooks.yookassa import create_app as create_yk_app
+from bot.webhooks.kie_image import create_app as create_kie_app
 from bot.interfaces.services.payments import AbcPaymentsService
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.settings import AbcSettingsService
@@ -30,6 +31,7 @@ async def _run(
 
     app = web.Application()
     app.add_subapp('/webhooks', create_yk_app(payments, bot, user_service, settings_service))
+    app.add_subapp('/webhooks', create_kie_app(bot))
 
     runner = web.AppRunner(app)
     await runner.setup()

@@ -12,4 +12,5 @@ class LedgerReasonEnum(StrEnum):
     welcome_bonus = auto()
     gpt_request = auto()
     gpt_mini_request = auto()
+    gpt_image_request = auto()
     purchase_stars = auto()

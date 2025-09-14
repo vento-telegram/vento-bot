@@ -17,3 +17,12 @@ class AbcOpenAIService(ABC):
         user: UserEntity
     ) -> GPTMessageResponse:
         ...
+
+    @abstractmethod
+    async def submit_gpt_image_request(
+        self,
+        message: Message,
+        state: FSMContext,
+        user: UserEntity,
+    ) -> None:
+        ...

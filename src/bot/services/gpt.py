@@ -22,6 +22,7 @@ from openai.types.chat import (
 
 from bot.schemas import GPTMessageResponse
 from bot.entities.ledger import LedgerEntity
+from bot.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,70 @@ class OpenAIService(AbcOpenAIService):
             telegram_response.text = "🤖 (пустой ответ от ИИ)"
 
         return telegram_response
+
+    async def submit_gpt_image_request(
+        self,
+        message: Message,
+        state: FSMContext,
+        user: UserEntity,
+    ) -> None:
+        # Price check
+        request_price = int(await self._settings_service.get_value(settings_models_mapper[BotModeEnum.gpt_image]))
+        if user.balance < request_price:
+            raise InsufficientBalanceError
+
+        # Read size from state, default 1:1
+        state_data = await state.get_data()
+        image_size = state_data.get("gpt_image_size") or "1:1"
+
+        prompt = (message.text or "").strip()
+        if not prompt:
+            await message.answer("✍️ Напиши промпт для генерации изображения.")
+            return
+
+        payload = {
+            "prompt": prompt,
+            "size": image_size,
+            "nVariants": 1,
+            "callBackUrl": self._build_callback_url(user.telegram_id),
+            "enableFallback": True,
+        }
+
+        headers = {
+            "Authorization": f"Bearer {settings.KIE.API_KEY}",
+            "Content-Type": "application/json",
+        }
+        url = f"{settings.KIE.BASE_URL}/api/v1/gpt4o-image/generate"
+
+        async with ClientSession() as session:
+            async with session.post(url, json=payload, headers=headers) as resp:
+                result = await resp.json()
+                if resp.status != 200 or result.get("code") != 200:
+                    msg = result.get("msg") or "Ошибка генерации"
+                    await message.answer(f"☹️ Не удалось отправить задачу генерации: {msg}")
+                    return
+                data = (result or {}).get("data") or {}
+                task_id = data.get("taskId")
+
+        # Charge tokens immediately upon task creation
+        await self._process_tokens_transaction(
+            user_id=user.id,
+            amount=request_price,
+            reason=LedgerReasonEnum.gpt_image_request,
+            meta=json.dumps({"task_id": task_id, "size": image_size, "prompt": prompt}, ensure_ascii=False),
+        )
+
+        await message.answer(
+            "🧪 Задача запущена, жду результат от генератора...\n"
+            "Я пришлю изображение, как только оно будет готово."
+        )
+
+    def _build_callback_url(self, telegram_id: int) -> str:
+        base = settings.KIE.CALLBACK_BASE
+        if not base:
+            # Fallback to our known web base under /webhooks
+            return f"/webhooks/kie-image?user_id={telegram_id}"
+        return f"{base}/webhooks/kie-image?user_id={telegram_id}"
 
     async def _transform_for_gpt(self, message: Message) -> ChatCompletionUserMessageParam:
         if message.photo:
