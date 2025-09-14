@@ -1,5 +1,6 @@
 import logging
 import json
+import asyncio
 from typing import Any
 
 from aiohttp import ClientSession
@@ -160,18 +161,68 @@ class OpenAIService(AbcOpenAIService):
         # Auto-infer action: edit if image provided, else create
         has_image = bool(message.photo) or (message.document and (message.document.mime_type or "").lower().startswith("image/"))
 
-        # Prepare input
+        # Media group aggregation for multiple images
+        media_group_id = getattr(message, "media_group_id", None)
+        if has_image and media_group_id:
+            group_key = str(media_group_id)
+            state_data = await state.get_data()
+            groups: dict = state_data.get("nb_groups", {}) or {}
+            record = groups.get(group_key, {"images": [], "prompt": None, "submitted": False})
+
+            # Add image URL
+            if message.photo:
+                url = await self._get_telegram_file_url(message.bot, message.photo[-1].file_id)
+            else:
+                url = await self._get_telegram_file_url(message.bot, message.document.file_id)
+            if url not in record["images"]:
+                record["images"].append(url)
+
+            # Update prompt if provided in this message
+            caption = (message.caption or "").strip()
+            if caption:
+                record["prompt"] = caption
+
+            groups[group_key] = record
+            await state.update_data(nb_groups=groups)
+
+            # Debounce to collect rest of the album
+            await asyncio.sleep(1.2)
+
+            # Re-read and submit if not submitted yet
+            state_data = await state.get_data()
+            groups = state_data.get("nb_groups", {}) or {}
+            record = groups.get(group_key)
+            if not record or record.get("submitted"):
+                return
+            images: list[str] = record.get("images") or []
+            prompt_text: str | None = record.get("prompt")
+            if not images or not prompt_text:
+                # Not enough data to submit yet
+                return
+
+            await self._submit_nano_task(
+                user=user,
+                image_urls=images,
+                prompt_text=prompt_text,
+            )
+
+            # Mark as submitted
+            record["submitted"] = True
+            groups[group_key] = record
+            await state.update_data(nb_groups=groups)
+            await message.answer("🍌 Задача отправлена в Nano Banana. Пришлю результат, как только он будет готов.")
+            return
+
+        # Prepare single input
         prompt_text: str = ""
         image_urls: list[str] = []
         if has_image:
             if message.photo:
                 url = await self._get_telegram_file_url(message.bot, message.photo[-1].file_id)
-                image_urls = [url]
-                prompt_text = (message.caption or "").strip()
             else:
                 url = await self._get_telegram_file_url(message.bot, message.document.file_id)
-                image_urls = [url]
-                prompt_text = (message.caption or "").strip()
+            image_urls = [url]
+            prompt_text = (message.caption or "").strip()
             if not prompt_text:
                 await message.answer("Добавь подпись к фото с инструкцией для редактирования.")
                 return
@@ -181,7 +232,15 @@ class OpenAIService(AbcOpenAIService):
                 await message.answer("✍️ Напиши промпт для генерации изображения (Nano Banana).")
                 return
 
-        model_name = "google/nano-banana-edit" if has_image else "google/nano-banana"
+        await self._submit_nano_task(
+            user=user,
+            image_urls=image_urls,
+            prompt_text=prompt_text,
+        )
+        await message.answer("🍌 Задача отправлена в Nano Banana. Пришлю результат, как только он будет готов.")
+
+    async def _submit_nano_task(self, user: UserEntity, image_urls: list[str], prompt_text: str) -> None:
+        model_name = "google/nano-banana-edit" if image_urls else "google/nano-banana"
 
         input_obj: dict[str, Any] = {
             "prompt": prompt_text,
@@ -208,25 +267,21 @@ class OpenAIService(AbcOpenAIService):
                 result = await resp.json()
                 if resp.status != 200 or result.get("code") != 200:
                     msg = result.get("msg") or "Ошибка генерации"
-                    await message.answer(f"☹️ Не удалось отправить задачу: {msg}")
-                    return
+                    raise InsufficientBalanceError if msg == "Insufficient Credits" else Exception(msg)
                 data = (result or {}).get("data") or {}
                 task_id = data.get("taskId")
 
+        # Charge tokens immediately upon task creation
         await self._process_tokens_transaction(
             user_id=user.id,
-            amount=request_price,
+            amount=int(await self._settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana])),
             reason=LedgerReasonEnum.nano_banana_request,
             meta=json.dumps({
                 "task_id": task_id,
-                "action": "edit" if has_image else "create",
+                "action": "edit" if image_urls else "create",
                 "prompt": prompt_text or None,
                 "image_urls": image_urls or None,
             }, ensure_ascii=False),
-        )
-
-        await message.answer(
-            "🍌 Задача отправлена в Nano Banana. Пришлю результат, как только он будет готов."
         )
 
     def _build_callback_url(self, telegram_id: int) -> str:
