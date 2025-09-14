@@ -146,12 +146,104 @@ class OpenAIService(AbcOpenAIService):
             "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
         )
 
+    async def submit_nano_banana_request(
+        self,
+        message: Message,
+        state: FSMContext,
+        user: UserEntity,
+    ) -> None:
+        # Price check
+        request_price = int(await self._settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana]))
+        if user.balance < request_price:
+            raise InsufficientBalanceError
+
+        state_data = await state.get_data()
+        action = state_data.get("nano_banana_action") or "create"
+
+        # Prepare input
+        prompt_text: str = ""
+        image_urls: list[str] = []
+        if action == "edit":
+            # Expect image + caption
+            if message.photo:
+                url = await self._get_telegram_file_url(message.bot, message.photo[-1].file_id)
+                image_urls = [url]
+                prompt_text = (message.caption or "").strip()
+            elif message.document and (message.document.mime_type or "").lower().startswith("image/"):
+                url = await self._get_telegram_file_url(message.bot, message.document.file_id)
+                image_urls = [url]
+                prompt_text = (message.caption or "").strip()
+            else:
+                await message.answer("Пришли изображение с подписью для редактирования (Nano Banana Edit).")
+                return
+        else:
+            # create: text only
+            prompt_text = (message.text or "").strip()
+            if not prompt_text:
+                await message.answer("✍️ Напиши промпт для генерации изображения (Nano Banana).")
+                return
+
+        model_name = "google/nano-banana-edit" if action == "edit" else "google/nano-banana"
+
+        # Optional: image_size stays 'auto' for nano banana by default; could extend later
+        input_obj: dict[str, Any] = {
+            "prompt": prompt_text,
+            "output_format": "png",
+            "image_size": "auto",
+        }
+        if image_urls:
+            input_obj["image_urls"] = image_urls
+
+        payload = {
+            "model": model_name,
+            "input": input_obj,
+            "callBackUrl": self._build_callback_url_nb(user.telegram_id),
+        }
+
+        headers = {
+            "Authorization": f"Bearer {settings.KIE.API_KEY}",
+            "Content-Type": "application/json",
+        }
+        url = f"{settings.KIE.BASE_URL}/api/v1/jobs/createTask"
+
+        async with ClientSession() as session:
+            async with session.post(url, json=payload, headers=headers) as resp:
+                result = await resp.json()
+                if resp.status != 200 or result.get("code") != 200:
+                    msg = result.get("msg") or "Ошибка генерации"
+                    await message.answer(f"☹️ Не удалось отправить задачу: {msg}")
+                    return
+                data = (result or {}).get("data") or {}
+                task_id = data.get("taskId")
+
+        await self._process_tokens_transaction(
+            user_id=user.id,
+            amount=request_price,
+            reason=LedgerReasonEnum.nano_banana_request,
+            meta=json.dumps({
+                "task_id": task_id,
+                "action": action,
+                "prompt": prompt_text or None,
+                "image_urls": image_urls or None,
+            }, ensure_ascii=False),
+        )
+
+        await message.answer(
+            "🍌 Задача отправлена в Nano Banana. Пришлю результат, как только он будет готов."
+        )
+
     def _build_callback_url(self, telegram_id: int) -> str:
         base = settings.KIE.CALLBACK_BASE
         if not base:
             # Fallback to our known web base under /webhooks
             return f"/webhooks/kie-image?user_id={telegram_id}"
         return f"{base}/webhooks/kie-image?user_id={telegram_id}"
+
+    def _build_callback_url_nb(self, telegram_id: int) -> str:
+        base = settings.KIE.CALLBACK_BASE
+        if not base:
+            return f"/webhooks/kie-nano?user_id={telegram_id}"
+        return f"{base}/webhooks/kie-nano?user_id={telegram_id}"
 
     async def _transform_for_gpt(self, message: Message) -> ChatCompletionUserMessageParam:
         if message.photo:

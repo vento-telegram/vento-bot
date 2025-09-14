@@ -74,9 +74,20 @@ async def common_message_handler(
             )
 
     elif mode == BotModeEnum.nano_banana:
-        await message.answer(
-            "🍌 Nano Banana скоро будет доступен. Пришлю обновление, когда интеграция будет готова."
-        )
+        try:
+            await openai_service.submit_nano_banana_request(message, state, user)
+        except InsufficientBalanceError:
+            await message.answer(
+                "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите другую модель.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
+                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
+                        ]
+                    ]
+                ),
+            )
 
     elif mode == BotModeEnum.passive or not mode:
         await message.answer(

@@ -26,3 +26,12 @@ class AbcOpenAIService(ABC):
         user: UserEntity,
     ) -> None:
         ...
+
+    @abstractmethod
+    async def submit_nano_banana_request(
+        self,
+        message: Message,
+        state: FSMContext,
+        user: UserEntity,
+    ) -> None:
+        ...

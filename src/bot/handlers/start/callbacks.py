@@ -11,7 +11,7 @@ from bot.container import Container
 from bot.enums import BotModeEnum
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.settings import AbcSettingsService
-from bot.keyboards.change_ai import mode_keyboard, gpt_image_size_keyboard
+from bot.keyboards.change_ai import mode_keyboard, gpt_image_size_keyboard, nano_banana_action_keyboard
 from bot.keyboards.start import (
     account_keyboard,
     start_keyboard,
@@ -75,13 +75,30 @@ async def set_mode_nano_banana(
     call: CallbackQuery,
     state: FSMContext,
 ):
-    await state.update_data(mode=BotModeEnum.nano_banana)
+    await state.update_data(mode=BotModeEnum.nano_banana, nano_banana_action="create")
     await call.answer("Режим Nano Banana активирован")
     await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.nano_banana))
     await call.message.answer(
-        "🍌 Включён *Nano Banana*. Пока это заглушка — скоро добавим логику.\n\n"
-        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+        "🍌 *Nano Banana* — выбери режим работы: создание или редактирование.\n\n"
+        "По умолчанию — *создание*. К редактированию пришли изображение с подписью.",
+        reply_markup=nano_banana_action_keyboard("create"),
     )
+
+@router.callback_query(F.data.startswith("nano_banana:action:"))
+@inject
+async def set_nano_banana_action(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    raw = call.data or ""
+    prefix = "nano_banana:action:"
+    action = raw[len(prefix):] if raw.startswith(prefix) else "create"
+    if action not in {"create", "edit"}:
+        await call.answer("Неверный режим", show_alert=True)
+        return
+    await state.update_data(nano_banana_action=action)
+    await call.answer("Режим обновлён")
+    await call.message.edit_reply_markup(reply_markup=nano_banana_action_keyboard(action))
 
 @router.callback_query(F.data.startswith("gpt_image:size:"))
 @inject
@@ -296,7 +313,7 @@ async def goto_switch(
         f"🖼️ *GPT Image* ({image_price} токенов/запрос)\n"
         "Генерация картинок по описанию.\n\n"
         f"🍌 *Nano Banana* ({nano_price} токенов/запрос)\n"
-        "Скоро расскажем подробнее.\n\n"
+        "Создание и редактирование изображений.\n\n"
         "👇 Выбери нужный ИИ:"
     )
 

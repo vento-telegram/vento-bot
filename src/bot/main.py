@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import json
 from aiohttp import web
 
 from aiogram import Bot, Dispatcher
@@ -74,7 +75,7 @@ async def _run(
             return web.json_response({"ok": True})
         return web.json_response({"ok": True})
 
-    async def kie_handle(request: web.Request):
+    async def kie_image_handle(request: web.Request):
         user_id = request.query.get('user_id')
         try:
             body = await request.json()
@@ -104,8 +105,47 @@ async def _run(
 
         return web.json_response({"ok": True})
 
+    async def kie_nano_handle(request: web.Request):
+        user_id = request.query.get('user_id')
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({"status": "bad json"}, status=400)
+
+        code = body.get('code')
+        data = (body.get('data') or {})
+        state = data.get('state')
+        result_json = data.get('resultJson')
+        result_urls: list[str] = []
+        try:
+            if result_json:
+                parsed = json.loads(result_json)
+                result_urls = parsed.get('resultUrls') or []
+        except Exception:
+            result_urls = []
+
+        if not user_id:
+            return web.json_response({"ok": False, "error": "no user_id"}, status=400)
+
+        try:
+            if code == 200 and state == 'success' and result_urls:
+                caption = "*Твоё изображение готово!\n\n✨ Cоздано с помощью [Vento](https://t.me/vento_toolbot)"
+                await bot.send_photo(user_id, result_urls[0], caption=caption)
+                for extra_url in result_urls[1:]:
+                    await bot.send_photo(user_id, extra_url, caption=caption)
+            elif code == 200 and state in {'waiting'}:
+                await bot.send_message(user_id, "🍌 Задача обрабатывается... Пришлю результат позже.")
+            else:
+                msg = data.get('failMsg') or body.get('msg') or 'Генерация не удалась'
+                await bot.send_message(user_id, f"☹️ {msg}")
+        except Exception:
+            logger.exception("Error sending KIE nano result to user %s", user_id)
+
+        return web.json_response({"ok": True})
+
     webhooks_app.router.add_post('/yookassa', yookassa_handle)
-    webhooks_app.router.add_post('/kie-image', kie_handle)
+    webhooks_app.router.add_post('/kie-image', kie_image_handle)
+    webhooks_app.router.add_post('/kie-nano', kie_nano_handle)
 
     app.add_subapp('/webhooks', webhooks_app)
 
