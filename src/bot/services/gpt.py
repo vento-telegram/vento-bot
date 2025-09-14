@@ -1,7 +1,6 @@
 import logging
 import json
 import asyncio
-import time
 from typing import Any
 
 from aiohttp import ClientSession
@@ -166,10 +165,9 @@ class OpenAIService(AbcOpenAIService):
         media_group_id = getattr(message, "media_group_id", None)
         if has_image and media_group_id:
             group_key = str(media_group_id)
-            now = time.monotonic()
             state_data = await state.get_data()
             groups: dict = state_data.get("nb_groups", {}) or {}
-            record = groups.get(group_key, {"images": [], "prompt": None, "submitted": False, "leader": None, "last_update": 0.0})
+            record = groups.get(group_key, {"images": [], "prompt": None, "submitted": False})
 
             # Add image URL
             if message.photo:
@@ -184,56 +182,22 @@ class OpenAIService(AbcOpenAIService):
             if caption:
                 record["prompt"] = caption
 
-            # Timestamp update
-            record["last_update"] = now
-
-            # Elect leader
-            if not record.get("leader"):
-                record["leader"] = message.message_id
-
             groups[group_key] = record
             await state.update_data(nb_groups=groups)
 
-            # Only leader proceeds to submit after debounce window
-            if record["leader"] != message.message_id:
+            # Debounce to collect rest of the album
+            await asyncio.sleep(1.2)
+
+            # Re-read and submit if not submitted yet
+            state_data = await state.get_data()
+            groups = state_data.get("nb_groups", {}) or {}
+            record = groups.get(group_key)
+            if not record or record.get("submitted"):
                 return
-
-            # Leader waits until no updates within window or max wait
-            window = 1.0
-            max_wait = 3.0
-            start = time.monotonic()
-            while True:
-                await asyncio.sleep(0.4)
-                state_data = await state.get_data()
-                record = state_data.get("nb_groups", {}).get(group_key)
-                if not record or record.get("submitted"):
-                    return
-                since_update = time.monotonic() - float(record.get("last_update") or 0.0)
-                if since_update >= window or (time.monotonic() - start) >= max_wait:
-                    break
-
             images: list[str] = record.get("images") or []
             prompt_text: str | None = record.get("prompt")
-            if not images:
-                return
-
-            if not prompt_text:
-                # Store pending images and ask for prompt
-                state_data = await state.get_data()
-                pending = state_data.get("nb_pending", {}) or {}
-                pending["images"] = images
-                pending["ts"] = time.time()
-                await state.update_data(nb_pending=pending)
-
-                # Mark group as submitted to avoid re-processing
-                state_data = await state.get_data()
-                groups = state_data.get("nb_groups", {}) or {}
-                rec2 = groups.get(group_key) or {}
-                rec2["submitted"] = True
-                groups[group_key] = rec2
-                await state.update_data(nb_groups=groups)
-
-                await message.answer(f"📸 Получил {len(images)} фото. Напиши одним сообщением, что с ними сделать.")
+            if not images or not prompt_text:
+                # Not enough data to submit yet
                 return
 
             await self._submit_nano_task(
@@ -243,16 +207,13 @@ class OpenAIService(AbcOpenAIService):
             )
 
             # Mark as submitted
-            state_data = await state.get_data()
-            groups = state_data.get("nb_groups", {}) or {}
-            record = groups.get(group_key) or {}
             record["submitted"] = True
             groups[group_key] = record
             await state.update_data(nb_groups=groups)
             await message.answer("🍌 Задача отправлена в Nano Banana. Пришлю результат, как только он будет готов.")
             return
 
-        # Prepare single input or text with pending images
+        # Prepare single input
         prompt_text: str = ""
         image_urls: list[str] = []
         if has_image:
@@ -269,21 +230,6 @@ class OpenAIService(AbcOpenAIService):
             prompt_text = (message.text or "").strip()
             if not prompt_text:
                 await message.answer("✍️ Напиши промпт для генерации изображения (Nano Banana).")
-                return
-
-            # If there are pending images from a recent album, use them
-            state_data = await state.get_data()
-            pending = state_data.get("nb_pending") or {}
-            pending_images: list[str] | None = pending.get("images")
-            ts = float(pending.get("ts") or 0)
-            if pending_images and (time.time() - ts) < 300:
-                await state.update_data(nb_pending=None)
-                await self._submit_nano_task(
-                    user=user,
-                    image_urls=pending_images,
-                    prompt_text=prompt_text,
-                )
-                await message.answer("🍌 Задача отправлена в Nano Banana. Пришлю результат, как только он будет готов.")
                 return
 
         await self._submit_nano_task(
