@@ -42,15 +42,3 @@ def gpt_image_size_keyboard(selected_size: str) -> InlineKeyboardMarkup:
         label = f"✅ {s}" if s == selected_size else s
         buttons.append(InlineKeyboardButton(text=label, callback_data=f"gpt_image:size:{s}"))
     return InlineKeyboardMarkup(inline_keyboard=[buttons])
-
-
-def nano_banana_action_keyboard(action: str) -> InlineKeyboardMarkup:
-    # action is 'create' or 'edit'
-    create_label = "✅ Создание" if action == "create" else "Создание"
-    edit_label = "✅ Редактирование" if action == "edit" else "Редактирование"
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text=create_label, callback_data="nano_banana:action:create"),
-            InlineKeyboardButton(text=edit_label, callback_data="nano_banana:action:edit"),
-        ]
-    ])

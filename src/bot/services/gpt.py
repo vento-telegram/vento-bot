@@ -157,35 +157,32 @@ class OpenAIService(AbcOpenAIService):
         if user.balance < request_price:
             raise InsufficientBalanceError
 
-        state_data = await state.get_data()
-        action = state_data.get("nano_banana_action") or "create"
+        # Auto-infer action: edit if image provided, else create
+        has_image = bool(message.photo) or (message.document and (message.document.mime_type or "").lower().startswith("image/"))
 
         # Prepare input
         prompt_text: str = ""
         image_urls: list[str] = []
-        if action == "edit":
-            # Expect image + caption
+        if has_image:
             if message.photo:
                 url = await self._get_telegram_file_url(message.bot, message.photo[-1].file_id)
                 image_urls = [url]
                 prompt_text = (message.caption or "").strip()
-            elif message.document and (message.document.mime_type or "").lower().startswith("image/"):
+            else:
                 url = await self._get_telegram_file_url(message.bot, message.document.file_id)
                 image_urls = [url]
                 prompt_text = (message.caption or "").strip()
-            else:
-                await message.answer("Пришли изображение с подписью для редактирования (Nano Banana Edit).")
+            if not prompt_text:
+                await message.answer("Добавь подпись к фото с инструкцией для редактирования.")
                 return
         else:
-            # create: text only
             prompt_text = (message.text or "").strip()
             if not prompt_text:
                 await message.answer("✍️ Напиши промпт для генерации изображения (Nano Banana).")
                 return
 
-        model_name = "google/nano-banana-edit" if action == "edit" else "google/nano-banana"
+        model_name = "google/nano-banana-edit" if has_image else "google/nano-banana"
 
-        # Optional: image_size stays 'auto' for nano banana by default; could extend later
         input_obj: dict[str, Any] = {
             "prompt": prompt_text,
             "output_format": "png",
@@ -222,7 +219,7 @@ class OpenAIService(AbcOpenAIService):
             reason=LedgerReasonEnum.nano_banana_request,
             meta=json.dumps({
                 "task_id": task_id,
-                "action": action,
+                "action": "edit" if has_image else "create",
                 "prompt": prompt_text or None,
                 "image_urls": image_urls or None,
             }, ensure_ascii=False),
