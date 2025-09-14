@@ -11,7 +11,7 @@ from bot.container import Container
 from bot.enums import BotModeEnum
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.settings import AbcSettingsService
-from bot.keyboards.change_ai import mode_keyboard
+from bot.keyboards.change_ai import mode_keyboard, gpt_image_size_keyboard
 from bot.keyboards.start import (
     account_keyboard,
     start_keyboard,
@@ -56,13 +56,17 @@ async def set_mode_gpt_image(
     call: CallbackQuery,
     state: FSMContext,
 ):
-    await state.update_data(mode=BotModeEnum.gpt_image)
+    await state.update_data(mode=BotModeEnum.gpt_image, gpt_image_size="1:1")
     await call.answer("Режим GPT Image активирован")
     await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt_image))
-    await call.message.answer(
+    text = (
         "🖼️ Теперь ты можешь генерировать изображения. Отправь промпт — получишь картинку.\n\n"
         "📐 Текущий размер: *1:1*. Его можно сменить кнопками под сообщением.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+    )
+    await call.message.answer(
+        text,
+        reply_markup=gpt_image_size_keyboard("1:1"),
     )
 
 @router.callback_query(F.data.startswith("gpt_image:size:"))
@@ -71,13 +75,26 @@ async def set_gpt_image_size(
     call: CallbackQuery,
     state: FSMContext,
 ):
-    size = (call.data or "").split(":")[-1]
+    raw = call.data or ""
+    prefix = "gpt_image:size:"
+    size = raw[len(prefix):] if raw.startswith(prefix) else raw.split(":", maxsplit=2)[-1]
     if size not in {"1:1", "3:2", "2:3"}:
         await call.answer("Неверный размер", show_alert=True)
         return
     await state.update_data(gpt_image_size=size)
     await call.answer(f"Размер изображения: {size}")
-    await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt_image))
+    # Update the last message text (if possible) or just update buttons
+    try:
+        await call.message.edit_text(
+            text=(
+                "🖼️ Теперь ты можешь генерировать изображения. Отправь промпт — получишь картинку.\n\n"
+                f"📐 Текущий размер: *{size}*. Его можно сменить кнопками под сообщением.\n\n"
+                "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+            ),
+            reply_markup=gpt_image_size_keyboard(size),
+        )
+    except Exception:
+        await call.message.edit_reply_markup(reply_markup=gpt_image_size_keyboard(size))
 
 @router.callback_query(F.data == "goto:account")
 @inject

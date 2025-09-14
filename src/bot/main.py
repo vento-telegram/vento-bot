@@ -92,10 +92,10 @@ async def _run(
 
         try:
             if code == 200 and result_urls:
-                caption = "✅ Изображение готово!"
+                caption = "✨ Создано в [Vento](https://t.me/vento_toolbot)"
                 await bot.send_photo(user_id, result_urls[0], caption=caption)
                 for extra_url in result_urls[1:]:
-                    await bot.send_photo(user_id, extra_url)
+                    await bot.send_photo(user_id, extra_url, caption=caption)
             else:
                 msg = body.get('msg') or 'Генерация не удалась'
                 await bot.send_message(user_id, f"☹️ {msg}")

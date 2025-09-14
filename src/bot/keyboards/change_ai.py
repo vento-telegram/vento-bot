@@ -23,17 +23,18 @@ def mode_keyboard(active_mode: str | None = None) -> InlineKeyboardMarkup:
         [
             mode_button("GPT Image", "set_mode:gpt_image", BotModeEnum.gpt_image),
         ],
+        [
+            InlineKeyboardButton(text="🔙 Назад", callback_data="goto:start"),
+        ],
     ]
 
-    if active_mode == BotModeEnum.gpt_image:
-        rows.append([
-            InlineKeyboardButton(text="1:1", callback_data="gpt_image:size:1:1"),
-            InlineKeyboardButton(text="3:2", callback_data="gpt_image:size:3:2"),
-            InlineKeyboardButton(text="2:3", callback_data="gpt_image:size:2:3"),
-        ])
-
-    rows.append([
-        InlineKeyboardButton(text="🔙 Назад", callback_data="goto:start"),
-    ])
-
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def gpt_image_size_keyboard(selected_size: str) -> InlineKeyboardMarkup:
+    sizes = ["1:1", "3:2", "2:3"]
+    buttons: list[InlineKeyboardButton] = []
+    for s in sizes:
+        label = f"✅ {s}" if s == selected_size else s
+        buttons.append(InlineKeyboardButton(text=label, callback_data=f"gpt_image:size:{s}"))
+    return InlineKeyboardMarkup(inline_keyboard=[buttons])
