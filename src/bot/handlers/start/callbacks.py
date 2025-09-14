@@ -69,6 +69,20 @@ async def set_mode_gpt_image(
         reply_markup=gpt_image_size_keyboard("1:1"),
     )
 
+@router.callback_query(F.data == "set_mode:nano_banana")
+@inject
+async def set_mode_nano_banana(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    await state.update_data(mode=BotModeEnum.nano_banana)
+    await call.answer("Режим Nano Banana активирован")
+    await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.nano_banana))
+    await call.message.answer(
+        "🍌 Включён *Nano Banana*. Пока это заглушка — скоро добавим логику.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+    )
+
 @router.callback_query(F.data.startswith("gpt_image:size:"))
 @inject
 async def set_gpt_image_size(
@@ -271,6 +285,7 @@ async def goto_switch(
     gpt_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt])
     mini_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt_mini])
     image_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt_image])
+    nano_price = await settings.get_value(settings_models_mapper[BotModeEnum.nano_banana])
 
     text = (
         "👾 *Выбор ИИ*\n\n"
@@ -278,8 +293,10 @@ async def goto_switch(
         "Самый продвинутый ИИ-чат.\n\n"
         f"⚡ *GPT‑5 Mini* ({mini_price} токенов/запрос)\n"
         "Быстрые и экономные ответы.\n\n"
-        f"🖼️ *GPT Image* ({image_price} токенов/изображение)\n"
+        f"🖼️ *GPT Image* ({image_price} токенов/запрос)\n"
         "Генерация картинок по описанию.\n\n"
+        f"🍌 *Nano Banana* ({nano_price} токенов/запрос)\n"
+        "Скоро расскажем подробнее.\n\n"
         "👇 Выбери нужный ИИ:"
     )
 

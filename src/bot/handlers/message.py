@@ -73,6 +73,11 @@ async def common_message_handler(
                 ),
             )
 
+    elif mode == BotModeEnum.nano_banana:
+        await message.answer(
+            "🍌 Nano Banana скоро будет доступен. Пришлю обновление, когда интеграция будет готова."
+        )
+
     elif mode == BotModeEnum.passive or not mode:
         await message.answer(
             "👇 Сначала выбери, куда будем делать запрос:",

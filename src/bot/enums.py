@@ -6,6 +6,7 @@ class BotModeEnum(StrEnum):
     gpt = "GPT-5"
     gpt_mini = "GPT-5 Mini"
     gpt_image = "GPT Image"
+    nano_banana = "Nano Banana"
 
 
 class LedgerReasonEnum(StrEnum):
