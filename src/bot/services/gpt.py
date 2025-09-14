@@ -87,8 +87,27 @@ class OpenAIService(AbcOpenAIService):
 
     @staticmethod
     def _make_meta(request: ChatCompletionUserMessageParam, response: ChatCompletionAssistantMessageParam) -> str:
+        def _as_dict(obj: Any) -> dict:
+            if isinstance(obj, dict):
+                return obj
+            if hasattr(obj, "model_dump"):
+                try:
+                    return obj.model_dump()
+                except Exception:
+                    pass
+            if hasattr(obj, "to_dict"):
+                try:
+                    return obj.to_dict()
+                except Exception:
+                    pass
+            try:
+                return dict(obj)
+            except Exception:
+                return {}
+
         def _extract(msg: ChatCompletionUserMessageParam | ChatCompletionAssistantMessageParam) -> dict[str, Any]:
-            content = msg.get("content")
+            data = _as_dict(msg)
+            content = data.get("content")
             text: str = ""
             images: list[str] = []
             if isinstance(content, str):
@@ -104,7 +123,11 @@ class OpenAIService(AbcOpenAIService):
                             images.append(image_url)
                     except Exception:
                         continue
-            return {"role": msg.get("role"), "text": text or None, "images": images or None}
+            role = data.get("role")
+            if not role:
+                # Best-effort fallback based on response type
+                role = "assistant" if isinstance(msg, dict) and data.get("content") and data is not None else None
+            return {"role": role, "text": text or None, "images": images or None}
 
         meta = {
             "request": _extract(request),
