@@ -5,6 +5,7 @@ class BotModeEnum(StrEnum):
     passive = "Не выбран"
     gpt = "GPT-5"
     gpt_mini = "GPT-5 Mini"
+    gpt_image = "GPT Image"
 
 
 class LedgerReasonEnum(StrEnum):

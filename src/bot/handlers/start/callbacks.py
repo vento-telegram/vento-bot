@@ -50,6 +50,20 @@ async def set_mode_chatgpt_mini(
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
 
+@router.callback_query(F.data == "set_mode:gpt_image")
+@inject
+async def set_mode_gpt_image(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    await state.update_data(mode=BotModeEnum.gpt_image)
+    await call.answer("Режим GPT Image активирован")
+    await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt_image))
+    await call.message.answer(
+        "🖼️ Теперь ты можешь генерировать изображения. Отправь промпт — получишь картинку.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+    )
+
 @router.callback_query(F.data == "goto:account")
 @inject
 async def goto_account(
@@ -224,6 +238,7 @@ async def goto_switch(
 
     gpt_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt])
     mini_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt_mini])
+    image_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt_image])
 
     text = (
         "👾 *Выбор ИИ*\n\n"
@@ -231,8 +246,11 @@ async def goto_switch(
         "Самый продвинутый ИИ-чат.\n\n"
         f"⚡ *GPT‑5 Mini* ({mini_price} токенов/запрос)\n"
         "Быстрые и экономные ответы.\n\n"
+        f"🖼️ *GPT Image* ({image_price} токенов/изображение)\n"
+        "Генерация картинок по описанию.\n\n"
         "👇 Выбери нужный ИИ:"
     )
+
     await call.message.edit_text(
         text=text,
         reply_markup=mode_keyboard(current_mode)

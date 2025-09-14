@@ -55,6 +55,12 @@ def upgrade() -> None:
                 'updated_at': datetime.datetime.utcnow(),
             },
             {
+                'key': 'gpt_image_price',
+                'value': "127",
+                'created_at': datetime.datetime.utcnow(),
+                'updated_at': datetime.datetime.utcnow(),
+            },
+            {
                 'key': 'daily_bonus',
                 'value': "50",
                 'created_at': datetime.datetime.utcnow(),
