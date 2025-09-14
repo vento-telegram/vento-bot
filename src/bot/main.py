@@ -10,6 +10,7 @@ from bot.container import lifecycle
 from bot.handlers import router
 from bot.settings import settings
 from bot.webhooks.yookassa import create_app as create_yk_app
+from bot.interfaces.services.payments import AbcPaymentsService
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -19,11 +20,12 @@ logger = logging.getLogger(__name__)
 async def _run(
     bot: Bot = Provide[Container.bot],
     dp: Dispatcher = Provide[Container.dispatcher],
+    payments: AbcPaymentsService = Provide[Container.payments_service],
 ) -> None:
     dp.include_router(router)
 
     app = web.Application()
-    app.add_subapp('/webhooks', create_yk_app())
+    app.add_subapp('/webhooks', create_yk_app(payments))
 
     runner = web.AppRunner(app)
     await runner.setup()

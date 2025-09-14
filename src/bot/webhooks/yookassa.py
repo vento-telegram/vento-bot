@@ -1,20 +1,16 @@
 import json
 import logging
 from aiohttp import web
-from dependency_injector.wiring import Provide, inject
-
-from bot.container import Container
 from bot.interfaces.services.payments import AbcPaymentsService
 
 
 logger = logging.getLogger(__name__)
 
 
-def create_app() -> web.Application:
+def create_app(payments: AbcPaymentsService) -> web.Application:
     app = web.Application()
 
-    @inject
-    async def handle(request: web.Request, payments: AbcPaymentsService = Provide[Container.payments_service]):
+    async def handle(request: web.Request):
         try:
             body = await request.json()
         except Exception:
