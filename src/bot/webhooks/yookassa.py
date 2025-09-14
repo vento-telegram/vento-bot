@@ -1,13 +1,23 @@
 import json
 import logging
 from aiohttp import web
+from aiogram import Bot
+from bot.interfaces.services.user import AbcUserService
+from bot.interfaces.services.settings import AbcSettingsService
+from bot.keyboards.start import start_keyboard
+from bot.enums import BotModeEnum
 from bot.interfaces.services.payments import AbcPaymentsService
 
 
 logger = logging.getLogger(__name__)
 
 
-def create_app(payments: AbcPaymentsService) -> web.Application:
+def create_app(
+    payments: AbcPaymentsService,
+    bot: Bot,
+    user_service: AbcUserService,
+    settings_service: AbcSettingsService,
+) -> web.Application:
     app = web.Application()
 
     async def handle(request: web.Request):
@@ -22,6 +32,24 @@ def create_app(payments: AbcPaymentsService) -> web.Application:
             if payment_id:
                 try:
                     credited = await payments.check_payment_and_credit(payment_id)
+                    # Try to notify user
+                    try:
+                        obj = body.get('object', {})
+                        metadata = obj.get('metadata', {}) or {}
+                        telegram_id = int(metadata.get('user_id')) if metadata.get('user_id') else None
+                        tokens = int(metadata.get('tokens')) if metadata.get('tokens') else None
+                        if telegram_id and tokens:
+                            await bot.send_message(telegram_id, f"✅ Оплата прошла успешно! Зачислено {tokens} токенов.")
+                            # Send start menu right after
+                            user = await user_service.get_user(telegram_id)
+                            if user:
+                                text = (
+                                    f"🪙 Твой баланс: *{user.balance}* токенов\n\n"
+                                    "👇 Что хочешь сделать?"
+                                )
+                                await bot.send_message(telegram_id, text, reply_markup=start_keyboard(BotModeEnum.passive))
+                    except Exception:
+                        pass
                     return web.json_response({"ok": credited})
                 except Exception:
                     logger.exception("yookassa webhook error")

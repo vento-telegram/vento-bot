@@ -16,7 +16,7 @@ from bot.keyboards.start import (
     account_keyboard,
     start_keyboard,
 )
-from bot.keyboards.payments import payments_keyboard, payments_back_keyboard, ru_bundles_keyboard, ru_bundles_back_keyboard
+from bot.keyboards.payments import payments_keyboard, payments_back_keyboard, ru_bundles_keyboard, ru_bundles_back_keyboard, pay_link_keyboard
 from bot.interfaces.services.payments import AbcPaymentsService
 
 router = Router()
@@ -141,10 +141,9 @@ async def pay_ru_bundle_selected(
         await call.message.edit_text(
             text=(
                 f"🧾 *Вы выбрали*: {tokens} токенов — {price} ₽\n\n"
-                "Перейди по ссылке для оплаты:"),
-            reply_markup=ru_bundles_back_keyboard(),
+                "Нажми кнопку, чтобы перейти к оплате."),
+            reply_markup=pay_link_keyboard(confirm_url),
         )
-        await call.message.answer(confirm_url)
     except Exception:
         await call.message.edit_text(
             text=(

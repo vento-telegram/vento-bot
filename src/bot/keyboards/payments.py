@@ -51,3 +51,10 @@ def ru_bundles_back_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
+def pay_link_keyboard(url: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💳 Оплатить", url=url)],
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")],
+    ])
+
+

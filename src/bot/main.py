@@ -11,6 +11,8 @@ from bot.handlers import router
 from bot.settings import settings
 from bot.webhooks.yookassa import create_app as create_yk_app
 from bot.interfaces.services.payments import AbcPaymentsService
+from bot.interfaces.services.user import AbcUserService
+from bot.interfaces.services.settings import AbcSettingsService
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -21,11 +23,13 @@ async def _run(
     bot: Bot = Provide[Container.bot],
     dp: Dispatcher = Provide[Container.dispatcher],
     payments: AbcPaymentsService = Provide[Container.payments_service],
+    user_service: AbcUserService = Provide[Container.user_service],
+    settings_service: AbcSettingsService = Provide[Container.settings_service],
 ) -> None:
     dp.include_router(router)
 
     app = web.Application()
-    app.add_subapp('/webhooks', create_yk_app(payments))
+    app.add_subapp('/webhooks', create_yk_app(payments, bot, user_service, settings_service))
 
     runner = web.AppRunner(app)
     await runner.setup()
