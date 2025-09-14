@@ -74,7 +74,6 @@ async def stats_today(
         f"— По моделям:",
         f"   • GPT‑5: {by_model.gpt_5}",
         f"   • GPT‑5 Mini: {by_model.gpt_5_mini}",
-        f"   • DALL·E 3: {by_model.dalle3}",
     ]
     await message.answer("\n".join(lines))
 
@@ -123,7 +122,6 @@ async def user_stats(
         "Запросов по моделям (всё время):",
         f"— GPT‑5: {totals.requests.gpt_5}",
         f"— GPT‑5 Mini: {totals.requests.gpt_5_mini}",
-        f"— DALL·E 3: {totals.requests.dalle3}",
         f"Последний запрос: {totals.last_request_at}",
     ]
     await message.answer("\n".join(lines))

@@ -25,7 +25,7 @@ class AbcLedgerRepo(AbcRepo[LedgerEntity]):
 
     @abstractmethod
     async def requests_by_model_today(self) -> RequestsCounts:
-        """Requests count today grouped by model key inferred from reason (gpt-5, gpt-5-mini, dalle3)."""
+        """Requests count today grouped by model key inferred from reason (gpt-5, gpt-5-mini)."""
 
     @abstractmethod
     async def user_totals(self, user_id: int) -> UserTotals:

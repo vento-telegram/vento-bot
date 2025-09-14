@@ -131,7 +131,7 @@ async def goto_switch(
         f"🤖 *GPT‑5* ({gpt_price} токенов/запрос)\n"
         "Самый продвинутый ИИ-чат.\n\n"
         f"⚡ *GPT‑5 Mini* ({mini_price} токенов/запрос)\n"
-        "Генерация коротких видео.\n\n"
+        "Быстрые и экономные ответы.\n\n"
         "👇 Выбери нужный ИИ:"
     )
     await call.message.edit_text(

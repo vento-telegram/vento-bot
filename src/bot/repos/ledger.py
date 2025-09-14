@@ -50,7 +50,6 @@ class LedgerRepo(AbcLedgerRepo, BaseRepo):
         stmt = select(
             self._model_case(LedgerReasonEnum.gpt_request).label("gpt-5"),
             self._model_case(LedgerReasonEnum.gpt_mini_request).label("gpt-5-mini"),
-            self._model_case(LedgerReasonEnum.dalle3_image).label("dalle3"),
         ).where(
             LedgerOrm.delta < 0,
             func.date(LedgerOrm.created_at) == today,
@@ -61,7 +60,6 @@ class LedgerRepo(AbcLedgerRepo, BaseRepo):
         return RequestsCounts(**{
             "gpt-5": int(m.get("gpt-5") or 0),
             "gpt-5-mini": int(m.get("gpt-5-mini") or 0),
-            "dalle3": int(m.get("dalle3") or 0),
         })
 
     async def user_totals(self, user_id: int) -> UserTotals:
@@ -73,7 +71,6 @@ class LedgerRepo(AbcLedgerRepo, BaseRepo):
         model_stmt = select(
             self._model_case(LedgerReasonEnum.gpt_request).label("gpt-5"),
             self._model_case(LedgerReasonEnum.gpt_mini_request).label("gpt-5-mini"),
-            self._model_case(LedgerReasonEnum.dalle3_image).label("dalle3"),
             func.max(LedgerOrm.created_at).label("last_request_at"),
         ).where(
             LedgerOrm.user_id == user_id,
@@ -88,7 +85,6 @@ class LedgerRepo(AbcLedgerRepo, BaseRepo):
             requests=RequestsCounts(**{
                 "gpt-5": int(m.get("gpt-5") or 0),
                 "gpt-5-mini": int(m.get("gpt-5-mini") or 0),
-                "dalle3": int(m.get("dalle3") or 0),
             }),
             last_request_at=m.get("last_request_at"),
         )

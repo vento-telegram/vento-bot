@@ -10,7 +10,6 @@ class GPTMessageResponse(BaseModel):
 class RequestsCounts(BaseModel):
     gpt_5: int = Field(0, alias="gpt-5")
     gpt_5_mini: int = Field(0, alias="gpt-5-mini")
-    dalle3: int = 0
 
 
 class UserTotals(BaseModel):
