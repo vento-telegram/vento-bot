@@ -36,7 +36,7 @@ async def start_handler(
             text=(
                 "🎉 Добро пожаловать, я *Vento*!\n\n"
                 "*Что я умею:*\n"
-                "💬 Отвечаю на самые сложные вопросы с помощью *GPT-5*\n"
+                "🧠 Отвечаю на самые сложные вопросы с помощью *GPT-5*\n"
                 "⚡ Быстрые и экономные ответы в режиме *GPT-5 Mini*\n\n"
                 f"🎁 Тебе уже начислено *{start_bonus}* стартовых токенов — можно сразу начать!\n"
                 "Если что, команда /start всегда поможет."
@@ -60,5 +60,5 @@ async def start_handler(
 
     await message.answer(
         text=text,
-        reply_markup=start_keyboard(current_mode, is_admin=bool(user.is_admin))
+        reply_markup=start_keyboard(current_mode)
     )

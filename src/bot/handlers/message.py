@@ -2,7 +2,7 @@ import logging
 
 from aiogram import Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from dependency_injector.wiring import inject, Provide
 
 from bot.container import Container
@@ -34,7 +34,7 @@ async def common_message_handler(
         return
 
     if mode == BotModeEnum.gpt or mode == BotModeEnum.gpt_mini:
-        status_msg = await message.answer("🔄 *Генерация ответа...*")
+        status_msg = await message.answer("✨ *Готовлю ответ...*")
         try:
             response = await openai_service.process_gpt_request(message, state, user)
             parts = prepare_telegram_messages_from_markdown(response.text or "")
@@ -43,7 +43,17 @@ async def common_message_handler(
                 for extra in parts[1:]:
                     await message.answer(extra)
         except InsufficientBalanceError:
-            await status_msg.edit_text("*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс токенов, оформить подписку на модель или выбрать более экономичную модель в меню /start.")
+            await status_msg.edit_text(
+                "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс токенов, оформить подписку на модель или выбрать более экономичную модель.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
+                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
+                        ]
+                    ]
+                ),
+            )
         except OpenAIBadRequestError:
             await status_msg.edit_text("*☹️ OpenAI отклонил твой запрос*\n\nПожалуйста, попробуй изменить его.")
 

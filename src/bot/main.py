@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from aiohttp import web
 
 from aiogram import Bot, Dispatcher
 from dependency_injector.wiring import Provide, inject
@@ -8,6 +9,7 @@ from bot.container import Container
 from bot.container import lifecycle
 from bot.handlers import router
 from bot.settings import settings
+from bot.webhooks.yookassa import create_app as create_yk_app
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -19,6 +21,14 @@ async def _run(
     dp: Dispatcher = Provide[Container.dispatcher],
 ) -> None:
     dp.include_router(router)
+
+    app = web.Application()
+    app.add_subapp('/webhooks', create_yk_app())
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', settings.WEB_PORT)
+    await site.start()
 
     await dp.start_polling(bot)
 

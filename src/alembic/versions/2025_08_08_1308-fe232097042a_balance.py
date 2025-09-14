@@ -66,6 +66,36 @@ def upgrade() -> None:
                 'created_at': datetime.datetime.utcnow(),
                 'updated_at': datetime.datetime.utcnow(),
             },
+            {
+                'key': '700_bundle_price',
+                'value': "199",
+                'created_at': datetime.datetime.utcnow(),
+                'updated_at': datetime.datetime.utcnow(),
+            },
+            {
+                'key': '1600_bundle_price',
+                'value': "399",
+                'created_at': datetime.datetime.utcnow(),
+                'updated_at': datetime.datetime.utcnow(),
+            },
+            {
+                'key': '4500_bundle_price',
+                'value': "990",
+                'created_at': datetime.datetime.utcnow(),
+                'updated_at': datetime.datetime.utcnow(),
+            },
+            {
+                'key': '11000_bundle_price',
+                'value': "2290",
+                'created_at': datetime.datetime.utcnow(),
+                'updated_at': datetime.datetime.utcnow(),
+            },
+            {
+                'key': '28000_bundle_price',
+                'value': "4990",
+                'created_at': datetime.datetime.utcnow(),
+                'updated_at': datetime.datetime.utcnow(),
+            },
         ]
     )
     op.add_column('user', sa.Column('balance', sa.Integer(), server_default='0', nullable=False))

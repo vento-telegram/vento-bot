@@ -21,6 +21,15 @@ class OpenAISettings(BaseSettings):
     )
     API_KEY: str
 
+class YookassaSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="YOOKASSA__",
+        env_file=".env",
+        extra="ignore",
+    )
+    SHOP_ID: str
+    SECRET_KEY: str
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -29,6 +38,8 @@ class Settings(BaseSettings):
     MAIN_TOKEN: str
     POSTGRES: PostgresSettings = PostgresSettings()
     OPENAI: OpenAISettings = OpenAISettings()
+    YOOKASSA: YookassaSettings = YookassaSettings()
+    WEB_PORT: int = 8080
 
 
 settings = Settings()

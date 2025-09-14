@@ -16,6 +16,8 @@ from bot.keyboards.start import (
     account_keyboard,
     start_keyboard,
 )
+from bot.keyboards.payments import payments_keyboard, payments_back_keyboard, ru_bundles_keyboard, ru_bundles_back_keyboard
+from bot.interfaces.services.payments import AbcPaymentsService
 
 router = Router()
 
@@ -81,6 +83,102 @@ async def goto_account(
         ),
         reply_markup=account_keyboard,
     )
+@router.callback_query(F.data == "goto:replenish")
+@inject
+async def goto_replenish(
+    call: CallbackQuery,
+):
+    await call.answer()
+    await call.message.edit_text(
+        text=(
+            "💳 *Пополнение баланса*\n\n"
+            "Выбери удобный способ оплаты:"),
+        reply_markup=payments_keyboard(),
+    )
+
+
+@router.callback_query(F.data == "pay:ru")
+@inject
+async def pay_ru(
+    call: CallbackQuery,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+):
+    await call.answer()
+    bundle_token_amounts = [700, 1600, 4500, 11000, 28000]
+    bundles: list[tuple[int, int]] = []
+    for amount in bundle_token_amounts:
+        price_value = await settings.get_value(f"{amount}_bundle_price")
+        try:
+            price = int(price_value)
+        except Exception:
+            price = 0
+        bundles.append((amount, price))
+    await call.message.edit_text(
+        text=(
+            "🇷🇺 *SberPay | T‑Pay | ЮMoney*\n\n"
+            "Выбери пакет токенов:"),
+        reply_markup=ru_bundles_keyboard(bundles),
+    )
+
+
+@router.callback_query(F.data.startswith("pay:ru:"))
+@inject
+async def pay_ru_bundle_selected(
+    call: CallbackQuery,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+    payments: AbcPaymentsService = Provide[Container.payments_service],
+):
+    await call.answer()
+    parts = (call.data or "").split(":", maxsplit=2)
+    tokens = parts[-1] if parts and len(parts) >= 3 else ""
+    price_value = await settings.get_value(f"{tokens}_bundle_price")
+    try:
+        price = int(price_value)
+    except Exception:
+        price = 0
+    try:
+        confirm_url = await payments.create_ru_payment(user_id=call.from_user.id, tokens=int(tokens), price_rub=price)
+        await call.message.edit_text(
+            text=(
+                f"🧾 *Вы выбрали*: {tokens} токенов — {price} ₽\n\n"
+                "Перейди по ссылке для оплаты:"),
+            reply_markup=ru_bundles_back_keyboard(),
+        )
+        await call.message.answer(confirm_url)
+    except Exception:
+        await call.message.edit_text(
+            text=(
+                "☹️ Не удалось создать платёж. Попробуй ещё раз позже."),
+            reply_markup=ru_bundles_back_keyboard(),
+        )
+
+
+@router.callback_query(F.data == "pay:stars")
+@inject
+async def pay_stars(
+    call: CallbackQuery,
+):
+    await call.answer()
+    await call.message.edit_text(
+        text=(
+            "⭐ *Оплата звёздами*\n\n"
+            "Скоро можно будет обменять звёзды на токены прямо здесь."),
+        reply_markup=payments_back_keyboard(),
+    )
+
+
+@router.callback_query(F.data == "pay:crypto")
+@inject
+async def pay_crypto(
+    call: CallbackQuery,
+):
+    await call.answer()
+    await call.message.edit_text(
+        text=(
+            "🪙 *Крипто‑оплата*\n\n"
+            "Скоро добавим крипто‑платёж: покажем адрес и сумму, зачисление — автоматически."),
+        reply_markup=payments_back_keyboard(),
+    )
 
 
 @router.callback_query(F.data == "goto:start")
@@ -111,7 +209,7 @@ async def goto_start(
     text += "👇 Что хочешь сделать?"
     await call.message.edit_text(
         text=text,
-        reply_markup=start_keyboard(current_mode, is_admin=bool(user.is_admin)),
+        reply_markup=start_keyboard(current_mode),
     )
 
 @router.callback_query(F.data == "goto:switch")

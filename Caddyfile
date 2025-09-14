@@ -2,7 +2,9 @@ bukhavets.com {
     encode gzip
     log
 
-    # Removed external payments webhook
+    handle /webhooks/yookassa* {
+        reverse_proxy bot:8080
+    }
 
     respond 404
 }

@@ -10,6 +10,7 @@ from bot.database.uow import Uow
 from bot.services.gpt import OpenAIService
 from bot.services.user import UserService
 from bot.services.settings import SettingsService
+from bot.services.payments import PaymentsService
 from bot.settings import settings
 
 
@@ -29,6 +30,7 @@ class Container(containers.DeclarativeContainer):
     dispatcher = providers.Singleton(Dispatcher, storage=storage)
     settings_service = providers.Factory(SettingsService, uow=uow)
     user_service = providers.Factory(UserService, uow=uow, settings_service=settings_service)
+    payments_service = providers.Factory(PaymentsService, uow=uow)
     openai_client = providers.Singleton(AsyncOpenAI, api_key=settings.OPENAI.API_KEY)
     openai_service = providers.Factory(OpenAIService, uow=uow, client=openai_client, settings_service=settings_service)
 
