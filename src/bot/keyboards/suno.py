@@ -35,6 +35,7 @@ def suno_styles_keyboard(selected_slug: str | None = None) -> InlineKeyboardMark
 def suno_prompt_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🎚 Изменить стиль", callback_data="suno:change_style")],
+        [InlineKeyboardButton(text="🎤 Вокал: ВКЛ", callback_data="suno:vocals:on"), InlineKeyboardButton(text="🎵 Инструментал", callback_data="suno:vocals:off")],
         [InlineKeyboardButton(text="🔙 Назад", callback_data="goto:switch")],
     ])
 

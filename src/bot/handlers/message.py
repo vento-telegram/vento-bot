@@ -12,7 +12,7 @@ from bot.interfaces.services.gpt import AbcOpenAIService
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.suno import AbcSunoService
 from bot.keyboards.change_ai import mode_keyboard
-from bot.keyboards.suno import suno_styles_keyboard, suno_prompt_keyboard
+from bot.keyboards.suno import suno_styles_keyboard, suno_prompt_keyboard, suno_back_keyboard
 from bot.utils.telegram_format import prepare_telegram_messages_from_markdown
 
 logger = logging.getLogger(__name__)
@@ -94,16 +94,34 @@ async def common_message_handler(
 
     elif mode == BotModeEnum.suno_music:
         text = (message.text or "").strip()
+        state_data = await state.get_data()
+        pending_custom = state_data.get("suno_style_pending")
+        if pending_custom and text:
+            # Treat this message as custom style input
+            await state.update_data(suno_style=text, suno_style_pending=False)
+            await message.answer(
+                f"🎼 Стиль выбран: *{text}*\n\nТеперь пришли промпт — текст песни/описание.",
+                reply_markup=suno_back_keyboard(),
+            )
+            return
+
         if not text:
             await message.answer("✍️ Пришли промпт — текст песни/описание для трека.", reply_markup=suno_prompt_keyboard())
             return
-        state_data = await state.get_data()
         style = state_data.get("suno_style")
         if not style:
             await message.answer("Сначала выбери стиль:", reply_markup=suno_styles_keyboard())
             return
+        instrumental = state_data.get("suno_instrumental")
+        if instrumental is None:
+            # Ask to choose vocals before submitting
+            await message.answer(
+                "Выбери: с вокалом или инструментал?",
+                reply_markup=suno_prompt_keyboard(),
+            )
+            return
         try:
-            await suno_service.submit_suno_request(message, state, user, style=style, prompt=text)
+            await suno_service.submit_suno_request(message, state, user, style=style, prompt=text, instrumental=instrumental)
         except InsufficientBalanceError:
             await message.answer(
                 "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите другую модель.",

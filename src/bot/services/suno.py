@@ -33,6 +33,7 @@ class SunoService(AbcSunoService):
         user: UserEntity,
         style: str,
         prompt: str,
+        instrumental: bool,
     ) -> None:
         request_price = int(await self._settings_service.get_value(settings_models_mapper[BotModeEnum.suno_music]))
         if user.balance < request_price:
@@ -41,7 +42,7 @@ class SunoService(AbcSunoService):
         payload: dict[str, Any] = {
             "prompt": prompt,
             "customMode": True,
-            "instrumental": False,
+            "instrumental": instrumental,
             "model": "V4_5PLUS",
             "style": style,
             "title": "@vento_toolbot song",
@@ -63,18 +64,19 @@ class SunoService(AbcSunoService):
                     return
                 task_id = ((result or {}).get("data") or {}).get("taskId")
 
-        await self._charge(user.id, request_price, task_id, style, prompt)
+        await self._charge(user.id, request_price, task_id, style, prompt, instrumental)
         await message.answer(
             "🎶 Отправил запрос в Suno. Пришлю трек, как только он будет готов."
         )
 
-    async def _charge(self, user_id: int, price: int, task_id: str | None, style: str, prompt: str) -> None:
+    async def _charge(self, user_id: int, price: int, task_id: str | None, style: str, prompt: str, instrumental: bool) -> None:
         async with self._uow:
             updated_user = await self._uow.user.update_balance_by_user_id(user_id, -price)
             meta = json.dumps({
                 "task_id": task_id,
                 "style": style,
                 "prompt": prompt,
+                "instrumental": instrumental,
             }, ensure_ascii=False)
             await self._uow.ledger.add(
                 LedgerEntity(user_id=user_id, delta=-price, reason=LedgerReasonEnum.suno_request, meta=meta)

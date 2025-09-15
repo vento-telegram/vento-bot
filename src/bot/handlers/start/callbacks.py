@@ -32,10 +32,10 @@ async def suno_select_style(
     prefix = "suno:style:"
     style_slug = raw[len(prefix):] if raw.startswith(prefix) else raw.split(":", maxsplit=2)[-1]
     if style_slug == "custom":
-        await state.update_data(suno_style=None)
+        await state.update_data(suno_style=None, suno_style_pending=True)
         await call.message.edit_text(
             "🧑‍🎤 Напиши свой стиль (жанры/описание), например: 'Pop, Dreamy, 90 BPM'",
-            reply_markup=suno_styles_keyboard()
+            reply_markup=suno_back_keyboard()
         )
         await call.answer()
         return
@@ -53,7 +53,7 @@ async def suno_select_style(
         "folk": "Folk",
     }
     label = slug_to_label.get(style_slug, style_slug)
-    await state.update_data(suno_style=label)
+    await state.update_data(suno_style=label, suno_style_pending=False)
     await call.answer(f"Стиль: {label}")
     try:
         await call.message.edit_text(
@@ -75,12 +75,34 @@ async def suno_change_style(
     call: CallbackQuery,
     state: FSMContext,
 ):
-    await state.update_data(suno_style=None)
+    await state.update_data(suno_style=None, suno_style_pending=False)
     await call.answer()
     await call.message.edit_text(
         "Выбери стиль:",
         reply_markup=suno_styles_keyboard(),
     )
+
+
+@router.callback_query(F.data.startswith("suno:vocals:"))
+@inject
+async def suno_set_vocals(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    value = (call.data or "").split(":")[-1]
+    if value == "on":
+        await state.update_data(suno_instrumental=False)
+        await call.answer("Вокал: ВКЛ")
+    elif value == "off":
+        await state.update_data(suno_instrumental=True)
+        await call.answer("Инструментал: ВКЛ")
+    else:
+        await call.answer("Некорректное значение", show_alert=True)
+        return
+    try:
+        await call.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
 
 
 @router.callback_query(F.data == "set_mode:gpt")
@@ -152,7 +174,7 @@ async def set_mode_suno_music(
     call: CallbackQuery,
     state: FSMContext,
 ):
-    await state.update_data(mode=BotModeEnum.suno_music, suno_style=None)
+    await state.update_data(mode=BotModeEnum.suno_music, suno_style=None, suno_style_pending=False)
     await call.answer("Режим Suno Music активирован")
     await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.suno_music))
     text = (
@@ -374,9 +396,9 @@ async def goto_switch(
         f"🖼️ *GPT Image* ({image_price} токенов/запрос)\n"
         "Генерация картинок по описанию.\n\n"
         f"🍌 *Nano Banana* ({nano_price} токенов/запрос)\n"
-        "Отправь текст для создания или фото с подписью — для редактирования.\n\n"
+        "Создание и редактирование изображений.\n\n"
         f"🎵 *Suno Music* ({suno_price} токенов/запрос)\n"
-        "Генерация музыки по стилу и запросу.\n\n"
+        "Генерация музыки по стилю и описанию.\n\n"
         "👇 Выбери нужный ИИ:"
     )
 

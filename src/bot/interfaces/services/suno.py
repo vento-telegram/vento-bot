@@ -15,6 +15,7 @@ class AbcSunoService(ABC):
         user: UserEntity,
         style: str,
         prompt: str,
+        instrumental: bool,
     ) -> None:
         ...
 
