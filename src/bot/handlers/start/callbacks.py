@@ -12,7 +12,7 @@ from bot.enums import BotModeEnum
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.keyboards.change_ai import mode_keyboard, gpt_image_size_keyboard
-from bot.keyboards.suno import suno_styles_keyboard, suno_back_keyboard
+from bot.keyboards.suno import suno_styles_keyboard, suno_back_keyboard, suno_vocals_keyboard
 from bot.keyboards.start import (
     account_keyboard,
     start_keyboard,
@@ -59,14 +59,14 @@ async def suno_select_style(
         await call.message.edit_text(
             (
                 f"🎼 Стиль выбран: *{label}*\n\n"
-                "Теперь пришли промпт — текст песни/описание."
+                "Добавить вокал?"
             ),
-            reply_markup=suno_back_keyboard(),
+            reply_markup=suno_vocals_keyboard(),
         )
     except Exception:
         await call.message.answer(
-            f"🎼 Стиль выбран: *{label}*\n\nТеперь пришли промпт — текст песни/описание.",
-            reply_markup=suno_back_keyboard(),
+            f"🎼 Стиль выбран: *{label}*\n\nДобавить вокал?",
+            reply_markup=suno_vocals_keyboard(),
         )
 
 @router.callback_query(F.data == "suno:change_style")
@@ -90,19 +90,26 @@ async def suno_set_vocals(
     state: FSMContext,
 ):
     value = (call.data or "").split(":")[-1]
-    if value == "on":
+    if value == "yes":
         await state.update_data(suno_instrumental=False)
-        await call.answer("Вокал: ВКЛ")
-    elif value == "off":
+        await call.answer("Вокал добавлен")
+    elif value == "no":
         await state.update_data(suno_instrumental=True)
-        await call.answer("Инструментал: ВКЛ")
+        await call.answer("Инструментал выбран")
     else:
         await call.answer("Некорректное значение", show_alert=True)
         return
+    # After choosing vocals, prompt user to send the prompt
     try:
-        await call.message.edit_reply_markup(reply_markup=None)
+        await call.message.edit_text(
+            "✍️ Пришли промпт — текст песни/описание для трека.",
+            reply_markup=suno_prompt_keyboard(),
+        )
     except Exception:
-        pass
+        await call.message.answer(
+            "✍️ Пришли промпт — текст песни/описание для трека.",
+            reply_markup=suno_prompt_keyboard(),
+        )
 
 
 @router.callback_query(F.data == "set_mode:gpt")
