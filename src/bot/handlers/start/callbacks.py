@@ -12,7 +12,13 @@ from bot.enums import BotModeEnum
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.keyboards.change_ai import mode_keyboard, gpt_image_size_keyboard
-from bot.keyboards.suno import suno_styles_keyboard, suno_back_keyboard, suno_vocals_keyboard, suno_prompt_keyboard
+from bot.keyboards.suno import (
+    suno_styles_keyboard,
+    suno_back_keyboard,
+    suno_vocals_keyboard,
+    suno_prompt_keyboard,
+    suno_input_mode_keyboard,
+)
 from bot.keyboards.start import (
     account_keyboard,
     start_keyboard,
@@ -75,11 +81,10 @@ async def suno_change_style(
     call: CallbackQuery,
     state: FSMContext,
 ):
-    await state.update_data(suno_style=None, suno_style_pending=False)
+    await state.update_data(suno_style=None, suno_style_pending=True)
     await call.answer()
     await call.message.edit_text(
-        "Выбери стиль:",
-        reply_markup=suno_styles_keyboard(),
+        "🧑‍🎤 Напиши стиль (жанры/описание), например: 'Быстрый эпичный рок'",
     )
 
 
@@ -96,20 +101,55 @@ async def suno_set_vocals(
     elif value == "no":
         await state.update_data(suno_instrumental=True)
         await call.answer("Инструментал выбран")
+    elif value == "back":
+        # Go back to vocals question
+        try:
+            await call.message.edit_text(
+                "Добавить вокал?",
+                reply_markup=suno_vocals_keyboard(),
+            )
+        except Exception:
+            await call.message.answer(
+                "Добавить вокал?",
+                reply_markup=suno_vocals_keyboard(),
+            )
+        return
     else:
         await call.answer("Некорректное значение", show_alert=True)
         return
-    # After choosing vocals, prompt user to send the prompt
+    # After choosing vocals, ask if user wants to provide lyrics or just a description
     try:
         await call.message.edit_text(
-            "✍️ Пришли промпт — текст песни/описание для трека.",
-            reply_markup=suno_prompt_keyboard(),
+            "Хочешь добавить свой текст или просто описать песню?",
+            reply_markup=suno_input_mode_keyboard(),
         )
     except Exception:
         await call.message.answer(
-            "✍️ Пришли промпт — текст песни/описание для трека.",
-            reply_markup=suno_prompt_keyboard(),
+            "Хочешь добавить свой текст или просто описать песню?",
+            reply_markup=suno_input_mode_keyboard(),
         )
+
+
+@router.callback_query(F.data.startswith("suno:im:"))
+@inject
+async def suno_input_mode_selected(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    value = (call.data or "").split(":")[-1]
+    if value == "custom":
+        await state.update_data(suno_custom_mode=True)
+        text = "✍️ Вставь текст песни (lyrics)."
+    elif value == "desc":
+        await state.update_data(suno_custom_mode=False)
+        text = "✍️ Опиши песню (жанр/настроение/инструменты)."
+    else:
+        await call.answer("Некорректное значение", show_alert=True)
+        return
+    try:
+        await call.message.edit_text(text, reply_markup=suno_prompt_keyboard())
+    except Exception:
+        await call.message.answer(text, reply_markup=suno_prompt_keyboard())
 
 
 @router.callback_query(F.data == "set_mode:gpt")
@@ -181,13 +221,13 @@ async def set_mode_suno_music(
     call: CallbackQuery,
     state: FSMContext,
 ):
-    await state.update_data(mode=BotModeEnum.suno_music, suno_style=None, suno_style_pending=False)
+    await state.update_data(mode=BotModeEnum.suno_music, suno_style=None, suno_style_pending=True, suno_instrumental=None)
     await call.answer("Режим Suno Music активирован")
     await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.suno_music))
     text = (
-        "🎵 Сначала выбери стиль, затем пришли промпт (текст песни/описание).\n\n🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+        "🎵 Напиши стиль (жанры/описание).\n\n🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
-    await call.message.answer(text, reply_markup=suno_styles_keyboard())
+    await call.message.answer(text)
 
 @router.callback_query(F.data.startswith("gpt_image:size:"))
 @inject

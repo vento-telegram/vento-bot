@@ -34,6 +34,7 @@ class SunoService(AbcSunoService):
         style: str,
         prompt: str,
         instrumental: bool,
+        custom_mode: bool,
     ) -> None:
         request_price = int(await self._settings_service.get_value(settings_models_mapper[BotModeEnum.suno_music]))
         if user.balance < request_price:
@@ -41,13 +42,14 @@ class SunoService(AbcSunoService):
 
         payload: dict[str, Any] = {
             "prompt": prompt,
-            "customMode": True,
+            "customMode": custom_mode,
             "instrumental": instrumental,
             "model": "V4_5PLUS",
-            "style": style,
-            "title": "@vento_toolbot song",
             "callBackUrl": self._build_callback_url(user.telegram_id),
         }
+        if custom_mode:
+            payload["style"] = style
+            payload["title"] = "@vento_toolbot song"
 
         headers = {
             "Authorization": f"Bearer {settings.KIE.API_KEY}",
@@ -64,12 +66,12 @@ class SunoService(AbcSunoService):
                     return
                 task_id = ((result or {}).get("data") or {}).get("taskId")
 
-        await self._charge(user.id, request_price, task_id, style, prompt, instrumental)
+        await self._charge(user.id, request_price, task_id, style if custom_mode else None, prompt, instrumental, custom_mode)
         await message.answer(
             "🎶 Отправил запрос в Suno. Пришлю трек, как только он будет готов."
         )
 
-    async def _charge(self, user_id: int, price: int, task_id: str | None, style: str, prompt: str, instrumental: bool) -> None:
+    async def _charge(self, user_id: int, price: int, task_id: str | None, style: str | None, prompt: str, instrumental: bool, custom_mode: bool) -> None:
         async with self._uow:
             updated_user = await self._uow.user.update_balance_by_user_id(user_id, -price)
             meta = json.dumps({
@@ -77,6 +79,7 @@ class SunoService(AbcSunoService):
                 "style": style,
                 "prompt": prompt,
                 "instrumental": instrumental,
+                "customMode": custom_mode,
             }, ensure_ascii=False)
             await self._uow.ledger.add(
                 LedgerEntity(user_id=user_id, delta=-price, reason=LedgerReasonEnum.suno_request, meta=meta)

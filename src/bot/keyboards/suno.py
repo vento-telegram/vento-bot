@@ -34,8 +34,7 @@ def suno_styles_keyboard(selected_slug: str | None = None) -> InlineKeyboardMark
 
 def suno_prompt_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🎚 Изменить стиль", callback_data="suno:change_style")],
-        [InlineKeyboardButton(text="🔙 Назад", callback_data="goto:switch")],
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="suno:change_style")],
     ])
 
 
@@ -49,6 +48,14 @@ def suno_vocals_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Да", callback_data="suno:vocals:yes"), InlineKeyboardButton(text="Нет", callback_data="suno:vocals:no")],
         [InlineKeyboardButton(text="🔙 Назад", callback_data="suno:change_style")],
+    ])
+
+
+def suno_input_mode_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📝 Свой текст", callback_data="suno:im:custom")],
+        [InlineKeyboardButton(text="🖊 Описание", callback_data="suno:im:desc")],
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="suno:vocals:back")],
     ])
 
 

@@ -169,9 +169,8 @@ async def _run(
             return web.json_response({"ok": False, "error": "no user_id"}, status=400)
 
         try:
-            if code == 200 and callback_type in {"first", "complete"} and tracks:
+            if code == 200 and callback_type == "complete" and tracks:
                 caption = "🎵 Твоя музыка готова!\n\n✨ Cоздано с помощью [Vento](https://t.me/vento_toolbot)"
-                # Send each available audioUrl
                 sent_any = False
                 for t in tracks:
                     audio_url = t.get('audioUrl') or t.get('audio_url')
@@ -181,8 +180,9 @@ async def _run(
                         sent_any = True
                 if not sent_any:
                     await bot.send_message(user_id, "☹️ Не удалось получить ссылку на аудио.")
-            elif code == 200 and callback_type in {"text"}:
-                await bot.send_message(user_id, "✍️ Текст готов, продолжаю генерацию аудио…")
+            elif code == 200:
+                # Ignore non-complete stages
+                pass
             else:
                 msg = body.get('msg') or (data.get('errorMessage') if isinstance(data, dict) else None) or 'Генерация не удалась'
                 await bot.send_message(user_id, f"☹️ {msg}")

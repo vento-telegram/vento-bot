@@ -110,7 +110,8 @@ async def common_message_handler(
             return
         style = state_data.get("suno_style")
         if not style:
-            await message.answer("Сначала выбери стиль:", reply_markup=suno_styles_keyboard())
+            await state.update_data(suno_style_pending=True)
+            await message.answer("🧑‍🎤 Напиши стиль (жанры/описание), например: 'Быстрый эпичный рок'")
             return
         instrumental = state_data.get("suno_instrumental")
         if instrumental is None:
@@ -120,8 +121,23 @@ async def common_message_handler(
                 reply_markup=suno_vocals_keyboard(),
             )
             return
+        custom_mode = state_data.get("suno_custom_mode")
+        if custom_mode is None:
+            await message.answer(
+                "Хочешь добавить свой текст или просто описать песню?",
+                reply_markup=suno_input_mode_keyboard(),
+            )
+            return
         try:
-            await suno_service.submit_suno_request(message, state, user, style=style, prompt=text, instrumental=instrumental)
+            await suno_service.submit_suno_request(
+                message,
+                state,
+                user,
+                style=style,
+                prompt=text,
+                instrumental=instrumental,
+                custom_mode=bool(custom_mode),
+            )
         except InsufficientBalanceError:
             await message.answer(
                 "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите другую модель.",

@@ -16,6 +16,7 @@ class AbcSunoService(ABC):
         style: str,
         prompt: str,
         instrumental: bool,
+        custom_mode: bool,
     ) -> None:
         ...
 
