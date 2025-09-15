@@ -143,9 +143,58 @@ async def _run(
 
         return web.json_response({"ok": True})
 
+    async def suno_handle(request: web.Request):
+        user_id = request.query.get('user_id')
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({"status": "bad json"}, status=400)
+
+        code = body.get('code')
+        data = (body.get('data') or {})
+        callback_type = data.get('callbackType')
+        payload = data.get('data') or {}
+        # Some docs show result under data.response.sunoData when polling; callbacks example shows data.data array
+        tracks = []
+        try:
+            if isinstance(payload, list):
+                tracks = payload
+            elif isinstance(payload, dict):
+                # fallback if payload is dict with sunoData
+                tracks = payload.get('sunoData') or []
+        except Exception:
+            tracks = []
+
+        if not user_id:
+            return web.json_response({"ok": False, "error": "no user_id"}, status=400)
+
+        try:
+            if code == 200 and callback_type in {"first", "complete"} and tracks:
+                caption = "🎵 Твоя музыка готова!\n\n✨ Cоздано с помощью [Vento](https://t.me/vento_toolbot)"
+                # Send each available audioUrl
+                sent_any = False
+                for t in tracks:
+                    audio_url = t.get('audioUrl') or t.get('audio_url')
+                    title = t.get('title') or '@vento_toolbot song'
+                    if audio_url:
+                        await bot.send_audio(user_id, audio_url, caption=caption, title=title)
+                        sent_any = True
+                if not sent_any:
+                    await bot.send_message(user_id, "☹️ Не удалось получить ссылку на аудио.")
+            elif code == 200 and callback_type in {"text"}:
+                await bot.send_message(user_id, "✍️ Текст готов, продолжаю генерацию аудио…")
+            else:
+                msg = body.get('msg') or (data.get('errorMessage') if isinstance(data, dict) else None) or 'Генерация не удалась'
+                await bot.send_message(user_id, f"☹️ {msg}")
+        except Exception:
+            logger.exception("Error sending Suno result to user %s", user_id)
+
+        return web.json_response({"ok": True})
+
     webhooks_app.router.add_post('/yookassa', yookassa_handle)
     webhooks_app.router.add_post('/kie-image', kie_image_handle)
     webhooks_app.router.add_post('/kie-nano', kie_nano_handle)
+    webhooks_app.router.add_post('/suno', suno_handle)
 
     app.add_subapp('/webhooks', webhooks_app)
 

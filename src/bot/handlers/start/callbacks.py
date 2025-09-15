@@ -12,14 +12,73 @@ from bot.enums import BotModeEnum
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.keyboards.change_ai import mode_keyboard, gpt_image_size_keyboard
+from bot.keyboards.suno import suno_styles_keyboard
 from bot.keyboards.start import (
     account_keyboard,
     start_keyboard,
 )
 from bot.keyboards.payments import payments_keyboard, payments_back_keyboard, ru_bundles_keyboard, ru_bundles_back_keyboard, pay_link_keyboard
 from bot.interfaces.services.payments import AbcPaymentsService
+from bot.enums import BotModeEnum
 
 router = Router()
+@router.callback_query(F.data.startswith("suno:style:"))
+@inject
+async def suno_select_style(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    raw = call.data or ""
+    prefix = "suno:style:"
+    style_slug = raw[len(prefix):] if raw.startswith(prefix) else raw.split(":", maxsplit=2)[-1]
+    if style_slug == "custom":
+        await state.update_data(suno_style=None)
+        await call.message.edit_text(
+            "🧑‍🎤 Напиши свой стиль (жанры/описание), например: 'Pop, Dreamy, 90 BPM'",
+            reply_markup=suno_styles_keyboard()
+        )
+        await call.answer()
+        return
+    # Map simple slug to readable label
+    slug_to_label = {
+        "pop": "Pop",
+        "rock": "Rock",
+        "hiphop": "Hip-hop",
+        "edm": "EDM",
+        "electronic": "Electronic",
+        "lofi": "Lo-fi",
+        "jazz": "Jazz",
+        "classical": "Classical",
+        "ambient": "Ambient",
+        "folk": "Folk",
+    }
+    label = slug_to_label.get(style_slug, style_slug)
+    await state.update_data(suno_style=label)
+    await call.answer(f"Стиль: {label}")
+    try:
+        await call.message.edit_text(
+            (
+                f"🎼 Стиль выбран: *{label}*\n\n"
+                "Теперь пришли промпт — текст песни/описание."
+            ),
+        )
+    except Exception:
+        await call.message.answer(
+            f"🎼 Стиль выбран: *{label}*\n\nТеперь пришли промпт — текст песни/описание."
+        )
+
+@router.callback_query(F.data == "suno:change_style")
+@inject
+async def suno_change_style(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    await state.update_data(suno_style=None)
+    await call.answer()
+    await call.message.edit_text(
+        "Выбери стиль:",
+        reply_markup=suno_styles_keyboard(),
+    )
 
 
 @router.callback_query(F.data == "set_mode:gpt")
@@ -84,6 +143,26 @@ async def set_mode_nano_banana(
         "Отправь фото с подписью, чтобы *отредактировать* изображение.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
+
+@router.callback_query(F.data == "set_mode:suno_music")
+@inject
+async def set_mode_suno_music(
+    call: CallbackQuery,
+    state: FSMContext,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+):
+    await state.update_data(mode=BotModeEnum.suno_music, suno_style=None)
+    await call.answer("Режим Suno Music активирован")
+    await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.suno_music))
+    price = await settings.get_value(settings_models_mapper[BotModeEnum.suno_music])
+    text = (
+        "🎵 *Suno Music*\n\n"
+        "Сначала выбери стиль, затем пришли промпт (текст песни/описание).\n\n"
+        f"💸 Цена запроса: *{price} токенов*\n\n"
+        "Модель: V4_5PLUS, customMode: true\n"
+        "Название будет: @vento_toolbot song"
+    )
+    await call.message.answer(text, reply_markup=suno_styles_keyboard())
 
 @router.callback_query(F.data.startswith("gpt_image:size:"))
 @inject
@@ -288,6 +367,7 @@ async def goto_switch(
     mini_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt_mini])
     image_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt_image])
     nano_price = await settings.get_value(settings_models_mapper[BotModeEnum.nano_banana])
+    suno_price = await settings.get_value(settings_models_mapper[BotModeEnum.suno_music])
 
     text = (
         "👾 *Выбор ИИ*\n\n"
@@ -299,6 +379,8 @@ async def goto_switch(
         "Генерация картинок по описанию.\n\n"
         f"🍌 *Nano Banana* ({nano_price} токенов/запрос)\n"
         "Отправь текст для создания или фото с подписью — для редактирования.\n\n"
+        f"🎵 *Suno Music* ({suno_price} токенов/запрос)\n"
+        "Генерация музыки с AI Suno (V4_5PLUS).\n\n"
         "👇 Выбери нужный ИИ:"
     )
 

@@ -10,7 +10,9 @@ from bot.enums import BotModeEnum
 from bot.errors import OpenAIBadRequestError, InsufficientBalanceError
 from bot.interfaces.services.gpt import AbcOpenAIService
 from bot.interfaces.services.user import AbcUserService
+from bot.interfaces.services.suno import AbcSunoService
 from bot.keyboards.change_ai import mode_keyboard
+from bot.keyboards.suno import suno_styles_keyboard, suno_prompt_keyboard
 from bot.utils.telegram_format import prepare_telegram_messages_from_markdown
 
 logger = logging.getLogger(__name__)
@@ -23,6 +25,7 @@ async def common_message_handler(
     message: Message,
     state: FSMContext,
     openai_service: AbcOpenAIService = Provide[Container.openai_service],
+    suno_service: AbcSunoService = Provide[Container.suno_service],
     user_service: AbcUserService = Provide[Container.user_service],
 ):
     state_data = await state.get_data()
@@ -76,6 +79,31 @@ async def common_message_handler(
     elif mode == BotModeEnum.nano_banana:
         try:
             await openai_service.submit_nano_banana_request(message, state, user)
+        except InsufficientBalanceError:
+            await message.answer(
+                "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите другую модель.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
+                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
+                        ]
+                    ]
+                ),
+            )
+
+    elif mode == BotModeEnum.suno_music:
+        text = (message.text or "").strip()
+        if not text:
+            await message.answer("✍️ Пришли промпт — текст песни/описание для трека.", reply_markup=suno_prompt_keyboard())
+            return
+        state_data = await state.get_data()
+        style = state_data.get("suno_style")
+        if not style:
+            await message.answer("Сначала выбери стиль:", reply_markup=suno_styles_keyboard())
+            return
+        try:
+            await suno_service.submit_suno_request(message, state, user, style=style, prompt=text)
         except InsufficientBalanceError:
             await message.answer(
                 "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите другую модель.",

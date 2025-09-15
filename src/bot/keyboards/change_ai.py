@@ -9,6 +9,7 @@ def mode_keyboard(active_mode: str | None = None) -> InlineKeyboardMarkup:
         BotModeEnum.gpt_mini: "⚡",
         BotModeEnum.gpt_image: "🖼️",
         BotModeEnum.nano_banana: "🍌",
+        BotModeEnum.suno_music: "🎵",
     }
 
     def mode_button(text: str, callback: str, mode_key):
@@ -23,9 +24,10 @@ def mode_keyboard(active_mode: str | None = None) -> InlineKeyboardMarkup:
         ],
         [
             mode_button("GPT Image", "set_mode:gpt_image", BotModeEnum.gpt_image),
+            mode_button("Nano Banana", "set_mode:nano_banana", BotModeEnum.nano_banana),
         ],
         [
-            mode_button("Nano Banana", "set_mode:nano_banana", BotModeEnum.nano_banana),
+            mode_button("Suno Music", "set_mode:suno_music", BotModeEnum.suno_music),
         ],
         [
             InlineKeyboardButton(text="🔙 Назад", callback_data="goto:start"),
