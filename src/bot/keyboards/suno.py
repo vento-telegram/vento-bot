@@ -47,7 +47,7 @@ def suno_back_keyboard() -> InlineKeyboardMarkup:
 
 def suno_vocals_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Да", callback_data="suno:vocals:yes"), InlineKeyboardButton(text="Нет", callback_data="suno:vocals:no")],
+        [InlineKeyboardButton(text="Да", callback_data="suno:vocals:yes"), InlineKeyboardButton(text="Нет", callback_data="suno:vocals:no")],
         [InlineKeyboardButton(text="🔙 Назад", callback_data="suno:change_style")],
     ])
 

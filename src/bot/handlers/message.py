@@ -12,7 +12,7 @@ from bot.interfaces.services.gpt import AbcOpenAIService
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.suno import AbcSunoService
 from bot.keyboards.change_ai import mode_keyboard
-from bot.keyboards.suno import suno_styles_keyboard, suno_prompt_keyboard, suno_back_keyboard
+from bot.keyboards.suno import suno_styles_keyboard, suno_prompt_keyboard, suno_back_keyboard, suno_vocals_keyboard
 from bot.utils.telegram_format import prepare_telegram_messages_from_markdown
 
 logger = logging.getLogger(__name__)
@@ -100,8 +100,8 @@ async def common_message_handler(
             # Treat this message as custom style input
             await state.update_data(suno_style=text, suno_style_pending=False)
             await message.answer(
-                f"🎼 Стиль выбран: *{text}*\n\nТеперь пришли промпт — текст песни/описание.",
-                reply_markup=suno_back_keyboard(),
+                f"🎼 Стиль выбран: *{text}*\n\nДобавить вокал?",
+                reply_markup=suno_vocals_keyboard(),
             )
             return
 
@@ -116,8 +116,8 @@ async def common_message_handler(
         if instrumental is None:
             # Ask to choose vocals before submitting
             await message.answer(
-                "Выбери: с вокалом или инструментал?",
-                reply_markup=suno_prompt_keyboard(),
+                "Добавить вокал?",
+                reply_markup=suno_vocals_keyboard(),
             )
             return
         try:
