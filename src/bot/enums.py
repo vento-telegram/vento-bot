@@ -7,7 +7,6 @@ class BotModeEnum(StrEnum):
     gpt_mini = "GPT-5 Mini"
     gpt_image = "GPT Image"
     nano_banana = "Nano Banana"
-    suno = "Suno"
 
 
 class LedgerReasonEnum(StrEnum):
@@ -16,5 +15,4 @@ class LedgerReasonEnum(StrEnum):
     gpt_mini_request = auto()
     gpt_image_request = auto()
     nano_banana_request = auto()
-    suno_request = auto()
     purchase_stars = auto()

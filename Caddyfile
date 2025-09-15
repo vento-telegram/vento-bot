@@ -14,9 +14,5 @@ bukhavets.com {
         reverse_proxy bot:8080
     }
 
-    handle /webhooks/suno* {
-        reverse_proxy bot:8080
-    }
-
     respond 404
 }
