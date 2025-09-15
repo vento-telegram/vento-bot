@@ -149,18 +149,12 @@ async def set_mode_nano_banana(
 async def set_mode_suno_music(
     call: CallbackQuery,
     state: FSMContext,
-    settings: AbcSettingsService = Provide[Container.settings_service],
 ):
     await state.update_data(mode=BotModeEnum.suno_music, suno_style=None)
     await call.answer("Режим Suno Music активирован")
     await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.suno_music))
-    price = await settings.get_value(settings_models_mapper[BotModeEnum.suno_music])
     text = (
-        "🎵 *Suno Music*\n\n"
-        "Сначала выбери стиль, затем пришли промпт (текст песни/описание).\n\n"
-        f"💸 Цена запроса: *{price} токенов*\n\n"
-        "Модель: V4\_5PLUS, customMode: true\n"
-        "Название будет: @vento\_toolbot song"
+        "🎵 Сначала выбери стиль, затем пришли промпт (текст песни/описание).\n\n🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
     await call.message.answer(text, reply_markup=suno_styles_keyboard())
 
@@ -380,7 +374,7 @@ async def goto_switch(
         f"🍌 *Nano Banana* ({nano_price} токенов/запрос)\n"
         "Отправь текст для создания или фото с подписью — для редактирования.\n\n"
         f"🎵 *Suno Music* ({suno_price} токенов/запрос)\n"
-        "Генерация музыки с AI Suno (V4\_5PLUS).\n\n"
+        "Генерация музыки по стилу и запросу.\n\n"
         "👇 Выбери нужный ИИ:"
     )
 
