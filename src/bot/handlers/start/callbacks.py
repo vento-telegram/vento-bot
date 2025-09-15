@@ -12,7 +12,7 @@ from bot.enums import BotModeEnum
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.keyboards.change_ai import mode_keyboard, gpt_image_size_keyboard
-from bot.keyboards.suno import suno_styles_keyboard
+from bot.keyboards.suno import suno_styles_keyboard, suno_back_keyboard
 from bot.keyboards.start import (
     account_keyboard,
     start_keyboard,
@@ -61,10 +61,12 @@ async def suno_select_style(
                 f"🎼 Стиль выбран: *{label}*\n\n"
                 "Теперь пришли промпт — текст песни/описание."
             ),
+            reply_markup=suno_back_keyboard(),
         )
     except Exception:
         await call.message.answer(
-            f"🎼 Стиль выбран: *{label}*\n\nТеперь пришли промпт — текст песни/описание."
+            f"🎼 Стиль выбран: *{label}*\n\nТеперь пришли промпт — текст песни/описание.",
+            reply_markup=suno_back_keyboard(),
         )
 
 @router.callback_query(F.data == "suno:change_style")
