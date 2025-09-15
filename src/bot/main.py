@@ -147,6 +147,11 @@ async def _run(
     webhooks_app.router.add_post('/kie-image', kie_image_handle)
     webhooks_app.router.add_post('/kie-nano', kie_nano_handle)
 
+    # Suno webhooks
+    from bot.webhooks.suno import create_app as suno_create_app
+    suno_app = suno_create_app(bot)
+    webhooks_app.add_subapp('/suno', suno_app)
+
     app.add_subapp('/webhooks', webhooks_app)
 
     runner = web.AppRunner(app)
