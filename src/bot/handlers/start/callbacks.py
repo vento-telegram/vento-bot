@@ -159,8 +159,8 @@ async def set_mode_suno_music(
         "🎵 *Suno Music*\n\n"
         "Сначала выбери стиль, затем пришли промпт (текст песни/описание).\n\n"
         f"💸 Цена запроса: *{price} токенов*\n\n"
-        "Модель: V4_5PLUS, customMode: true\n"
-        "Название будет: @vento_toolbot song"
+        "Модель: V4\_5PLUS, customMode: true\n"
+        "Название будет: @vento\_toolbot song"
     )
     await call.message.answer(text, reply_markup=suno_styles_keyboard())
 
@@ -380,7 +380,7 @@ async def goto_switch(
         f"🍌 *Nano Banana* ({nano_price} токенов/запрос)\n"
         "Отправь текст для создания или фото с подписью — для редактирования.\n\n"
         f"🎵 *Suno Music* ({suno_price} токенов/запрос)\n"
-        "Генерация музыки с AI Suno (V4_5PLUS).\n\n"
+        "Генерация музыки с AI Suno (V4\_5PLUS).\n\n"
         "👇 Выбери нужный ИИ:"
     )
 
