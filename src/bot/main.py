@@ -4,6 +4,8 @@ import json
 from aiohttp import web
 
 from aiogram import Bot, Dispatcher
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.storage.base import StorageKey
 from dependency_injector.wiring import Provide, inject
 
 from bot.container import Container
@@ -180,6 +182,22 @@ async def _run(
                         sent_any = True
                 if not sent_any:
                     await bot.send_message(user_id, "☹️ Не удалось получить ссылку на аудио.")
+                # Reset Suno flow state so next message expects a new style
+                try:
+                    key = StorageKey(bot_id=bot.id, chat_id=int(user_id), user_id=int(user_id))
+                    fsm = FSMContext(storage=dp.storage, key=key)
+                    await fsm.update_data(suno_style=None, suno_style_pending=True, suno_instrumental=None, suno_custom_mode=None)
+                except Exception:
+                    pass
+                # Invite user to start a new Suno flow or switch AI
+                await bot.send_message(
+                    user_id,
+                    (
+                        "Хочешь ещё трек?\n\n"
+                        "🧑‍🎤 Напиши стиль (жанры/описание), например: 'Быстрый эпичный рок'.\n\n"
+                        "Или используй /start, чтобы выбрать другой ИИ."
+                    ),
+                )
             elif code == 200:
                 # Ignore non-complete stages
                 pass
