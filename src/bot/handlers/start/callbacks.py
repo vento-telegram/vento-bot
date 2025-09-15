@@ -12,7 +12,7 @@ from bot.enums import BotModeEnum
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.keyboards.change_ai import mode_keyboard, gpt_image_size_keyboard
-from bot.keyboards.suno import suno_styles_keyboard, suno_back_keyboard, suno_vocals_keyboard
+from bot.keyboards.suno import suno_styles_keyboard, suno_back_keyboard, suno_vocals_keyboard, suno_prompt_keyboard
 from bot.keyboards.start import (
     account_keyboard,
     start_keyboard,
