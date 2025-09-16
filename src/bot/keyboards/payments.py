@@ -58,14 +58,43 @@ def pay_link_keyboard(url: str) -> InlineKeyboardMarkup:
     ])
 
 
-def stars_bundles_keyboard() -> InlineKeyboardMarkup:
-    rows: list[list[InlineKeyboardButton]] = [
-        [InlineKeyboardButton(text="🐣 700 токенов — 99 ⭐", callback_data="pay:stars:700:99")],
-        [InlineKeyboardButton(text="🎯 1600 + 200 токенов — 219 ⭐", callback_data="pay:stars:1800:219")],
-        [InlineKeyboardButton(text="👑 4500 + 900 токенов — 599 ⭐", callback_data="pay:stars:5400:599")],
-        [InlineKeyboardButton(text="💎 11000 + 2100 токенов — 1399 ⭐", callback_data="pay:stars:13100:1399")],
-        [InlineKeyboardButton(text="🚀 28000 + 8000 токенов — 2799 ⭐", callback_data="pay:stars:36000:2799")],
-        [InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")],
-    ]
+async def stars_bundles_keyboard(settings_service) -> InlineKeyboardMarkup:
+    icons_map: dict[int, str] = {
+        700: "🐣",
+        1600: "🎯",
+        4500: "👑",
+        11000: "💎",
+        28000: "🚀",
+    }
+    bonus_map: dict[int, int] = {
+        700: 0,
+        1600: 200,
+        4500: 900,
+        11000: 2100,
+        28000: 8000,
+    }
+    tag_map: dict[int, str] = {
+        4500: " 🔥",
+    }
+    
+    # Get star prices from settings
+    base_tokens_list = [700, 1600, 4500, 11000, 28000]
+    rows: list[list[InlineKeyboardButton]] = []
+    
+    for base_tokens in base_tokens_list:
+        try:
+            stars = int(await settings_service.get_value(f"{base_tokens}_stars_price"))
+        except Exception:
+            stars = 0  # fallback if setting not found
+        
+        icon = icons_map.get(base_tokens, "🎁")
+        bonus = bonus_map.get(base_tokens, 0)
+        total_tokens = base_tokens + bonus
+        bonus_text = f" (+{bonus} 🎁)" if bonus else ""
+        tag_text = tag_map.get(base_tokens, "")
+        label = f"{icon} {base_tokens} токенов{bonus_text} — {stars} ⭐{tag_text}"
+        rows.append([InlineKeyboardButton(text=label, callback_data=f"pay:stars:{total_tokens}:{stars}")])
+    
+    rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 

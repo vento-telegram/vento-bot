@@ -383,13 +383,14 @@ async def pay_ru_bundle_selected(
 @inject
 async def pay_stars(
     call: CallbackQuery,
+    settings: AbcSettingsService = Provide[Container.settings_service],
 ):
     await call.answer()
     await call.message.edit_text(
         text=(
             "⭐ *Оплата звёздами*\n\n"
             "Выберите пакет токенов:"),
-        reply_markup=stars_bundles_keyboard(),
+        reply_markup=await stars_bundles_keyboard(settings),
     )
 
 @router.callback_query(F.data.startswith("pay:stars:"))
@@ -397,6 +398,7 @@ async def pay_stars(
 async def pay_stars_bundle_selected(
     call: CallbackQuery,
     state: FSMContext,
+    settings: AbcSettingsService = Provide[Container.settings_service],
 ):
     # Format: pay:stars:{tokens}:{price_stars}
     await call.answer()
@@ -427,7 +429,7 @@ async def pay_stars_bundle_selected(
         await call.message.edit_text(
             text=(
                 "☹️ Не удалось создать счёт. Попробуй ещё раз позже."),
-            reply_markup=stars_bundles_keyboard(),
+            reply_markup=await stars_bundles_keyboard(settings),
         )
 
 
