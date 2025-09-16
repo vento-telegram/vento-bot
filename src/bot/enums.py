@@ -8,6 +8,7 @@ class BotModeEnum(StrEnum):
     gpt_image = "GPT Image"
     nano_banana = "Nano Banana"
     suno_music = "Suno Music"
+    veo_video = "Veo Video"
 
 
 class LedgerReasonEnum(StrEnum):
@@ -18,3 +19,4 @@ class LedgerReasonEnum(StrEnum):
     nano_banana_request = auto()
     suno_request = auto()
     purchase_stars = auto()
+    veo_request = auto()

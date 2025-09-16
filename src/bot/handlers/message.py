@@ -11,6 +11,7 @@ from bot.errors import OpenAIBadRequestError, InsufficientBalanceError
 from bot.interfaces.services.gpt import AbcOpenAIService
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.suno import AbcSunoService
+from bot.interfaces.services.veo import AbcVeoService
 from bot.keyboards.change_ai import mode_keyboard
 from bot.keyboards.suno import suno_styles_keyboard, suno_prompt_keyboard, suno_back_keyboard, suno_vocals_keyboard
 from bot.utils.telegram_format import prepare_telegram_messages_from_markdown
@@ -26,6 +27,7 @@ async def common_message_handler(
     state: FSMContext,
     openai_service: AbcOpenAIService = Provide[Container.openai_service],
     suno_service: AbcSunoService = Provide[Container.suno_service],
+    veo_service: AbcVeoService = Provide[Container.veo_service],
     user_service: AbcUserService = Provide[Container.user_service],
 ):
     state_data = await state.get_data()
@@ -102,6 +104,47 @@ async def common_message_handler(
             await message.answer(
                 f"🎼 Стиль выбран: *{text}*\n\nДобавить вокал?",
                 reply_markup=suno_vocals_keyboard(),
+            )
+
+    elif mode == BotModeEnum.veo_video:
+        text = (message.text or "").strip()
+        state_data = await state.get_data()
+        if not text:
+            await message.answer("✍️ Пришли промпт на английском (можно добавить 1 изображение как ссылку в тексте)")
+            return
+        image_urls: list[str] = []
+        for token in text.split():
+            if token.startswith("http://") or token.startswith("https://"):
+                image_urls.append(token)
+                break
+        prompt = text
+        aspect = state_data.get("veo_aspect", "16:9")
+        quality = state_data.get("veo_quality", "standard")
+        enable_fallback = True if aspect == "16:9" else False
+        watermark = None
+        try:
+            await veo_service.submit_veo_request(
+                message,
+                state,
+                user,
+                prompt=prompt,
+                image_urls=image_urls or None,
+                aspect_ratio=aspect,
+                quality=quality,
+                enable_fallback=enable_fallback,
+                watermark=watermark,
+            )
+        except InsufficientBalanceError:
+            await message.answer(
+                "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите стандартное качество.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
+                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
+                        ]
+                    ]
+                ),
             )
             return
 

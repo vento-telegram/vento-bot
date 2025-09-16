@@ -14,6 +14,7 @@ from bot.enums import BotModeEnum, LedgerReasonEnum
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.keyboards.change_ai import mode_keyboard, gpt_image_size_keyboard
+from bot.keyboards.veo import veo_aspect_keyboard, veo_quality_keyboard
 from bot.keyboards.suno import (
     suno_styles_keyboard,
     suno_back_keyboard,
@@ -28,8 +29,70 @@ from bot.keyboards.start import (
 from bot.keyboards.payments import payments_keyboard, payments_back_keyboard, ru_bundles_keyboard, ru_bundles_back_keyboard, pay_link_keyboard, stars_bundles_keyboard
 from bot.interfaces.services.payments import AbcPaymentsService
 from bot.enums import BotModeEnum
+from bot.interfaces.services.veo import AbcVeoService
 
 router = Router()
+@router.callback_query(F.data == "set_mode:veo_video")
+@inject
+async def set_mode_veo_video(
+    call: CallbackQuery,
+    state: FSMContext,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+):
+    await state.update_data(mode=BotModeEnum.veo_video, veo_aspect="16:9", veo_quality="standard", veo_images=None)
+    await call.answer("Режим Veo Video активирован")
+    try:
+        await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.veo_video))
+    except Exception:
+        pass
+    std = int(await settings.get_value('veo_standard_price'))
+    imp = int(await settings.get_value('veo_improved_price'))
+    text = (
+        "🎬 Генерация видео Veo\n\n"
+        "1) Выберите качество\n"
+        f"• Стандарт — {std} ток.\n"
+        f"• Улучшенное — {imp} ток.\n\n"
+        "2) Затем отправьте промпт на английском (и при желании 1 изображение).\n"
+        "Поддерживаются форматы 16:9 и 9:16."
+    )
+    await call.message.answer(text, reply_markup=veo_quality_keyboard(std, imp, selected="standard"))
+@router.callback_query(F.data.startswith("veo:quality:"))
+@inject
+async def veo_set_quality(
+    call: CallbackQuery,
+    state: FSMContext,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+):
+    q = (call.data or "").split(":")[-1]
+    if q not in {"standard", "improved"}:
+        await call.answer("Некорректное качество", show_alert=True)
+        return
+    await state.update_data(veo_quality=q)
+    std = int(await settings.get_value('veo_standard_price'))
+    imp = int(await settings.get_value('veo_improved_price'))
+    await call.answer("Качество выбрано")
+    try:
+        await call.message.edit_reply_markup(reply_markup=veo_quality_keyboard(std, imp, selected=q))
+    except Exception:
+        pass
+    # Offer to change aspect next
+    data = await state.get_data()
+    aspect = data.get('veo_aspect', '16:9')
+    await call.message.answer("Выберите соотношение сторон", reply_markup=veo_aspect_keyboard(aspect))
+
+
+@router.callback_query(F.data.startswith("veo:aspect:"))
+@inject
+async def veo_set_aspect(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    aspect = (call.data or "").split(":")[-1]
+    if aspect not in {"16:9", "9:16"}:
+        await call.answer("Некорректное соотношение", show_alert=True)
+        return
+    await state.update_data(veo_aspect=aspect)
+    await call.answer(f"Формат: {aspect}")
 @router.callback_query(F.data.startswith("suno:style:"))
 @inject
 async def suno_select_style(
@@ -546,6 +609,8 @@ async def goto_switch(
     image_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt_image])
     nano_price = await settings.get_value(settings_models_mapper[BotModeEnum.nano_banana])
     suno_price = await settings.get_value(settings_models_mapper[BotModeEnum.suno_music])
+    veo_standard = await settings.get_value('veo_standard_price')
+    veo_improved = await settings.get_value('veo_improved_price')
 
     text = (
         "👾 *Выбор ИИ*\n\n"
@@ -559,6 +624,8 @@ async def goto_switch(
         "Создание и редактирование изображений.\n\n"
         f"🎵 *Suno Music* ({suno_price} токенов/запрос)\n"
         "Генерация музыки по стилю и описанию.\n\n"
+        f"🎬 *Veo Video* (Стандарт: {veo_standard} • Улучш.: {veo_improved} токенов/запрос)\n"
+        "Генерация видео по тексту или картинке.\n\n"
         "👇 Выбери нужный ИИ:"
     )
 

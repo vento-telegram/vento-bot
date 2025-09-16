@@ -10,6 +10,7 @@ def mode_keyboard(active_mode: str | None = None) -> InlineKeyboardMarkup:
         BotModeEnum.gpt_image: "🖼️",
         BotModeEnum.nano_banana: "🍌",
         BotModeEnum.suno_music: "🎵",
+        BotModeEnum.veo_video: "🎬",
     }
 
     def mode_button(text: str, callback: str, mode_key):
@@ -28,6 +29,7 @@ def mode_keyboard(active_mode: str | None = None) -> InlineKeyboardMarkup:
         ],
         [
             mode_button("Suno Music", "set_mode:suno_music", BotModeEnum.suno_music),
+            mode_button("Veo Video", "set_mode:veo_video", BotModeEnum.veo_video),
         ],
         [
             InlineKeyboardButton(text="🔙 Назад", callback_data="goto:start"),

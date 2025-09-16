@@ -12,6 +12,7 @@ from bot.services.user import UserService
 from bot.services.settings import SettingsService
 from bot.services.payments import PaymentsService
 from bot.services.suno import SunoService
+from bot.services.veo import VeoService
 from bot.settings import settings
 
 
@@ -35,6 +36,7 @@ class Container(containers.DeclarativeContainer):
     openai_client = providers.Singleton(AsyncOpenAI, api_key=settings.OPENAI.API_KEY)
     openai_service = providers.Factory(OpenAIService, uow=uow, client=openai_client, settings_service=settings_service)
     suno_service = providers.Factory(SunoService, uow=uow, settings_service=settings_service)
+    veo_service = providers.Factory(VeoService, uow=uow, settings_service=settings_service)
 
 
 @asynccontextmanager
