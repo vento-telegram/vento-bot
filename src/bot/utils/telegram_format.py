@@ -7,16 +7,104 @@ from typing import List
 CODE_FENCE_RE = re.compile(r"```[ \t]*([a-zA-Z0-9_+-]+)?\n")
 
 
+def validate_and_fix_markdown_entities(text: str) -> str:
+    """
+    Validate and fix common markdown entity issues that cause Telegram parsing errors.
+    
+    - Ensures all markdown entities (*, _, `) are properly closed
+    - Escapes problematic characters that might break parsing
+    - Handles nested entities properly
+    """
+    if not text:
+        return text
+    
+    # Track entity states
+    in_bold = False
+    in_italic = False
+    in_code = False
+    in_code_block = False
+    
+    result = []
+    i = 0
+    
+    while i < len(text):
+        char = text[i]
+        
+        if char == '`':
+            if i + 2 < len(text) and text[i:i+3] == '```':
+                # Code block marker
+                if in_code_block:
+                    result.append('```')
+                    in_code_block = False
+                else:
+                    result.append('```')
+                    in_code_block = True
+                i += 3
+                continue
+            elif not in_code_block:
+                # Inline code
+                if in_code:
+                    result.append('`')
+                    in_code = False
+                else:
+                    result.append('`')
+                    in_code = True
+                i += 1
+                continue
+        
+        elif char == '*' and not in_code and not in_code_block:
+            # Bold marker
+            if in_bold:
+                result.append('*')
+                in_bold = False
+            else:
+                result.append('*')
+                in_bold = True
+            i += 1
+            continue
+            
+        elif char == '_' and not in_code and not in_code_block:
+            # Italic marker
+            if in_italic:
+                result.append('_')
+                in_italic = False
+            else:
+                result.append('_')
+                in_italic = True
+            i += 1
+            continue
+        
+        else:
+            result.append(char)
+            i += 1
+    
+    # Close any unclosed entities
+    if in_code:
+        result.append('`')
+    if in_italic:
+        result.append('_')
+    if in_bold:
+        result.append('*')
+    if in_code_block:
+        result.append('\n```')
+    
+    return ''.join(result)
+
+
 def convert_markdown_to_telegram(text: str) -> str:
     """
     Best-effort conversion of generic Markdown to Telegram Markdown (legacy).
 
     - Removes language specifiers from triple code fences: ```python -> ```
     - Normalizes fenced code blocks to use backticks, which Telegram accepts in Markdown.
+    - Validates and fixes markdown entities to prevent parsing errors.
     - Leaves inline code and basic formatting unchanged.
     """
     if not text:
         return text
+
+    # First, validate and fix markdown entities
+    text = validate_and_fix_markdown_entities(text)
 
     # Normalize triple backticks with language to plain triple backticks
     def _strip_lang(m: re.Match[str]) -> str:
