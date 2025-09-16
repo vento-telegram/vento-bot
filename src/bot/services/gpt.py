@@ -1,9 +1,11 @@
 import logging
 import json
 import asyncio
-from typing import Any
+import re
+from io import BytesIO
+from typing import Any, Optional
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from openai import OpenAI as OpenAIClient
@@ -403,6 +405,15 @@ class OpenAIService(AbcOpenAIService):
         text = (message.text or message.caption or "").strip()
         if not text:
             text = "(пустое сообщение без текста)"
+
+        # If text contains a single http(s) URL, try to fetch and extract content when safe
+        url = self._extract_first_url(text)
+        if url:
+            extracted = await self._try_extract_text_from_url(url, message)
+            if extracted:
+                # Append extracted content below the prompt for context
+                combined = text + "\n\n---\nИз содержимого по ссылке:\n" + extracted
+                return ChatCompletionUserMessageParam(role="user", content=combined[:20000])
         return ChatCompletionUserMessageParam(role="user", content=text)
 
     async def _handle_document(self, message: Message) -> ChatCompletionUserMessageParam:
@@ -429,6 +440,74 @@ class OpenAIService(AbcOpenAIService):
             if not text:
                 text = f"Проанализируй файл: {filename} ({mime}). Ссылка: {url}"
             return ChatCompletionUserMessageParam(role="user", content=text)
+
+    @staticmethod
+    def _extract_first_url(text: str) -> Optional[str]:
+        try:
+            m = re.search(r"https?://\S+", text)
+            return m.group(0) if m else None
+        except Exception:
+            return None
+
+    async def _try_extract_text_from_url(self, url: str, message: Message) -> Optional[str]:
+        MAX_FETCH_SIZE_MB = 20
+        allowed_mimes = {
+            "application/pdf": "pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+            "text/plain": "txt",
+        }
+        try:
+            timeout = ClientTimeout(total=20)
+            async with ClientSession(timeout=timeout) as session:
+                async with session.get(url, allow_redirects=True) as resp:
+                    if resp.status != 200:
+                        return None
+                    ctype = (resp.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+                    length = resp.headers.get("Content-Length")
+                    if length and int(length) > MAX_FETCH_SIZE_MB * 1024 * 1024:
+                        try:
+                            size_mb = int(length) / (1024 * 1024)
+                            await message.answer(
+                                f"☹️ Файл по ссылке слишком большой: {size_mb:.1f} МБ. Максимум {MAX_FETCH_SIZE_MB} МБ."
+                            )
+                        except Exception:
+                            pass
+                        return None
+                    # Stream into memory with cap
+                    data = await resp.read()
+                    if len(data) > MAX_FETCH_SIZE_MB * 1024 * 1024:
+                        return None
+        except Exception:
+            return None
+
+        # Extract text based on mime
+        try:
+            if allowed_mimes.get(ctype) == "pdf":
+                try:
+                    from PyPDF2 import PdfReader
+                    reader = PdfReader(BytesIO(data))
+                    parts: list[str] = []
+                    for page in reader.pages[:20]:  # cap pages to avoid huge prompts
+                        parts.append(page.extract_text() or "")
+                    return "\n".join(parts).strip()[:15000]
+                except Exception:
+                    return None
+            elif allowed_mimes.get(ctype) == "docx":
+                try:
+                    import docx
+                    doc = docx.Document(BytesIO(data))
+                    text = "\n".join([p.text for p in doc.paragraphs])
+                    return text.strip()[:15000]
+                except Exception:
+                    return None
+            elif allowed_mimes.get(ctype) == "txt" or ctype.startswith("text/"):
+                try:
+                    return data.decode("utf-8", errors="ignore")[:15000]
+                except Exception:
+                    return None
+        except Exception:
+            return None
+        return None
 
 
     async def _get_telegram_file_url(self, bot, file_id: str) -> str:
