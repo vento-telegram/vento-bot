@@ -3,12 +3,14 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery,
+    Message,
+    PreCheckoutQuery,
 )
 from dependency_injector.wiring import Provide, inject
 
 from bot.constants import settings_models_mapper
 from bot.container import Container
-from bot.enums import BotModeEnum
+from bot.enums import BotModeEnum, LedgerReasonEnum
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.keyboards.change_ai import mode_keyboard, gpt_image_size_keyboard
@@ -23,7 +25,7 @@ from bot.keyboards.start import (
     account_keyboard,
     start_keyboard,
 )
-from bot.keyboards.payments import payments_keyboard, payments_back_keyboard, ru_bundles_keyboard, ru_bundles_back_keyboard, pay_link_keyboard
+from bot.keyboards.payments import payments_keyboard, payments_back_keyboard, ru_bundles_keyboard, ru_bundles_back_keyboard, pay_link_keyboard, stars_bundles_keyboard
 from bot.interfaces.services.payments import AbcPaymentsService
 from bot.enums import BotModeEnum
 
@@ -386,9 +388,101 @@ async def pay_stars(
     await call.message.edit_text(
         text=(
             "⭐ *Оплата звёздами*\n\n"
-            "Скоро можно будет обменять звёзды на токены прямо здесь."),
-        reply_markup=payments_back_keyboard(),
+            "Выберите пакет токенов:"),
+        reply_markup=stars_bundles_keyboard(),
     )
+
+@router.callback_query(F.data.startswith("pay:stars:"))
+@inject
+async def pay_stars_bundle_selected(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    # Format: pay:stars:{tokens}:{price_stars}
+    await call.answer()
+    parts = (call.data or "").split(":", maxsplit=3)
+    if len(parts) < 4:
+        await call.answer("Некорректный пакет", show_alert=True)
+        return
+    try:
+        tokens = int(parts[2])
+        stars = int(parts[3])
+    except Exception:
+        await call.answer("Некорректные данные", show_alert=True)
+        return
+
+    # Build invoice
+    from aiogram.types import LabeledPrice
+    try:
+        await call.bot.send_invoice(
+            chat_id=call.message.chat.id,
+            title="Покупка токенов",
+            description=f"{tokens} токенов",
+            payload=f"stars:{tokens}:{stars}",
+            provider_token="XTR",
+            currency="XTR",
+            prices=[LabeledPrice(label=f"{tokens} токенов", amount=stars)],
+        )
+    except Exception:
+        await call.message.edit_text(
+            text=(
+                "☹️ Не удалось создать счёт. Попробуй ещё раз позже."),
+            reply_markup=stars_bundles_keyboard(),
+        )
+
+
+@router.pre_checkout_query()
+@inject
+async def stars_pre_checkout(
+    query: PreCheckoutQuery,
+):
+    try:
+        await query.answer(ok=True)
+    except Exception:
+        pass
+
+
+@router.message(F.successful_payment)
+@inject
+async def stars_successful_payment(
+    message: Message,
+    user_service: AbcUserService = Provide[Container.user_service],
+):
+    sp = message.successful_payment
+    if not sp or (sp.currency or "").upper() != "XTR":
+        return
+    payload = sp.invoice_payload or ""
+    # Expected: stars:{tokens}:{stars}
+    parts = payload.split(":", maxsplit=2)
+    try:
+        tokens = int(parts[1]) if len(parts) >= 2 else 0
+    except Exception:
+        tokens = 0
+    if tokens <= 0:
+        return
+    try:
+        updated_user = await user_service.add_tokens_by_telegram_id(
+            telegram_id=message.from_user.id,
+            amount=tokens,
+            reason=LedgerReasonEnum.purchase_stars,
+        )
+        balance = updated_user.balance if updated_user else None
+        balance_text = f"*{balance}*" if balance is not None else "обновлён"
+        await message.answer(
+            text=(
+                f"✅ Оплата прошла успешно! Зачислено {tokens} токенов.\n\n"
+                f"🪙 Твой баланс: {balance_text} токенов\n\n"
+                "👇 Что хочешь сделать?"
+            ),
+            reply_markup=start_keyboard(BotModeEnum.passive),
+        )
+    except Exception:
+        # Even if crediting failed, avoid raising in handler
+        await message.answer(
+            text=(
+                "✅ Оплата прошла. Начисление будет обработано автоматически в ближайшее время."),
+            reply_markup=start_keyboard(BotModeEnum.passive),
+        )
 
 
 @router.callback_query(F.data == "pay:crypto")

@@ -53,6 +53,13 @@ class UserService(AbcUserService):
                 return None
             return await self._update_balance(user.id, amount, reason)
 
+    async def add_tokens_by_telegram_id(self, telegram_id: int, amount: int, reason: LedgerReasonEnum) -> UserEntity | None:
+        async with self._uow:
+            user = await self._uow.user.get_by_telegram_id(telegram_id)
+            if not user:
+                return None
+            return await self._update_balance(user.id, amount, reason)
+
     async def block_user_by_username(self, username: str) -> UserEntity | None:
         async with self._uow:
             return await self._uow.user.set_blocked_by_username(username, True)

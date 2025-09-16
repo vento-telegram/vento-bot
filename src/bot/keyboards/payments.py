@@ -58,3 +58,14 @@ def pay_link_keyboard(url: str) -> InlineKeyboardMarkup:
     ])
 
 
+def stars_bundles_keyboard() -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = [
+        [InlineKeyboardButton(text="🐣 700 токенов — 99 ⭐", callback_data="pay:stars:700:99")],
+        [InlineKeyboardButton(text="🎯 1600 + 200 токенов — 219 ⭐", callback_data="pay:stars:1800:219")],
+        [InlineKeyboardButton(text="👑 4500 + 900 токенов — 599 ⭐", callback_data="pay:stars:5400:599")],
+        [InlineKeyboardButton(text="💎 11000 + 2100 токенов — 1399 ⭐", callback_data="pay:stars:13100:1399")],
+        [InlineKeyboardButton(text="🚀 28000 + 8000 токенов — 2799 ⭐", callback_data="pay:stars:36000:2799")],
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")],
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
