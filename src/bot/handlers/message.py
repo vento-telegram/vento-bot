@@ -117,29 +117,14 @@ async def common_message_handler(
             parts = prepare_telegram_messages_from_markdown(raw_text)
             logger.debug("Telegram parts: count=%d lens=%s", len(parts), [len(p) for p in parts])
             if parts:
-                # Try to send the first part with markdown parsing
                 try:
                     await status_msg.edit_text(parts[0])
                 except TelegramBadRequest as e:
                     logger.exception("edit_text markdown error on part=0 len=%d: %s", len(parts[0]), str(e))
-                    # Fallback 1: Try without markdown parsing
                     try:
                         await status_msg.edit_text(parts[0], parse_mode=None)
-                    except Exception as fallback_e:
-                        logger.exception("edit_text fallback failed: %s", str(fallback_e))
-                        # Fallback 2: Try with HTML parsing as last resort
-                        try:
-                            await status_msg.edit_text(parts[0], parse_mode="HTML")
-                        except Exception:
-                            logger.exception("edit_text HTML fallback also failed")
-                            # Final fallback: Send as plain text with truncation if needed
-                            try:
-                                safe_text = parts[0][:4000] + "..." if len(parts[0]) > 4000 else parts[0]
-                                await status_msg.edit_text(safe_text, parse_mode=None)
-                            except Exception:
-                                logger.exception("All fallbacks failed for first part")
-                
-                # Send additional parts
+                    except Exception:
+                        logger.exception("edit_text fallback failed")
                 for idx, extra in enumerate(parts[1:], start=1):
                     try:
                         await message.answer(extra)
@@ -147,19 +132,8 @@ async def common_message_handler(
                         logger.exception("answer markdown error on part=%d len=%d: %s", idx, len(extra), str(e))
                         try:
                             await message.answer(extra, parse_mode=None)
-                        except Exception as fallback_e:
-                            logger.exception("answer fallback failed for part=%d: %s", idx, str(fallback_e))
-                            # Try HTML parsing as last resort
-                            try:
-                                await message.answer(extra, parse_mode="HTML")
-                            except Exception:
-                                logger.exception("answer HTML fallback also failed for part=%d", idx)
-                                # Final fallback: Send truncated plain text
-                                try:
-                                    safe_text = extra[:4000] + "..." if len(extra) > 4000 else extra
-                                    await message.answer(safe_text, parse_mode=None)
-                                except Exception:
-                                    logger.exception("All fallbacks failed for part=%d", idx)
+                        except Exception:
+                            logger.exception("answer fallback failed for part=%d", idx)
         except InsufficientBalanceError:
             await status_msg.edit_text(
                 "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс токенов, оформить подписку на модель или выбрать более экономичную модель.",
