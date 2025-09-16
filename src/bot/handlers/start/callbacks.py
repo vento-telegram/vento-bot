@@ -158,9 +158,14 @@ async def set_mode_chatgpt(
     call: CallbackQuery,
     state: FSMContext,
 ):
-    await state.update_data(mode=BotModeEnum.gpt)
+    # Always re-select: reset short-term context/history
+    await state.update_data(mode=BotModeEnum.gpt, history=[])
     await call.answer("Режим GPT активирован")
-    await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt))
+    # Guard against "message is not modified"
+    try:
+        await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt))
+    except Exception:
+        pass
     await call.message.answer(
         "🤖 Теперь на твои сообщения будет отвечать *GPT-5*.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
@@ -172,9 +177,12 @@ async def set_mode_chatgpt_mini(
     call: CallbackQuery,
     state: FSMContext,
 ):
-    await state.update_data(mode=BotModeEnum.gpt_mini)
+    await state.update_data(mode=BotModeEnum.gpt_mini, history=[])
     await call.answer("Режим GPT Mini активирован")
-    await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt_mini))
+    try:
+        await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt_mini))
+    except Exception:
+        pass
     await call.message.answer(
         "⚡ Теперь на твои сообщения будет отвечать *GPT-5 Mini*.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
@@ -186,9 +194,12 @@ async def set_mode_gpt_image(
     call: CallbackQuery,
     state: FSMContext,
 ):
-    await state.update_data(mode=BotModeEnum.gpt_image, gpt_image_size="1:1")
+    await state.update_data(mode=BotModeEnum.gpt_image, gpt_image_size="1:1", history=[])
     await call.answer("Режим GPT Image активирован")
-    await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt_image))
+    try:
+        await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt_image))
+    except Exception:
+        pass
     text = (
         "🖼️ Теперь ты можешь генерировать изображения. Отправь промпт — получишь картинку.\n\n"
         "📐 Текущий размер: *1:1*. Его можно сменить кнопками под сообщением.\n\n"
@@ -205,9 +216,12 @@ async def set_mode_nano_banana(
     call: CallbackQuery,
     state: FSMContext,
 ):
-    await state.update_data(mode=BotModeEnum.nano_banana)
+    await state.update_data(mode=BotModeEnum.nano_banana, history=[])
     await call.answer("Режим Nano Banana активирован")
-    await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.nano_banana))
+    try:
+        await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.nano_banana))
+    except Exception:
+        pass
     await call.message.answer(
         "🍌 *Nano Banana*\n\n"
         "Отправь текст, чтобы *создать* изображение.\n"
@@ -221,9 +235,12 @@ async def set_mode_suno_music(
     call: CallbackQuery,
     state: FSMContext,
 ):
-    await state.update_data(mode=BotModeEnum.suno_music, suno_style=None, suno_style_pending=True, suno_instrumental=None)
+    await state.update_data(mode=BotModeEnum.suno_music, suno_style=None, suno_style_pending=True, suno_instrumental=None, history=[])
     await call.answer("Режим Suno Music активирован")
-    await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.suno_music))
+    try:
+        await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.suno_music))
+    except Exception:
+        pass
     text = (
         "🎵 Напиши стиль (жанры/описание).\n\n🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
