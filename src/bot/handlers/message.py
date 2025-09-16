@@ -113,9 +113,9 @@ async def common_message_handler(
             response = await openai_service.process_gpt_request(message, state, user)
             parts = prepare_telegram_messages_from_markdown(response.text or "")
             if parts:
-                await status_msg.edit_text(parts[0], parse_mode=None)
+                await status_msg.edit_text(parts[0])
                 for extra in parts[1:]:
-                    await message.answer(extra, parse_mode=None)
+                    await message.answer(extra)
         except InsufficientBalanceError:
             await status_msg.edit_text(
                 "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс токенов, оформить подписку на модель или выбрать более экономичную модель.",
