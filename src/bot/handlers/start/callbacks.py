@@ -242,7 +242,23 @@ async def suno_back_to_main(
 ):
     data = await state.get_data()
     await call.answer()
-    await call.message.edit_reply_markup(reply_markup=suno_main_settings_keyboard(data.get('suno_style'), data.get('suno_instrumental'), data.get('suno_custom_mode')))
+    try:
+        await call.message.edit_text(
+            "🎵 Suno Music\n\nВыберите настройки (стиль, вокал, режим ввода) и отправьте промпт.",
+            reply_markup=suno_main_settings_keyboard(
+                data.get('suno_style'),
+                data.get('suno_instrumental'),
+                data.get('suno_custom_mode'),
+            ),
+        )
+    except Exception:
+        await call.message.edit_reply_markup(
+            reply_markup=suno_main_settings_keyboard(
+                data.get('suno_style'),
+                data.get('suno_instrumental'),
+                data.get('suno_custom_mode'),
+            )
+        )
 
 
 @router.callback_query(F.data.startswith("suno:vocals:"))

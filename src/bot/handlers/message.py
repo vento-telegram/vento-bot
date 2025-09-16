@@ -197,7 +197,7 @@ async def common_message_handler(
             await state.update_data(suno_style=text, suno_style_pending=False)
             data = await state.get_data()
             await message.answer(
-                f"🎼 Стиль выбран: *{text}*",
+                "🎵 Suno Music\n\nВыберите настройки (стиль, вокал, режим ввода) и отправьте промпт.",
                 reply_markup=suno_main_settings_keyboard(
                     data.get("suno_style"),
                     data.get("suno_instrumental"),
