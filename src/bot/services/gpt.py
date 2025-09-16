@@ -143,7 +143,7 @@ class OpenAIService(AbcOpenAIService):
         )
 
         await message.answer(
-            "🧑‍🎨 *Работаю над изображением...*\n"
+            "🧑‍🎨 *Работаю над изображением...*\n\n"
             "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
         )
 
@@ -211,7 +211,7 @@ class OpenAIService(AbcOpenAIService):
             groups[group_key] = record
             await state.update_data(nb_groups=groups)
             await message.answer(
-                "🧑‍🎨 *Работаю над изображением...*\n"
+                "🧑‍🎨 *Работаю над изображением...*\n\n"
                 "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
             )
             return
@@ -241,7 +241,7 @@ class OpenAIService(AbcOpenAIService):
             prompt_text=prompt_text,
         )
         await message.answer(
-            "🧑‍🎨 *Работаю над изображением...*\n"
+            "🧑‍🎨 *Работаю над изображением...*\n\n"
             "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
         )
 
