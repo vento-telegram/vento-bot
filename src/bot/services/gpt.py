@@ -404,15 +404,6 @@ class OpenAIService(AbcOpenAIService):
         text = (message.text or message.caption or "").strip()
         if not text:
             text = "(пустое сообщение без текста)"
-
-        # If text contains a single http(s) URL, try to fetch and extract content when safe
-        url = self._extract_first_url(text)
-        if url:
-            extracted = await self._try_extract_text_from_url(url, message)
-            if extracted:
-                # Append extracted content below the prompt for context
-                combined = text + "\n\n---\nИз содержимого по ссылке:\n" + extracted
-                return ChatCompletionUserMessageParam(role="user", content=combined[:20000])
         return ChatCompletionUserMessageParam(role="user", content=text)
 
     async def _handle_document(self, message: Message) -> ChatCompletionUserMessageParam:
