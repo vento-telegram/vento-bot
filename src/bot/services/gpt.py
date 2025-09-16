@@ -210,7 +210,10 @@ class OpenAIService(AbcOpenAIService):
             record["submitted"] = True
             groups[group_key] = record
             await state.update_data(nb_groups=groups)
-            await message.answer("🍌 Задача отправлена в Nano Banana. Пришлю результат, как только он будет готов.")
+            await message.answer(
+                "🧑‍🎨 *Работаю над изображением...*\n"
+                "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
+            )
             return
 
         # Prepare single input
@@ -229,7 +232,7 @@ class OpenAIService(AbcOpenAIService):
         else:
             prompt_text = (message.text or "").strip()
             if not prompt_text:
-                await message.answer("✍️ Напиши промпт для генерации изображения (Nano Banana).")
+                await message.answer("✍️ Напиши промпт для генерации изображения.")
                 return
 
         await self._submit_nano_task(
@@ -237,7 +240,10 @@ class OpenAIService(AbcOpenAIService):
             image_urls=image_urls,
             prompt_text=prompt_text,
         )
-        await message.answer("🍌 Задача отправлена в Nano Banana. Пришлю результат, как только он будет готов.")
+        await message.answer(
+            "🧑‍🎨 *Работаю над изображением...*\n"
+            "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
+        )
 
     async def _submit_nano_task(self, user: UserEntity, image_urls: list[str], prompt_text: str) -> None:
         model_name = "google/nano-banana-edit" if image_urls else "google/nano-banana"
