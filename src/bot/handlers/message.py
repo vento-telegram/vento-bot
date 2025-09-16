@@ -39,6 +39,71 @@ async def common_message_handler(
         return
 
     if mode == BotModeEnum.gpt or mode == BotModeEnum.gpt_mini:
+        # Validate input type and size before calling GPT
+        MAX_FILE_SIZE_MB = 20
+        def _file_too_large(size_bytes: int | None) -> bool:
+            try:
+                return bool(size_bytes and size_bytes > MAX_FILE_SIZE_MB * 1024 * 1024)
+            except Exception:
+                return False
+
+        # Disallow unsupported content types
+        if any([
+            message.video,
+            message.animation,
+            message.audio,
+            message.voice,
+            message.video_note,
+            message.sticker,
+            message.location,
+            message.venue if hasattr(message, 'venue') else False,
+            message.contact,
+            message.poll,
+            message.dice,
+        ]):
+            await message.answer(
+                (
+                    "☹️ Этот тип сообщения не поддерживается.\n\n"
+                    "Допустимые варианты:\n"
+                    "• текст\n"
+                    "• фото (с подписью или без)\n"
+                    "• файл (как документ)\n\n"
+                    f"Макс. размер файла: {MAX_FILE_SIZE_MB} МБ. Если больше — сожмите, уменьшите разрешение или пришлите ссылку."
+                )
+            )
+            return
+
+        # Size checks for photo/document
+        if message.photo:
+            try:
+                photo = message.photo[-1]
+                if _file_too_large(getattr(photo, 'file_size', None)):
+                    size_mb = (getattr(photo, 'file_size', 0) or 0) / (1024 * 1024)
+                    await message.answer(
+                        (
+                            f"☹️ Файл слишком большой: {size_mb:.1f} МБ.\n"
+                            f"Максимум: {MAX_FILE_SIZE_MB} МБ.\n"
+                            "Попробуйте уменьшить размер/разрешение, или пришлите ссылку на файл."
+                        )
+                    )
+                    return
+            except Exception:
+                pass
+        if message.document:
+            try:
+                if _file_too_large(getattr(message.document, 'file_size', None)):
+                    size_mb = (getattr(message.document, 'file_size', 0) or 0) / (1024 * 1024)
+                    await message.answer(
+                        (
+                            f"☹️ Файл слишком большой: {size_mb:.1f} МБ.\n"
+                            f"Максимум: {MAX_FILE_SIZE_MB} МБ.\n"
+                            "Попробуйте сжать файл, разбить на части или отправить ссылку."
+                        )
+                    )
+                    return
+            except Exception:
+                pass
+
         status_msg = await message.answer("✨ *Готовлю ответ...*")
         try:
             response = await openai_service.process_gpt_request(message, state, user)
