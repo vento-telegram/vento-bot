@@ -21,6 +21,7 @@ from bot.keyboards.suno import (
     suno_vocals_keyboard,
     suno_prompt_keyboard,
     suno_input_mode_keyboard,
+    suno_main_settings_keyboard,
 )
 from bot.keyboards.start import (
     account_keyboard,
@@ -187,19 +188,8 @@ async def suno_select_style(
     label = slug_to_label.get(style_slug, style_slug)
     await state.update_data(suno_style=label, suno_style_pending=False)
     await call.answer(f"Стиль: {label}")
-    try:
-        await call.message.edit_text(
-            (
-                f"🎼 Стиль выбран: *{label}*\n\n"
-                "Добавить вокал?"
-            ),
-            reply_markup=suno_vocals_keyboard(),
-        )
-    except Exception:
-        await call.message.answer(
-            f"🎼 Стиль выбран: *{label}*\n\nДобавить вокал?",
-            reply_markup=suno_vocals_keyboard(),
-        )
+    data = await state.get_data()
+    await call.message.edit_reply_markup(reply_markup=suno_main_settings_keyboard(label, data.get('suno_instrumental'), data.get('suno_custom_mode')))
 
 @router.callback_query(F.data == "suno:change_style")
 @inject
@@ -212,6 +202,47 @@ async def suno_change_style(
     await call.message.edit_text(
         "🧑‍🎤 Напиши стиль (жанры/описание), например: 'Быстрый эпичный рок'",
     )
+
+
+@router.callback_query(F.data == "suno:open:style")
+@inject
+async def suno_open_style(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    await call.answer()
+    await call.message.edit_reply_markup(reply_markup=suno_styles_keyboard(None))
+
+
+@router.callback_query(F.data == "suno:open:vocals")
+@inject
+async def suno_open_vocals(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    await call.answer()
+    await call.message.edit_reply_markup(reply_markup=suno_vocals_keyboard())
+
+
+@router.callback_query(F.data == "suno:open:input")
+@inject
+async def suno_open_input(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    await call.answer()
+    await call.message.edit_reply_markup(reply_markup=suno_input_mode_keyboard())
+
+
+@router.callback_query(F.data == "suno:main")
+@inject
+async def suno_back_to_main(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    data = await state.get_data()
+    await call.answer()
+    await call.message.edit_reply_markup(reply_markup=suno_main_settings_keyboard(data.get('suno_style'), data.get('suno_instrumental'), data.get('suno_custom_mode')))
 
 
 @router.callback_query(F.data.startswith("suno:vocals:"))
@@ -228,32 +259,15 @@ async def suno_set_vocals(
         await state.update_data(suno_instrumental=True)
         await call.answer("Инструментал выбран")
     elif value == "back":
-        # Go back to vocals question
-        try:
-            await call.message.edit_text(
-                "Добавить вокал?",
-                reply_markup=suno_vocals_keyboard(),
-            )
-        except Exception:
-            await call.message.answer(
-                "Добавить вокал?",
-                reply_markup=suno_vocals_keyboard(),
-            )
+        data = await state.get_data()
+        await call.message.edit_reply_markup(reply_markup=suno_main_settings_keyboard(data.get('suno_style'), data.get('suno_instrumental'), data.get('suno_custom_mode')))
         return
     else:
         await call.answer("Некорректное значение", show_alert=True)
         return
     # After choosing vocals, ask if user wants to provide lyrics or just a description
-    try:
-        await call.message.edit_text(
-            "Хочешь добавить свой текст или просто описать песню?",
-            reply_markup=suno_input_mode_keyboard(),
-        )
-    except Exception:
-        await call.message.answer(
-            "Хочешь добавить свой текст или просто описать песню?",
-            reply_markup=suno_input_mode_keyboard(),
-        )
+    data = await state.get_data()
+    await call.message.edit_reply_markup(reply_markup=suno_main_settings_keyboard(data.get('suno_style'), data.get('suno_instrumental'), data.get('suno_custom_mode')))
 
 
 @router.callback_query(F.data.startswith("suno:im:"))
@@ -272,10 +286,12 @@ async def suno_input_mode_selected(
     else:
         await call.answer("Некорректное значение", show_alert=True)
         return
+    data = await state.get_data()
+    await call.message.edit_reply_markup(reply_markup=suno_main_settings_keyboard(data.get('suno_style'), data.get('suno_instrumental'), data.get('suno_custom_mode')))
     try:
-        await call.message.edit_text(text, reply_markup=suno_prompt_keyboard())
+        await call.message.answer(text)
     except Exception:
-        await call.message.answer(text, reply_markup=suno_prompt_keyboard())
+        pass
 
 
 @router.callback_query(F.data == "set_mode:gpt")
@@ -361,16 +377,17 @@ async def set_mode_suno_music(
     call: CallbackQuery,
     state: FSMContext,
 ):
-    await state.update_data(mode=BotModeEnum.suno_music, suno_style=None, suno_style_pending=True, suno_instrumental=None, history=[])
+    await state.update_data(mode=BotModeEnum.suno_music, suno_style=None, suno_style_pending=True, suno_instrumental=None, suno_custom_mode=None, history=[])
     await call.answer("Режим Suno Music активирован")
     try:
         await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.suno_music))
     except Exception:
         pass
     text = (
-        "🎵 Напиши стиль (жанры/описание).\n\n🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+        "🎵 Suno Music\n\n"
+        "Выберите настройки (стиль, вокал, режим ввода) и отправьте промпт."
     )
-    await call.message.answer(text)
+    await call.message.answer(text, reply_markup=suno_main_settings_keyboard(None, None, None))
 
 @router.callback_query(F.data.startswith("gpt_image:size:"))
 @inject

@@ -28,26 +28,27 @@ def suno_styles_keyboard(selected_slug: str | None = None) -> InlineKeyboardMark
         rows.append(row)
 
     rows.append([InlineKeyboardButton(text="🎛 Свой стиль", callback_data="suno:style:custom")])
+    rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="suno:main")])
 
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def suno_prompt_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔙 Назад", callback_data="suno:change_style")],
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="suno:main")],
     ])
 
 
 def suno_back_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔙 Назад", callback_data="suno:change_style")],
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="suno:main")],
     ])
 
 
 def suno_vocals_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Да", callback_data="suno:vocals:yes"), InlineKeyboardButton(text="Нет", callback_data="suno:vocals:no")],
-        [InlineKeyboardButton(text="🔙 Назад", callback_data="suno:change_style")],
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="suno:main")],
     ])
 
 
@@ -55,7 +56,19 @@ def suno_input_mode_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📝 Свой текст", callback_data="suno:im:custom")],
         [InlineKeyboardButton(text="🖊 Описание", callback_data="suno:im:desc")],
-        [InlineKeyboardButton(text="🔙 Назад", callback_data="suno:vocals:back")],
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="suno:main")],
     ])
+
+
+def suno_main_settings_keyboard(style_label: str | None, instrumental: bool | None, custom_mode: bool | None) -> InlineKeyboardMarkup:
+    style_text = style_label if style_label else "Не выбран"
+    vocals_text = "Да" if instrumental is False else ("Нет" if instrumental is True else "—")
+    mode_text = "Свой текст" if custom_mode else ("Описание" if custom_mode is False else "—")
+    rows: list[list[InlineKeyboardButton]] = []
+    rows.append([InlineKeyboardButton(text=f"Стиль: {style_text}", callback_data="suno:open:style")])
+    rows.append([InlineKeyboardButton(text=f"Вокал: {vocals_text}", callback_data="suno:open:vocals")])
+    rows.append([InlineKeyboardButton(text=f"Режим ввода: {mode_text}", callback_data="suno:open:input")])
+    rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:start")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 

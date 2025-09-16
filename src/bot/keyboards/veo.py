@@ -7,7 +7,7 @@ def veo_aspect_keyboard(selected: str | None = None) -> InlineKeyboardMarkup:
     for opt in options:
         label = f"✅ {opt}" if opt == selected else opt
         buttons.append(InlineKeyboardButton(text=label, callback_data=f"veo:aspect:{opt}"))
-    return InlineKeyboardMarkup(inline_keyboard=[buttons, [InlineKeyboardButton(text="🔙 Назад", callback_data="veo:back")]])
+    return InlineKeyboardMarkup(inline_keyboard=[buttons, [InlineKeyboardButton(text="🔙 Назад", callback_data="veo:main")]])
 
 
 def veo_quality_keyboard(standard_price: int, improved_price: int, selected: str | None = None) -> InlineKeyboardMarkup:
