@@ -400,7 +400,10 @@ class OpenAIService(AbcOpenAIService):
         return ChatCompletionUserMessageParam(role="user", content=text)
 
     async def _handle_text(self, message: Message) -> ChatCompletionUserMessageParam:
-        return ChatCompletionUserMessageParam(role="user", content=message.text)
+        text = (message.text or message.caption or "").strip()
+        if not text:
+            text = "(пустое сообщение без текста)"
+        return ChatCompletionUserMessageParam(role="user", content=text)
 
     async def _handle_document(self, message: Message) -> ChatCompletionUserMessageParam:
         mime = (message.document.mime_type or "").lower()
@@ -419,6 +422,13 @@ class OpenAIService(AbcOpenAIService):
                     ChatCompletionContentPartImageParam(type="image_url", image_url={"url": url}),
                 ],
             )
+        else:
+            # Non-image document: pass caption or file info as text
+            url = await self._get_telegram_file_url(message.bot, file_id)
+            text = (message.caption or "").strip()
+            if not text:
+                text = f"Проанализируй файл: {filename} ({mime}). Ссылка: {url}"
+            return ChatCompletionUserMessageParam(role="user", content=text)
 
 
     async def _get_telegram_file_url(self, bot, file_id: str) -> str:
