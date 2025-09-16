@@ -15,6 +15,7 @@ from bot.interfaces.services.veo import AbcVeoService
 from bot.keyboards.change_ai import mode_keyboard
 from bot.keyboards.suno import suno_styles_keyboard, suno_prompt_keyboard, suno_back_keyboard, suno_vocals_keyboard
 from bot.utils.telegram_format import prepare_telegram_messages_from_markdown
+from aiogram.exceptions import TelegramBadRequest
 
 logger = logging.getLogger(__name__)
 
@@ -111,11 +112,28 @@ async def common_message_handler(
         status_msg = await message.answer("✨ *Готовлю ответ...*")
         try:
             response = await openai_service.process_gpt_request(message, state, user)
-            parts = prepare_telegram_messages_from_markdown(response.text or "")
+            raw_text = response.text or ""
+            logger.debug("GPT raw len=%d snippet=%r", len(raw_text), raw_text[:400])
+            parts = prepare_telegram_messages_from_markdown(raw_text)
+            logger.debug("Telegram parts: count=%d lens=%s", len(parts), [len(p) for p in parts])
             if parts:
-                await status_msg.edit_text(parts[0])
-                for extra in parts[1:]:
-                    await message.answer(extra)
+                try:
+                    await status_msg.edit_text(parts[0])
+                except TelegramBadRequest as e:
+                    logger.exception("edit_text markdown error on part=0 len=%d: %s", len(parts[0]), str(e))
+                    try:
+                        await status_msg.edit_text(parts[0], parse_mode=None)
+                    except Exception:
+                        logger.exception("edit_text fallback failed")
+                for idx, extra in enumerate(parts[1:], start=1):
+                    try:
+                        await message.answer(extra)
+                    except TelegramBadRequest as e:
+                        logger.exception("answer markdown error on part=%d len=%d: %s", idx, len(extra), str(e))
+                        try:
+                            await message.answer(extra, parse_mode=None)
+                        except Exception:
+                            logger.exception("answer fallback failed for part=%d", idx)
         except InsufficientBalanceError:
             await status_msg.edit_text(
                 "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс токенов, оформить подписку на модель или выбрать более экономичную модель.",
