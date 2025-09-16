@@ -301,11 +301,9 @@ class OpenAIService(AbcOpenAIService):
         if message.photo:
             return await self._handle_photo(message)
         elif message.voice:
-            # voice не поддерживается — трактуем как пустой текст
-            return await self._handle_text(message)
+            return await self._handle_voice(message)
         elif message.document:
-            # документы не поддерживаются — трактуем как текст с подсказкой
-            return await self._handle_text(message)
+            return await self._handle_document(message)
         else:
             return await self._handle_text(message)
 
@@ -397,8 +395,9 @@ class OpenAIService(AbcOpenAIService):
         )
 
     async def _handle_voice(self, message: Message) -> ChatCompletionUserMessageParam:
-        # Не используем распознавание — только текст/фото поддерживаются
-        return ChatCompletionUserMessageParam(role="user", content=(message.caption or message.text or "(голосовое без текста)").strip())
+        url = await self._get_telegram_file_url(message.bot, message.voice.file_id)
+        text = await self._transcribe_audio(url)
+        return ChatCompletionUserMessageParam(role="user", content=text or "(пустая расшифровка голосового)")
 
     async def _handle_text(self, message: Message) -> ChatCompletionUserMessageParam:
         text = (message.text or message.caption or "").strip()
@@ -407,8 +406,25 @@ class OpenAIService(AbcOpenAIService):
         return ChatCompletionUserMessageParam(role="user", content=text)
 
     async def _handle_document(self, message: Message) -> ChatCompletionUserMessageParam:
-        # Не поддерживаем документы — только текст/фото
-        return ChatCompletionUserMessageParam(role="user", content=(message.caption or message.text or "(документ без текста)").strip())
+        mime = (message.document.mime_type or "").lower()
+        file_id = message.document.file_id
+        filename = message.document.file_name or "document"
+
+        if mime.startswith("image/"):
+            url = await self._get_telegram_file_url(message.bot, file_id)
+            return ChatCompletionUserMessageParam(
+                role="user",
+                content=[
+                    ChatCompletionContentPartTextParam(
+                        type="text",
+                        text=message.caption or f"Проанализируй изображение: {filename}",
+                    ),
+                    ChatCompletionContentPartImageParam(type="image_url", image_url={"url": url}),
+                ],
+            )
+        else:
+            # Неподдерживаемые документы трактуем как текстовое описание
+            return ChatCompletionUserMessageParam(role="user", content=(message.caption or message.text or "(неподдерживаемый документ)").strip())
 
     # Убрали извлечение по ссылкам и работу с файлами: оставляем только текст/фото
 

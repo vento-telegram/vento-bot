@@ -48,11 +48,12 @@ async def common_message_handler(
                 return False
 
         # Disallow unsupported content types
+        doc_mime = (message.document.mime_type or "").lower() if message.document else ""
         if any([
             message.video,
             message.animation,
             message.audio,
-            message.voice,
+            # message.voice is allowed
             message.video_note,
             message.sticker,
             message.location,
@@ -60,15 +61,17 @@ async def common_message_handler(
             message.contact,
             message.poll,
             message.dice,
-            message.document,  # документы больше не поддерживаем
+            (message.document and not doc_mime.startswith("image/")),  # только изображения-документы разрешены
         ]):
             await message.answer(
                 (
                     "☹️ Этот тип сообщения не поддерживается.\n\n"
                     "Допустимые варианты:\n"
                     "• текст\n"
-                    "• фото (с подписью или без)\n\n"
-                    f"Макс. размер фото: {MAX_FILE_SIZE_MB} МБ. Если больше — сожмите или уменьшите разрешение."
+                    "• фото (с подписью или без)\n"
+                    "• изображение как документ (JPEG/PNG/WebP и т.п.)\n"
+                    "• голосовое сообщение\n\n"
+                    f"Макс. размер фото/изображения: {MAX_FILE_SIZE_MB} МБ. Если больше — сожмите или уменьшите разрешение."
                 )
             )
             return
@@ -89,7 +92,21 @@ async def common_message_handler(
                     return
             except Exception:
                 pass
-        # Документы запрещены: отдельной проверки размеров не делаем
+        # Проверка размера для изображений-документов
+        if message.document and doc_mime.startswith("image/"):
+            try:
+                if _file_too_large(getattr(message.document, 'file_size', None)):
+                    size_mb = (getattr(message.document, 'file_size', 0) or 0) / (1024 * 1024)
+                    await message.answer(
+                        (
+                            f"☹️ Файл слишком большой: {size_mb:.1f} МБ.\n"
+                            f"Максимум: {MAX_FILE_SIZE_MB} МБ.\n"
+                            "Попробуйте уменьшить размер/разрешение."
+                        )
+                    )
+                    return
+            except Exception:
+                pass
 
         status_msg = await message.answer("✨ *Готовлю ответ...*")
         try:
