@@ -60,15 +60,15 @@ async def common_message_handler(
             message.contact,
             message.poll,
             message.dice,
+            message.document,  # документы больше не поддерживаем
         ]):
             await message.answer(
                 (
                     "☹️ Этот тип сообщения не поддерживается.\n\n"
                     "Допустимые варианты:\n"
                     "• текст\n"
-                    "• фото (с подписью или без)\n"
-                    "• файл (как документ)\n\n"
-                    f"Макс. размер файла: {MAX_FILE_SIZE_MB} МБ. Если больше — сожмите, уменьшите разрешение или пришлите ссылку."
+                    "• фото (с подписью или без)\n\n"
+                    f"Макс. размер фото: {MAX_FILE_SIZE_MB} МБ. Если больше — сожмите или уменьшите разрешение."
                 )
             )
             return
@@ -89,20 +89,7 @@ async def common_message_handler(
                     return
             except Exception:
                 pass
-        if message.document:
-            try:
-                if _file_too_large(getattr(message.document, 'file_size', None)):
-                    size_mb = (getattr(message.document, 'file_size', 0) or 0) / (1024 * 1024)
-                    await message.answer(
-                        (
-                            f"☹️ Файл слишком большой: {size_mb:.1f} МБ.\n"
-                            f"Максимум: {MAX_FILE_SIZE_MB} МБ.\n"
-                            "Попробуйте сжать файл, разбить на части или отправить ссылку."
-                        )
-                    )
-                    return
-            except Exception:
-                pass
+        # Документы запрещены: отдельной проверки размеров не делаем
 
         status_msg = await message.answer("✨ *Готовлю ответ...*")
         try:

@@ -1,11 +1,9 @@
 import logging
 import json
 import asyncio
-import re
-from io import BytesIO
-from typing import Any, Optional
+from typing import Any
 
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientSession
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from openai import OpenAI as OpenAIClient
@@ -303,9 +301,11 @@ class OpenAIService(AbcOpenAIService):
         if message.photo:
             return await self._handle_photo(message)
         elif message.voice:
-            return await self._handle_voice(message)
+            # voice не поддерживается — трактуем как пустой текст
+            return await self._handle_text(message)
         elif message.document:
-            return await self._handle_document(message)
+            # документы не поддерживаются — трактуем как текст с подсказкой
+            return await self._handle_text(message)
         else:
             return await self._handle_text(message)
 
@@ -397,9 +397,8 @@ class OpenAIService(AbcOpenAIService):
         )
 
     async def _handle_voice(self, message: Message) -> ChatCompletionUserMessageParam:
-        url = await self._get_telegram_file_url(message.bot, message.voice.file_id)
-        text = await self._transcribe_audio(url)
-        return ChatCompletionUserMessageParam(role="user", content=text)
+        # Не используем распознавание — только текст/фото поддерживаются
+        return ChatCompletionUserMessageParam(role="user", content=(message.caption or message.text or "(голосовое без текста)").strip())
 
     async def _handle_text(self, message: Message) -> ChatCompletionUserMessageParam:
         text = (message.text or message.caption or "").strip()
@@ -417,97 +416,10 @@ class OpenAIService(AbcOpenAIService):
         return ChatCompletionUserMessageParam(role="user", content=text)
 
     async def _handle_document(self, message: Message) -> ChatCompletionUserMessageParam:
-        mime = (message.document.mime_type or "").lower()
-        file_id = message.document.file_id
-        filename = message.document.file_name or "document"
+        # Не поддерживаем документы — только текст/фото
+        return ChatCompletionUserMessageParam(role="user", content=(message.caption or message.text or "(документ без текста)").strip())
 
-        if mime.startswith("image/"):
-            url = await self._get_telegram_file_url(message.bot, file_id)
-            return ChatCompletionUserMessageParam(
-                role="user",
-                content=[
-                    ChatCompletionContentPartTextParam(
-                        type="text",
-                        text=message.caption or f"Проанализируй изображение: {filename}",
-                    ),
-                    ChatCompletionContentPartImageParam(type="image_url", image_url={"url": url}),
-                ],
-            )
-        else:
-            # Non-image document: pass caption or file info as text
-            url = await self._get_telegram_file_url(message.bot, file_id)
-            text = (message.caption or "").strip()
-            if not text:
-                text = f"Проанализируй файл: {filename} ({mime}). Ссылка: {url}"
-            return ChatCompletionUserMessageParam(role="user", content=text)
-
-    @staticmethod
-    def _extract_first_url(text: str) -> Optional[str]:
-        try:
-            m = re.search(r"https?://\S+", text)
-            return m.group(0) if m else None
-        except Exception:
-            return None
-
-    async def _try_extract_text_from_url(self, url: str, message: Message) -> Optional[str]:
-        MAX_FETCH_SIZE_MB = 20
-        allowed_mimes = {
-            "application/pdf": "pdf",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
-            "text/plain": "txt",
-        }
-        try:
-            timeout = ClientTimeout(total=20)
-            async with ClientSession(timeout=timeout) as session:
-                async with session.get(url, allow_redirects=True) as resp:
-                    if resp.status != 200:
-                        return None
-                    ctype = (resp.headers.get("Content-Type") or "").split(";")[0].strip().lower()
-                    length = resp.headers.get("Content-Length")
-                    if length and int(length) > MAX_FETCH_SIZE_MB * 1024 * 1024:
-                        try:
-                            size_mb = int(length) / (1024 * 1024)
-                            await message.answer(
-                                f"☹️ Файл по ссылке слишком большой: {size_mb:.1f} МБ. Максимум {MAX_FETCH_SIZE_MB} МБ."
-                            )
-                        except Exception:
-                            pass
-                        return None
-                    # Stream into memory with cap
-                    data = await resp.read()
-                    if len(data) > MAX_FETCH_SIZE_MB * 1024 * 1024:
-                        return None
-        except Exception:
-            return None
-
-        # Extract text based on mime
-        try:
-            if allowed_mimes.get(ctype) == "pdf":
-                try:
-                    from PyPDF2 import PdfReader
-                    reader = PdfReader(BytesIO(data))
-                    parts: list[str] = []
-                    for page in reader.pages[:20]:  # cap pages to avoid huge prompts
-                        parts.append(page.extract_text() or "")
-                    return "\n".join(parts).strip()[:15000]
-                except Exception:
-                    return None
-            elif allowed_mimes.get(ctype) == "docx":
-                try:
-                    import docx
-                    doc = docx.Document(BytesIO(data))
-                    text = "\n".join([p.text for p in doc.paragraphs])
-                    return text.strip()[:15000]
-                except Exception:
-                    return None
-            elif allowed_mimes.get(ctype) == "txt" or ctype.startswith("text/"):
-                try:
-                    return data.decode("utf-8", errors="ignore")[:15000]
-                except Exception:
-                    return None
-        except Exception:
-            return None
-        return None
+    # Убрали извлечение по ссылкам и работу с файлами: оставляем только текст/фото
 
 
     async def _get_telegram_file_url(self, bot, file_id: str) -> str:
