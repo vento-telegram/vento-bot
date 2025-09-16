@@ -14,7 +14,7 @@ from bot.enums import BotModeEnum, LedgerReasonEnum
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.keyboards.change_ai import mode_keyboard, gpt_image_size_keyboard
-from bot.keyboards.veo import veo_aspect_keyboard, veo_quality_keyboard
+from bot.keyboards.veo import veo_aspect_keyboard, veo_quality_keyboard, veo_settings_keyboard
 from bot.keyboards.suno import (
     suno_styles_keyboard,
     suno_back_keyboard,
@@ -49,13 +49,12 @@ async def set_mode_veo_video(
     imp = int(await settings.get_value('veo_improved_price'))
     text = (
         "🎬 Генерация видео Veo\n\n"
-        "1) Выберите качество\n"
-        f"• Стандарт — {std} ток.\n"
-        f"• Улучшенное — {imp} ток.\n\n"
-        "2) Затем отправьте промпт на английском (и при желании 1 изображение).\n"
-        "Поддерживаются форматы 16:9 и 9:16."
+        "Выберите настройки и отправьте промпт для генерации.\n\n"
+        "• Качество влияет на цену.\n"
+        "• Поддерживаются форматы 16:9 и 9:16.\n"
+        "• Только английские промпты."
     )
-    await call.message.answer(text, reply_markup=veo_quality_keyboard(std, imp, selected="standard"))
+    await call.message.answer(text, reply_markup=veo_settings_keyboard("16:9", "standard", std, imp))
 @router.callback_query(F.data.startswith("veo:quality:"))
 @inject
 async def veo_set_quality(
@@ -71,14 +70,21 @@ async def veo_set_quality(
     std = int(await settings.get_value('veo_standard_price'))
     imp = int(await settings.get_value('veo_improved_price'))
     await call.answer("Качество выбрано")
-    try:
-        await call.message.edit_reply_markup(reply_markup=veo_quality_keyboard(std, imp, selected=q))
-    except Exception:
-        pass
-    # Offer to change aspect next
     data = await state.get_data()
     aspect = data.get('veo_aspect', '16:9')
-    await call.message.answer("Выберите соотношение сторон", reply_markup=veo_aspect_keyboard(aspect))
+    try:
+        await call.message.edit_reply_markup(reply_markup=veo_settings_keyboard(aspect, q, std, imp))
+    except Exception:
+        try:
+            await call.message.edit_text(
+                "🎬 Генерация видео Veo\n\nВыберите настройки и отправьте промпт для генерации.",
+                reply_markup=veo_settings_keyboard(aspect, q, std, imp),
+            )
+        except Exception:
+            await call.message.answer(
+                "🎬 Генерация видео Veo\n\nВыберите настройки и отправьте промпт для генерации.",
+                reply_markup=veo_settings_keyboard(aspect, q, std, imp),
+            )
 
 
 @router.callback_query(F.data.startswith("veo:aspect:"))
@@ -93,6 +99,15 @@ async def veo_set_aspect(
         return
     await state.update_data(veo_aspect=aspect)
     await call.answer(f"Формат: {aspect}")
+    # Re-render single menu
+    std = int(await settings.get_value('veo_standard_price'))
+    imp = int(await settings.get_value('veo_improved_price'))
+    data = await state.get_data()
+    q = data.get('veo_quality', 'standard')
+    try:
+        await call.message.edit_reply_markup(reply_markup=veo_settings_keyboard(aspect, q, std, imp))
+    except Exception:
+        pass
 @router.callback_query(F.data.startswith("suno:style:"))
 @inject
 async def suno_select_style(
