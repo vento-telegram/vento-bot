@@ -13,7 +13,14 @@ from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.suno import AbcSunoService
 from bot.interfaces.services.veo import AbcVeoService
 from bot.keyboards.change_ai import mode_keyboard
-from bot.keyboards.suno import suno_styles_keyboard, suno_prompt_keyboard, suno_back_keyboard, suno_vocals_keyboard
+from bot.keyboards.suno import (
+    suno_styles_keyboard,
+    suno_prompt_keyboard,
+    suno_back_keyboard,
+    suno_vocals_keyboard,
+    suno_input_mode_keyboard,
+    suno_main_settings_keyboard,
+)
 from bot.utils.telegram_format import prepare_telegram_messages_from_markdown
 from aiogram.exceptions import TelegramBadRequest
 
@@ -186,11 +193,16 @@ async def common_message_handler(
         state_data = await state.get_data()
         pending_custom = state_data.get("suno_style_pending")
         if pending_custom and text:
-            # Treat this message as custom style input
+            # Treat this message as custom style input and return to Suno main menu
             await state.update_data(suno_style=text, suno_style_pending=False)
+            data = await state.get_data()
             await message.answer(
-                f"🎼 Стиль выбран: *{text}*\n\nДобавить вокал?",
-                reply_markup=suno_vocals_keyboard(),
+                f"🎼 Стиль выбран: *{text}*",
+                reply_markup=suno_main_settings_keyboard(
+                    data.get("suno_style"),
+                    data.get("suno_instrumental"),
+                    data.get("suno_custom_mode"),
+                ),
             )
 
     elif mode == BotModeEnum.veo_video:
@@ -241,7 +253,7 @@ async def common_message_handler(
         style = state_data.get("suno_style")
         if not style:
             await state.update_data(suno_style_pending=True)
-            await message.answer("🧑‍🎤 Напиши стиль (жанры/описание), например: 'Быстрый эпичный рок'")
+            await message.answer("🧑‍🎤 Напиши свой стиль (жанры/описание), например: 'Pop, Dreamy, 90 BPM'")
             return
         instrumental = state_data.get("suno_instrumental")
         if instrumental is None:
