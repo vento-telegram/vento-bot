@@ -309,6 +309,10 @@ async def common_message_handler(
 
         enable_fallback = True if aspect == "16:9" else False
         watermark = None
+        # Send immediate status message before translation and API call
+        status_msg = await message.answer(
+            "🎬 Начал генерацию видео. Пришлю результат, как только он будет готов. Это может занять несколько минут."
+        )
         try:
             if prompt:
                 try:
@@ -327,17 +331,30 @@ async def common_message_handler(
                 watermark=watermark,
             )
         except InsufficientBalanceError:
-            await message.answer(
-                "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите стандартное качество.",
-                reply_markup=InlineKeyboardMarkup(
-                    inline_keyboard=[
-                        [
-                            InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
-                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
+            try:
+                await status_msg.edit_text(
+                    "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите стандартное качество.",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
+                                InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
+                            ]
                         ]
-                    ]
-                ),
-            )
+                    ),
+                )
+            except Exception:
+                await message.answer(
+                    "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите стандартное качество.",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
+                                InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
+                            ]
+                        ]
+                    ),
+                )
             return
 
 
