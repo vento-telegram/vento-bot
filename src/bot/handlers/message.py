@@ -310,7 +310,6 @@ async def common_message_handler(
         enable_fallback = True if aspect == "16:9" else False
         watermark = None
         try:
-            # Conservative translation step via gpt-5-mini
             if prompt:
                 try:
                     prompt = await openai_service.translate_for_veo(prompt)
