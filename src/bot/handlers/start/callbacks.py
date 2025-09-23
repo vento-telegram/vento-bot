@@ -97,7 +97,9 @@ async def veo_set_aspect(
     state: FSMContext,
     settings: AbcSettingsService = Provide[Container.settings_service],
 ):
-    aspect = (call.data or "").split(":")[-1]
+    raw = call.data or ""
+    prefix = "veo:aspect:"
+    aspect = raw[len(prefix):] if raw.startswith(prefix) else raw.split(":", maxsplit=2)[-1]
     if aspect not in {"16:9", "9:16"}:
         await call.answer("Некорректное соотношение", show_alert=True)
         return
@@ -241,7 +243,7 @@ async def suno_open_style(
     await call.answer()
     try:
         await call.message.edit_text(
-            "Выбери стиль:",
+            "💥 Выбери стиль:",
             reply_markup=suno_styles_keyboard(None),
         )
     except Exception:
@@ -257,7 +259,7 @@ async def suno_open_vocals(
     await call.answer()
     try:
         await call.message.edit_text(
-            "Добавить вокал?",
+            "🎤 Добавить вокал?",
             reply_markup=suno_vocals_keyboard(),
         )
     except Exception:
@@ -273,7 +275,7 @@ async def suno_open_input(
     await call.answer()
     try:
         await call.message.edit_text(
-            "Выбери режим ввода:",
+            "💭 Выбери режим ввода:",
             reply_markup=suno_input_mode_keyboard(),
         )
     except Exception:
