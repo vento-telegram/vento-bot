@@ -189,7 +189,13 @@ async def suno_select_style(
     await state.update_data(suno_style=label, suno_style_pending=False)
     await call.answer(f"Стиль: {label}")
     data = await state.get_data()
-    await call.message.edit_reply_markup(reply_markup=suno_main_settings_keyboard(label, data.get('suno_instrumental'), data.get('suno_custom_mode')))
+    try:
+        await call.message.edit_text(
+            "🎵 Suno Music\n\nВыберите настройки (стиль, вокал, режим ввода) и отправьте промпт.",
+            reply_markup=suno_main_settings_keyboard(label, data.get('suno_instrumental'), data.get('suno_custom_mode')),
+        )
+    except Exception:
+        await call.message.edit_reply_markup(reply_markup=suno_main_settings_keyboard(label, data.get('suno_instrumental'), data.get('suno_custom_mode')))
 
 @router.callback_query(F.data == "suno:change_style")
 @inject
@@ -301,7 +307,13 @@ async def suno_set_vocals(
         return
     # After choosing vocals, ask if user wants to provide lyrics or just a description
     data = await state.get_data()
-    await call.message.edit_reply_markup(reply_markup=suno_main_settings_keyboard(data.get('suno_style'), data.get('suno_instrumental'), data.get('suno_custom_mode')))
+    try:
+        await call.message.edit_text(
+            "🎵 Suno Music\n\nВыберите настройки (стиль, вокал, режим ввода) и отправьте промпт.",
+            reply_markup=suno_main_settings_keyboard(data.get('suno_style'), data.get('suno_instrumental'), data.get('suno_custom_mode')),
+        )
+    except Exception:
+        await call.message.edit_reply_markup(reply_markup=suno_main_settings_keyboard(data.get('suno_style'), data.get('suno_instrumental'), data.get('suno_custom_mode')))
 
 
 @router.callback_query(F.data.startswith("suno:im:"))
