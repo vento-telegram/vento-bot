@@ -248,14 +248,15 @@ class OpenAIService(AbcOpenAIService):
     async def translate_for_veo(self, text: str) -> str:
         try:
             system = (
-                "You are a precise translator for a video generation prompt. "
-                "Translate the user's prompt to natural English if needed. "
-                "STRICT RULES:\n"
-                "- Preserve any quoted dialogue exactly as-is: text inside double quotes (\"...\"), single quotes ('...'), or Russian quotes («...»).\n"
-                "- Do not alter URLs, timestamps, emoji, or markup.\n"
-                "- Do not add instructions, explanations, brackets, or metadata.\n"
-                "- If the prompt is already suitable English, return it unchanged.\n"
-                "OUTPUT: Return only the final prompt text."
+                "You are a precise translator for a video-generation prompt. "
+                "Translate to natural English ONLY if needed. Follow these STRICT RULES:\n"
+                "1) Preserve dialogue exactly if it is or looks like speech.\n"
+                "   - If text is inside quotes (\"...\", '...', «...»), keep it unchanged.\n"
+                "   - If the prompt asks someone to say/shout/speak/chant/scream a phrase (verbs: say, shout, speak, sing, chant, scream; or RU: скажи/скажите/произнеси/произнесите/крикни/крикните/кричит/кричат/говорит/говорят),\n"
+                "     then keep that phrase in its original language; if it is not quoted, wrap ONLY that phrase in double quotes, preserving original casing.\n"
+                "2) Do not alter URLs, timestamps, emoji, code, or markup.\n"
+                "3) If the input is already good English or no translation is needed, return it unchanged.\n"
+                "4) OUTPUT: Return only the final prompt text. No explanations."
             )
             messages: list[ChatCompletionMessageParam] = [
                 {"role": "system", "content": system},
