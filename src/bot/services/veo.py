@@ -68,11 +68,15 @@ class VeoService(AbcVeoService):
             start_url = f"{base_url}/generate"
             async with session.post(start_url, json={'params': params}) as resp:
                 data = await resp.json()
-                if resp.status != 200 or 'task_id' not in data:
+                if (resp.status < 200 or resp.status >= 300):
                     msg = data.get('message') or data.get('error') or 'Ошибка запуска генерации'
                     await message.answer(f"☹️ Не удалось запустить генерацию видео: {msg}")
                     return
-                task_id = data['task_id']
+                task_id = data.get('task_id') or (data.get('data') or {}).get('task_id') or data.get('id')
+                if not task_id:
+                    msg = data.get('message') or data.get('error') or 'Не удалось получить идентификатор задачи'
+                    await message.answer(f"☹️ Не удалось запустить генерацию видео: {msg}")
+                    return
 
             # Charge immediately after task creation (same behavior as with KIE)
             await self._charge(user.id, request_price, task_id, prompt, aspect_ratio, quality, image_urls)
@@ -109,7 +113,7 @@ class VeoService(AbcVeoService):
                 }
                 async with session.post(start_url, json=ratio_payload) as r_resp:
                     r_data = await r_resp.json()
-                    if r_resp.status == 200 and 'task_id' in r_data:
+                    if (200 <= r_resp.status < 300) and 'task_id' in r_data:
                         r_task_id = r_data['task_id']
                         r_poll_url = f"{base_url}/tasks/{r_task_id}"
                         while True:
