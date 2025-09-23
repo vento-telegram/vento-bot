@@ -217,12 +217,14 @@ async def common_message_handler(
         settings_complete = bool(style) and (instrumental is not None) and (not need_input_mode or (custom_mode is not None))
 
         if not settings_complete:
+            # Ensure we are not expecting free-text style right now
+            try:
+                await state.update_data(suno_style_pending=False)
+            except Exception:
+                pass
             # Block prompt until settings are filled
             await message.answer(
-                "🎵 Выберите настройки генерации музыкальной композиции (стиль, вокал, режим ввода).\n\n"
-                "⏩ Когда настройки выбраны, просто отправьте запрос с описанием нужной композиции или текстом.\n\n"
-                "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
-                reply_markup=suno_main_settings_keyboard(style, instrumental, custom_mode),
+                "✋ Сначала укажи необходимые тебе настройки с помощью кнопок в сообщении выше, затем отправь запрос с описанием нужной композиции или её текстом.",
             )
             return
 
