@@ -52,7 +52,7 @@ class VeoService(AbcVeoService):
             "model": "veo3" if quality == 'improved' else "veo3_fast",
             "aspectRatio": aspect_ratio,
             "enableFallback": bool(enable_fallback),
-            "enableTranslation": True,
+            "enableTranslation": False,
             "callBackUrl": self._build_callback_url(user.telegram_id),
         }
         if image_urls:
@@ -77,7 +77,7 @@ class VeoService(AbcVeoService):
 
         await self._charge(user.id, request_price, task_id, prompt, aspect_ratio, quality, image_urls)
         await message.answer(
-            "🎬 Отправил запрос в Veo. Пришлю видео, как только оно будет готово."
+            "🎬 Начал генерацию видео. Пришлю результат, как только он будет готов. Это может занять несколько минут."
         )
 
     async def _charge(self, user_id: int, price: int, task_id: str | None, prompt: str, aspect_ratio: str, quality: str, image_urls: list[str] | None) -> None:
