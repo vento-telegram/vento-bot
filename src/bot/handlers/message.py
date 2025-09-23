@@ -268,8 +268,13 @@ async def common_message_handler(
                 image_urls.append(token)
                 break
         prompt = text
-        aspect = state_data.get("veo_aspect", "16:9")
-        quality = state_data.get("veo_quality", "standard")
+        aspect = state_data.get("veo_aspect")
+        quality = state_data.get("veo_quality")
+        if not aspect or not quality:
+            await message.answer(
+                "✋ Сначала выбери формат и качество в сообщении выше, затем отправь запрос.",
+            )
+            return
         enable_fallback = True if aspect == "16:9" else False
         watermark = None
         try:

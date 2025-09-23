@@ -40,8 +40,8 @@ async def set_mode_veo_video(
     state: FSMContext,
     settings: AbcSettingsService = Provide[Container.settings_service],
 ):
-    await state.update_data(mode=BotModeEnum.veo_video, veo_aspect="16:9", veo_quality="standard", veo_images=None)
-    await call.answer("Режим Veo Video активирован")
+    await state.update_data(mode=BotModeEnum.veo_video, veo_aspect=None, veo_quality=None, veo_images=None)
+    await call.answer("Режим Veo 3 активирован")
     try:
         await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.veo_video))
     except Exception:
@@ -49,11 +49,10 @@ async def set_mode_veo_video(
     std = int(await settings.get_value('veo_standard_price'))
     imp = int(await settings.get_value('veo_improved_price'))
     text = (
-        "🎬 Генерация видео Veo\n\n"
-        "Выберите настройки и отправьте промпт для генерации.\n\n"
-        "• Качество влияет на цену.\n"
-        "• Поддерживаются форматы 16:9 и 9:16.\n"
-        "• Только английские промпты."
+        "🎬 Выбери настройки генерируемого видео (формат и качество).\n"
+        "отправьте промпт для генерации.\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
     await call.message.answer(text, reply_markup=veo_main_settings_keyboard("16:9", "standard", std, imp))
 @router.callback_query(F.data.startswith("veo:quality:"))
@@ -72,18 +71,24 @@ async def veo_set_quality(
     imp = int(await settings.get_value('veo_improved_price'))
     await call.answer("Качество выбрано")
     data = await state.get_data()
-    aspect = data.get('veo_aspect', '16:9')
+    aspect = data.get('veo_aspect', None)
     try:
         await call.message.edit_reply_markup(reply_markup=veo_main_settings_keyboard(aspect, q, std, imp))
     except Exception:
         try:
             await call.message.edit_text(
-                "🎬 Генерация видео Veo\n\nВыберите настройки и отправьте промпт для генерации.",
+                "🎬 Выбери настройки генерируемого видео (формат и качество).\n"
+                "отправьте промпт для генерации.\n\n"
+                "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием.\n\n"
+                "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
                 reply_markup=veo_main_settings_keyboard(aspect, q, std, imp),
             )
         except Exception:
             await call.message.answer(
-                "🎬 Генерация видео Veo\n\nВыберите настройки и отправьте промпт для генерации.",
+                "🎬 Выбери настройки генерируемого видео (формат и качество).\n"
+                "отправьте промпт для генерации.\n\n"
+                "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием.\n\n"
+                "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
                 reply_markup=veo_main_settings_keyboard(aspect, q, std, imp),
             )
 
@@ -134,7 +139,7 @@ async def veo_open_aspect(
     state: FSMContext,
 ):
     data = await state.get_data()
-    aspect = data.get('veo_aspect', '16:9')
+    aspect = data.get('veo_aspect', None)
     await call.answer()
     await call.message.edit_reply_markup(reply_markup=veo_aspect_keyboard(aspect))
 
@@ -148,7 +153,7 @@ async def veo_back_to_main(
 ):
     data = await state.get_data()
     q = data.get('veo_quality', 'standard')
-    aspect = data.get('veo_aspect', '16:9')
+    aspect = data.get('veo_aspect', None)
     std = int(await settings.get_value('veo_standard_price'))
     imp = int(await settings.get_value('veo_improved_price'))
     await call.answer()
@@ -758,7 +763,7 @@ async def goto_switch(
         "Создание и редактирование изображений.\n\n"
         f"🎵 *Suno* ({suno_price} токенов/запрос)\n"
         "Генерация музыки по стилю, описанию/тексту.\n\n"
-        f"🎬 *Veo Video* (от {veo_standard} токенов/запрос)\n"
+        f"🎬 *Veo 3* (от {veo_standard} токенов/запрос)\n"
         "Генерация видео по тексту или картинке.\n\n"
         "👇 Выбери нужный ИИ:"
     )

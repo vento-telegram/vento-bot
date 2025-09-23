@@ -8,7 +8,7 @@ class BotModeEnum(StrEnum):
     gpt_image = "GPT Image"
     nano_banana = "Nano Banana"
     suno_music = "Suno"
-    veo_video = "Veo Video"
+    veo_video = "Veo 3"
 
 
 class LedgerReasonEnum(StrEnum):
