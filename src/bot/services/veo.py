@@ -129,7 +129,6 @@ class VeoService(AbcVeoService):
                                     break
                             await asyncio.sleep(10)
 
-            # Send result to user
             caption = "🎬 Вот твоё видео!\n\n✨ Cоздано с помощью [Vento](https://t.me/vento_toolbot)"
             try:
                 await message.answer_video(video_url, caption=caption)

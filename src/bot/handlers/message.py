@@ -291,7 +291,7 @@ async def common_message_handler(
             # Text-to-video path (optionally containing one image URL)
             text = (message.text or "").strip()
             if not text:
-                await message.answer("✍️ Пришли промпт на английском или фото с подписью (1 изображение)")
+                await message.answer("✍️ Пришли запрос текстом или фото с подписью (1 изображение)")
                 return
             for token in text.split():
                 if token.startswith("http://") or token.startswith("https://"):
