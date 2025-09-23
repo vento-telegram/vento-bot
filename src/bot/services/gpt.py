@@ -245,34 +245,6 @@ class OpenAIService(AbcOpenAIService):
             "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
         )
 
-    async def translate_for_veo(self, text: str) -> str:
-        try:
-            system = (
-                "You are a precise translator for a video-generation prompt. "
-                "Translate to natural English ONLY if needed. Follow these STRICT RULES:\n"
-                "1) Preserve dialogue exactly if it is or looks like speech.\n"
-                "   - If text is inside quotes (\"...\", '...', «...»), keep it unchanged.\n"
-                "   - If the prompt asks someone to say/shout/speak/chant/scream a phrase (verbs: say, shout, speak, sing, chant, scream; or RU: скажи/скажите/произнеси/произнесите/крикни/крикните/кричит/кричат/говорит/говорят),\n"
-                "     then keep that phrase in its original language; if it is not quoted, wrap ONLY that phrase in double quotes, preserving original casing.\n"
-                "2) Do not alter URLs, timestamps, emoji, code, or markup.\n"
-                "3) If the input is already good English or no translation is needed, return it unchanged.\n"
-                "4) OUTPUT: Return only the final prompt text. No explanations."
-            )
-            messages: list[ChatCompletionMessageParam] = [
-                {"role": "system", "content": system},
-                {"role": "user", "content": text},
-            ]
-            response = await self._client.chat.completions.create(
-                model="gpt-5-mini",
-                messages=messages,
-            )
-            out = (response.choices[0].message.content or "").strip()
-            # Fallback to original if model returns empty
-            return out or text
-        except Exception:
-            logger.exception("translate_for_veo failed; returning original text")
-            return text
-
     async def _submit_nano_task(self, user: UserEntity, image_urls: list[str], prompt_text: str) -> None:
         model_name = "google/nano-banana-edit" if image_urls else "google/nano-banana"
 

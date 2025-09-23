@@ -309,16 +309,7 @@ async def common_message_handler(
 
         enable_fallback = True if aspect == "16:9" else False
         watermark = None
-        # Send immediate status message before translation and API call
-        status_msg = await message.answer(
-            "🎬 Начал генерацию видео. Пришлю результат, как только он будет готов. Это может занять несколько минут."
-        )
         try:
-            if prompt:
-                try:
-                    prompt = await openai_service.translate_for_veo(prompt)
-                except Exception:
-                    pass
             await veo_service.submit_veo_request(
                 message,
                 state,
@@ -331,30 +322,17 @@ async def common_message_handler(
                 watermark=watermark,
             )
         except InsufficientBalanceError:
-            try:
-                await status_msg.edit_text(
-                    "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите стандартное качество.",
-                    reply_markup=InlineKeyboardMarkup(
-                        inline_keyboard=[
-                            [
-                                InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
-                                InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
-                            ]
+            await message.answer(
+                "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите стандартное качество.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
+                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
                         ]
-                    ),
-                )
-            except Exception:
-                await message.answer(
-                    "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите стандартное качество.",
-                    reply_markup=InlineKeyboardMarkup(
-                        inline_keyboard=[
-                            [
-                                InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
-                                InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
-                            ]
-                        ]
-                    ),
-                )
+                    ]
+                ),
+            )
             return
 
 

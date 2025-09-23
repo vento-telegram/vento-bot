@@ -76,6 +76,9 @@ class VeoService(AbcVeoService):
                 task_id = ((result or {}).get("data") or {}).get("taskId")
 
         await self._charge(user.id, request_price, task_id, prompt, aspect_ratio, quality, image_urls)
+        await message.answer(
+            "🎬 Начал генерацию видео. Пришлю результат, как только он будет готов. Это может занять несколько минут."
+        )
 
     async def _charge(self, user_id: int, price: int, task_id: str | None, prompt: str, aspect_ratio: str, quality: str, image_urls: list[str] | None) -> None:
         async with self._uow:
