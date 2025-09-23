@@ -197,7 +197,9 @@ async def common_message_handler(
             await state.update_data(suno_style=text, suno_style_pending=False)
             data = await state.get_data()
             await message.answer(
-                "🎵 Suno Music\n\nВыберите настройки (стиль, вокал, режим ввода) и отправьте промпт.",
+                "🎵 Выберите настройки генерации музыкальной композиции (стиль, вокал, режим ввода).\n\n"
+                "⏩ Когда настройки выбраны, просто отправьте запрос с описанием нужной композиции или текстом.\n\n"
+                "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
                 reply_markup=suno_main_settings_keyboard(
                     data.get("suno_style"),
                     data.get("suno_instrumental"),
@@ -217,7 +219,9 @@ async def common_message_handler(
         if not settings_complete:
             # Block prompt until settings are filled
             await message.answer(
-                "🎵 Suno Music\n\nВыберите настройки (стиль, вокал, режим ввода) и отправьте промпт.",
+                "🎵 Выберите настройки генерации музыкальной композиции (стиль, вокал, режим ввода).\n\n"
+                "⏩ Когда настройки выбраны, просто отправьте запрос с описанием нужной композиции или текстом.\n\n"
+                "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
                 reply_markup=suno_main_settings_keyboard(style, instrumental, custom_mode),
             )
             return

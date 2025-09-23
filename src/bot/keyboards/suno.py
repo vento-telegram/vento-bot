@@ -61,7 +61,7 @@ def suno_input_mode_keyboard() -> InlineKeyboardMarkup:
 
 
 def suno_main_settings_keyboard(style_label: str | None, instrumental: bool | None, custom_mode: bool | None) -> InlineKeyboardMarkup:
-    style_text = style_label if style_label else "Не выбран"
+    style_text = style_label if style_label else "—"
     vocals_text = "Да" if instrumental is False else ("Нет" if instrumental is True else "—")
     mode_text = "Свой текст" if custom_mode else ("Описание" if custom_mode is False else "—")
     rows: list[list[InlineKeyboardButton]] = []

@@ -191,7 +191,9 @@ async def suno_select_style(
     data = await state.get_data()
     try:
         await call.message.edit_text(
-            "🎵 Suno Music\n\nВыберите настройки (стиль, вокал, режим ввода) и отправьте промпт.",
+            "🎵 Выберите настройки генерации музыкальной композиции (стиль, вокал, режим ввода).\n\n"
+            "⏩ Когда настройки выбраны, просто отправьте запрос с описанием нужной композиции или текстом.\n\n"
+            "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
             reply_markup=suno_main_settings_keyboard(label, data.get('suno_instrumental'), data.get('suno_custom_mode')),
         )
     except Exception:
@@ -268,7 +270,9 @@ async def suno_back_to_main(
     await call.answer()
     try:
         await call.message.edit_text(
-            "🎵 Suno Music\n\nВыберите настройки (стиль, вокал, режим ввода) и отправьте промпт.",
+            "🎵 Выберите настройки генерации музыкальной композиции (стиль, вокал, режим ввода).\n\n"
+            "⏩ Когда настройки выбраны, просто отправьте запрос с описанием нужной композиции или текстом.\n\n"
+            "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
             reply_markup=suno_main_settings_keyboard(
                 data.get('suno_style'),
                 data.get('suno_instrumental'),
@@ -309,7 +313,9 @@ async def suno_set_vocals(
     data = await state.get_data()
     try:
         await call.message.edit_text(
-            "🎵 Suno Music\n\nВыберите настройки (стиль, вокал, режим ввода) и отправьте промпт.",
+            "🎵 Выберите настройки генерации музыкальной композиции (стиль, вокал, режим ввода).\n\n"
+            "⏩ Когда настройки выбраны, просто отправьте запрос с описанием нужной композиции или текстом.\n\n"
+            "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
             reply_markup=suno_main_settings_keyboard(data.get('suno_style'), data.get('suno_instrumental'), data.get('suno_custom_mode')),
         )
     except Exception:
@@ -430,8 +436,9 @@ async def set_mode_suno_music(
     except Exception:
         pass
     text = (
-        "🎵 Suno Music\n\n"
-        "Выберите настройки (стиль, вокал, режим ввода) и отправьте промпт."
+        "🎵 Выберите настройки генерации музыкальной композиции (стиль, вокал, режим ввода).\n\n"
+        "⏩ Когда настройки выбраны, просто отправьте запрос с описанием нужной композиции или текстом.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
     await call.message.answer(text, reply_markup=suno_main_settings_keyboard(None, None, None))
 
