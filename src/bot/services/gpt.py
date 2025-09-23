@@ -55,13 +55,6 @@ class OpenAIService(AbcOpenAIService):
         await state.update_data(history=history[-10:])
 
         meta_json = self._make_meta(gpt_request, gpt_response)
-        try:
-            logger.debug(
-                "GPT ledger meta JSON (before save): %s",
-                (meta_json[:800] + "…") if isinstance(meta_json, str) and len(meta_json) > 800 else meta_json,
-            )
-        except Exception:
-            pass
 
         await self._process_tokens_transaction(
             user_id=user.id,
@@ -360,13 +353,6 @@ class OpenAIService(AbcOpenAIService):
 
     @staticmethod
     def _make_meta(request: ChatCompletionUserMessageParam, response: ChatCompletionAssistantMessageParam) -> str:
-        try:
-            logger.debug(
-                "GPT _make_meta types: request=%s, response=%s",
-                type(request), type(response)
-            )
-        except Exception:
-            pass
         def _as_dict(obj: Any) -> dict:
             if isinstance(obj, dict):
                 return obj
@@ -375,53 +361,21 @@ class OpenAIService(AbcOpenAIService):
                 role = getattr(obj, "role", None)
                 content = getattr(obj, "content", None)
                 if role is not None or content is not None:
-                    data = {"role": role, "content": content}
-                    try:
-                        logger.debug(
-                            "GPT _as_dict via getattr: role=%r, content_type=%s",
-                            role, type(content)
-                        )
-                    except Exception:
-                        pass
-                    return data
+                    return {"role": role, "content": content}
             except Exception:
                 pass
             if hasattr(obj, "model_dump"):
                 try:
-                    data = obj.model_dump()
-                    try:
-                        logger.debug(
-                            "GPT _as_dict via model_dump: keys=%s",
-                            list(data.keys()) if isinstance(data, dict) else None
-                        )
-                    except Exception:
-                        pass
-                    return data
+                    return obj.model_dump()
                 except Exception:
                     pass
             if hasattr(obj, "to_dict"):
                 try:
-                    data = obj.to_dict()
-                    try:
-                        logger.debug(
-                            "GPT _as_dict via to_dict: keys=%s",
-                            list(data.keys()) if isinstance(data, dict) else None
-                        )
-                    except Exception:
-                        pass
-                    return data
+                    return obj.to_dict()
                 except Exception:
                     pass
             try:
-                data = dict(obj)
-                try:
-                    logger.debug(
-                        "GPT _as_dict via dict(): keys=%s",
-                        list(data.keys()) if isinstance(data, dict) else None
-                    )
-                except Exception:
-                    pass
-                return data
+                return dict(obj)
             except Exception:
                 return {}
 
@@ -466,13 +420,6 @@ class OpenAIService(AbcOpenAIService):
             if not role:
                 # Best-effort fallback based on response type
                 role = "assistant" if isinstance(msg, dict) and data.get("content") and data is not None else None
-            try:
-                logger.debug(
-                    "GPT _extract: role=%r, text_len=%d, images=%d, content_type=%s",
-                    role, len(text or ""), len(images), type(content)
-                )
-            except Exception:
-                pass
             return {"role": role, "text": text or None, "images": images or None}
 
         meta = {
@@ -488,13 +435,6 @@ class OpenAIService(AbcOpenAIService):
             # For scalars (str, int, bool, etc.), return as-is
             return obj
         meta = _prune(meta)
-        try:
-            logger.debug(
-                "GPT ledger meta (pruned dict): %s",
-                json.dumps(meta, ensure_ascii=False)[:800]
-            )
-        except Exception:
-            pass
         return json.dumps(meta, ensure_ascii=False)
 
     async def _transcribe_audio(self, url: str) -> str:

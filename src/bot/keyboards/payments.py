@@ -5,7 +5,6 @@ def payments_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🇷🇺 SberPay | T‑Pay | ЮMoney", callback_data="pay:ru")],
         [InlineKeyboardButton(text="⭐ Звезды", callback_data="pay:stars")],
-        [InlineKeyboardButton(text="🪙 Крипта", callback_data="pay:crypto")],
         [InlineKeyboardButton(text="🔙 Назад", callback_data="goto:account")],
     ])
 

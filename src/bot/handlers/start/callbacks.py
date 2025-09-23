@@ -621,46 +621,6 @@ async def pay_stars(
         reply_markup=await stars_bundles_keyboard(settings),
     )
 
-@router.callback_query(F.data.startswith("pay:stars:"))
-@inject
-async def pay_stars_bundle_selected(
-    call: CallbackQuery,
-    state: FSMContext,
-    settings: AbcSettingsService = Provide[Container.settings_service],
-):
-    # Format: pay:stars:{tokens}:{price_stars}
-    await call.answer()
-    parts = (call.data or "").split(":", maxsplit=3)
-    if len(parts) < 4:
-        await call.answer("Некорректный пакет", show_alert=True)
-        return
-    try:
-        tokens = int(parts[2])
-        stars = int(parts[3])
-    except Exception:
-        await call.answer("Некорректные данные", show_alert=True)
-        return
-
-    # Build invoice
-    from aiogram.types import LabeledPrice
-    try:
-        await call.bot.send_invoice(
-            chat_id=call.message.chat.id,
-            title="Покупка токенов",
-            description=f"{tokens} токенов",
-            payload=f"stars:{tokens}:{stars}",
-            provider_token="XTR",
-            currency="XTR",
-            prices=[LabeledPrice(label=f"{tokens} токенов", amount=stars)],
-        )
-    except Exception:
-        await call.message.edit_text(
-            text=(
-                "☹️ Не удалось создать счёт. Попробуй ещё раз позже."),
-            reply_markup=await stars_bundles_keyboard(settings),
-        )
-
-
 @router.pre_checkout_query()
 @inject
 async def stars_pre_checkout(
@@ -713,20 +673,6 @@ async def stars_successful_payment(
                 "✅ Оплата прошла. Начисление будет обработано автоматически в ближайшее время."),
             reply_markup=start_keyboard(BotModeEnum.passive),
         )
-
-
-@router.callback_query(F.data == "pay:crypto")
-@inject
-async def pay_crypto(
-    call: CallbackQuery,
-):
-    await call.answer()
-    await call.message.edit_text(
-        text=(
-            "🪙 *Крипто‑оплата*\n\n"
-            "Скоро добавим крипто‑платёж: покажем адрес и сумму, зачисление — автоматически."),
-        reply_markup=payments_back_keyboard(),
-    )
 
 
 @router.callback_query(F.data == "goto:start")
