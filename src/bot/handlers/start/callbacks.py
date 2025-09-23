@@ -93,6 +93,7 @@ async def veo_set_quality(
 async def veo_set_aspect(
     call: CallbackQuery,
     state: FSMContext,
+    settings: AbcSettingsService = Provide[Container.settings_service],
 ):
     aspect = (call.data or "").split(":")[-1]
     if aspect not in {"16:9", "9:16"}:
@@ -167,7 +168,7 @@ async def suno_select_style(
     if style_slug == "custom":
         await state.update_data(suno_style=None, suno_style_pending=True)
         await call.message.edit_text(
-            "🧑‍🎤 Напиши свой стиль (жанры/описание), например: 'Pop, Dreamy, 90 BPM'",
+            "🎤 Опиши нужный стиль (жанры), например: 'Жесткий дабстеп, 90 bpm'",
             reply_markup=suno_back_keyboard()
         )
         await call.answer()
@@ -208,7 +209,7 @@ async def suno_change_style(
     await state.update_data(suno_style=None, suno_style_pending=True)
     await call.answer()
     await call.message.edit_text(
-        "🧑‍🎤 Напиши стиль (жанры/описание), например: 'Быстрый эпичный рок'",
+        "🎤 Опиши нужный стиль (жанры), например: 'Жесткий дабстеп, 90 bpm'",
     )
 
 
@@ -744,7 +745,6 @@ async def goto_switch(
     nano_price = await settings.get_value(settings_models_mapper[BotModeEnum.nano_banana])
     suno_price = await settings.get_value(settings_models_mapper[BotModeEnum.suno_music])
     veo_standard = await settings.get_value('veo_standard_price')
-    veo_improved = await settings.get_value('veo_improved_price')
 
     text = (
         "👾 *Выбор ИИ*\n\n"
@@ -757,8 +757,8 @@ async def goto_switch(
         f"🍌 *Nano Banana* ({nano_price} токенов/запрос)\n"
         "Создание и редактирование изображений.\n\n"
         f"🎵 *Suno* ({suno_price} токенов/запрос)\n"
-        "Генерация музыки по стилю и описанию.\n\n"
-        f"🎬 *Veo Video* (Стандарт: {veo_standard} • Улучш.: {veo_improved} токенов/запрос)\n"
+        "Генерация музыки по стилю, описанию/тексту.\n\n"
+        f"🎬 *Veo Video* (от {veo_standard} токенов/запрос)\n"
         "Генерация видео по тексту или картинке.\n\n"
         "👇 Выбери нужный ИИ:"
     )
