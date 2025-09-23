@@ -431,7 +431,7 @@ async def set_mode_suno_music(
     call: CallbackQuery,
     state: FSMContext,
 ):
-    await state.update_data(mode=BotModeEnum.suno_music, suno_style=None, suno_style_pending=True, suno_instrumental=None, suno_custom_mode=None, history=[])
+    await state.update_data(mode=BotModeEnum.suno_music, suno_style=None, suno_style_pending=False, suno_instrumental=None, suno_custom_mode=None, history=[])
     await call.answer("Режим Suno активирован")
     try:
         await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.suno_music))

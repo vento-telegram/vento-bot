@@ -233,14 +233,10 @@ async def _run(
                     await fsm.update_data(suno_style=None, suno_style_pending=True, suno_instrumental=None, suno_custom_mode=None)
                 except Exception:
                     pass
-                # Invite user to start a new Suno flow or switch AI
+                # Invite user to continue or switch AI
                 await bot.send_message(
                     user_id,
-                    (
-                        "Хочешь ещё трек?\n\n"
-                        "🧑‍🎤 Напиши стиль (жанры/описание), например: 'Быстрый эпичный рок'.\n\n"
-                        "Или используй /start, чтобы выбрать другой ИИ."
-                    ),
+                    "🔄 Используй /start, чтобы выбрать другой ИИ или сгенерировать ещё один трек.",
                 )
             elif code == 200:
                 # Ignore non-complete stages
