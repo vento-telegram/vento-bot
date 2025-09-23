@@ -354,6 +354,14 @@ class OpenAIService(AbcOpenAIService):
         def _as_dict(obj: Any) -> dict:
             if isinstance(obj, dict):
                 return obj
+            # Try direct attribute access first (openai param types often have attributes)
+            try:
+                role = getattr(obj, "role", None)
+                content = getattr(obj, "content", None)
+                if role is not None or content is not None:
+                    return {"role": role, "content": content}
+            except Exception:
+                pass
             if hasattr(obj, "model_dump"):
                 try:
                     return obj.model_dump()
@@ -378,15 +386,34 @@ class OpenAIService(AbcOpenAIService):
                 text = content
             elif isinstance(content, list):
                 for part in content:
-                    try:
-                        part_type = part.get("type")
-                        if part_type == "text":
-                            text = part.get("text")
-                        elif part_type == "image_url":
-                            image_url = part.get("image_url").get("url")
-                            images.append(image_url)
-                    except Exception:
-                        continue
+                    # Handle dict parts and typed param objects
+                    if isinstance(part, dict):
+                        try:
+                            part_type = part.get("type")
+                            if part_type == "text":
+                                text = part.get("text")
+                            elif part_type == "image_url":
+                                img = part.get("image_url")
+                                if isinstance(img, dict):
+                                    url = img.get("url")
+                                else:
+                                    url = None
+                                if url:
+                                    images.append(url)
+                        except Exception:
+                            continue
+                    else:
+                        try:
+                            part_type = getattr(part, "type", None)
+                            if part_type == "text":
+                                text = getattr(part, "text", None)
+                            elif part_type == "image_url":
+                                img = getattr(part, "image_url", None)
+                                url = img.get("url") if isinstance(img, dict) else getattr(img, "url", None)
+                                if url:
+                                    images.append(url)
+                        except Exception:
+                            continue
             role = data.get("role")
             if not role:
                 # Best-effort fallback based on response type
