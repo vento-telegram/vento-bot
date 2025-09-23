@@ -483,6 +483,10 @@ class OpenAIService(AbcOpenAIService):
         def _prune(obj: Any):
             if isinstance(obj, dict):
                 return {k: _prune(v) for k, v in obj.items() if v is not None}
+            if isinstance(obj, list):
+                return [_prune(v) for v in obj if v is not None]
+            # For scalars (str, int, bool, etc.), return as-is
+            return obj
         meta = _prune(meta)
         try:
             logger.debug(
