@@ -67,7 +67,9 @@ def suno_main_settings_keyboard(style_label: str | None, instrumental: bool | No
     rows: list[list[InlineKeyboardButton]] = []
     rows.append([InlineKeyboardButton(text=f"Стиль: {style_text}", callback_data="suno:open:style")])
     rows.append([InlineKeyboardButton(text=f"Вокал: {vocals_text}", callback_data="suno:open:vocals")])
-    rows.append([InlineKeyboardButton(text=f"Режим ввода: {mode_text}", callback_data="suno:open:input")])
+    # Show input mode button only when vocals are enabled (instrumental is False)
+    if instrumental is False:
+        rows.append([InlineKeyboardButton(text=f"Режим ввода: {mode_text}", callback_data="suno:open:input")])
     rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:start")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 

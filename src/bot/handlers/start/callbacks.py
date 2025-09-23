@@ -211,7 +211,13 @@ async def suno_open_style(
     state: FSMContext,
 ):
     await call.answer()
-    await call.message.edit_reply_markup(reply_markup=suno_styles_keyboard(None))
+    try:
+        await call.message.edit_text(
+            "Выбери стиль:",
+            reply_markup=suno_styles_keyboard(None),
+        )
+    except Exception:
+        await call.message.edit_reply_markup(reply_markup=suno_styles_keyboard(None))
 
 
 @router.callback_query(F.data == "suno:open:vocals")
@@ -221,7 +227,13 @@ async def suno_open_vocals(
     state: FSMContext,
 ):
     await call.answer()
-    await call.message.edit_reply_markup(reply_markup=suno_vocals_keyboard())
+    try:
+        await call.message.edit_text(
+            "Добавить вокал?",
+            reply_markup=suno_vocals_keyboard(),
+        )
+    except Exception:
+        await call.message.edit_reply_markup(reply_markup=suno_vocals_keyboard())
 
 
 @router.callback_query(F.data == "suno:open:input")
@@ -231,7 +243,13 @@ async def suno_open_input(
     state: FSMContext,
 ):
     await call.answer()
-    await call.message.edit_reply_markup(reply_markup=suno_input_mode_keyboard())
+    try:
+        await call.message.edit_text(
+            "Выбери режим ввода:",
+            reply_markup=suno_input_mode_keyboard(),
+        )
+    except Exception:
+        await call.message.edit_reply_markup(reply_markup=suno_input_mode_keyboard())
 
 
 @router.callback_query(F.data == "suno:main")
