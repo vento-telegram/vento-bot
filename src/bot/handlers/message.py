@@ -28,6 +28,11 @@ logger = logging.getLogger(__name__)
 
 router = Router()
 
+
+async def _get_telegram_file_url(bot, file_id: str) -> str:
+    file = await bot.get_file(file_id)
+    return f"https://api.telegram.org/file/bot{bot.token}/{file.file_path}"
+
 @router.message()
 @inject
 async def common_message_handler(
@@ -257,24 +262,51 @@ async def common_message_handler(
             return
 
     elif mode == BotModeEnum.veo_video:
-        text = (message.text or "").strip()
         state_data = await state.get_data()
-        if not text:
-            await message.answer("✍️ Пришли промпт на английском (можно добавить 1 изображение как ссылку в тексте)")
-            return
-        image_urls: list[str] = []
-        for token in text.split():
-            if token.startswith("http://") or token.startswith("https://"):
-                image_urls.append(token)
-                break
-        prompt = text
         aspect = state_data.get("veo_aspect")
         quality = state_data.get("veo_quality")
+
+        # Collect image (photo or image document) if provided
+        image_urls: list[str] = []
+        prompt: str = ""
+
+        if message.photo:
+            # Use the largest available size
+            try:
+                url = await _get_telegram_file_url(message.bot, message.photo[-1].file_id)
+                image_urls = [url]
+            except Exception:
+                image_urls = []
+            prompt = (message.caption or "").strip()
+        elif message.document and (message.document.mime_type or "").lower().startswith("image/"):
+            try:
+                url = await _get_telegram_file_url(message.bot, message.document.file_id)
+                image_urls = [url]
+            except Exception:
+                image_urls = []
+            prompt = (message.caption or "").strip()
+        else:
+            # Text-to-video path (optionally containing one image URL)
+            text = (message.text or "").strip()
+            if not text:
+                await message.answer("✍️ Пришли промпт на английском или фото с подписью (1 изображение)")
+                return
+            for token in text.split():
+                if token.startswith("http://") or token.startswith("https://"):
+                    image_urls.append(token)
+                    break
+            prompt = text
+
+        # Default prompt for image-only messages
+        if not prompt:
+            prompt = "Animate this image into a short cinematic video with smooth motion."
+
         if not aspect or not quality:
             await message.answer(
                 "✋ Сначала выбери формат и качество в сообщении выше, затем отправь запрос.",
             )
             return
+
         enable_fallback = True if aspect == "16:9" else False
         watermark = None
         try:
