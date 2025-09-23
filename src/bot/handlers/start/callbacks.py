@@ -71,23 +71,18 @@ async def veo_set_quality(
     await call.answer("Качество выбрано")
     data = await state.get_data()
     aspect = data.get('veo_aspect', None)
+    main_text = (
+        "🎬 Выбери настройки генерируемого видео (формат и качество).\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+    )
     try:
-        await call.message.edit_reply_markup(reply_markup=veo_main_settings_keyboard(aspect, q, std, imp))
+        await call.message.edit_text(main_text, reply_markup=veo_main_settings_keyboard(aspect, q, std, imp))
     except Exception:
         try:
-            await call.message.edit_text(
-                "🎬 Выбери настройки генерируемого видео (формат и качество).\n\n"
-                "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием.\n\n"
-                "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
-                reply_markup=veo_main_settings_keyboard(aspect, q, std, imp),
-            )
+            await call.message.edit_reply_markup(reply_markup=veo_main_settings_keyboard(aspect, q, std, imp))
         except Exception:
-            await call.message.answer(
-                "🎬 Выбери настройки генерируемого видео (формат и качество).\n\n"
-                "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием.\n\n"
-                "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
-                reply_markup=veo_main_settings_keyboard(aspect, q, std, imp),
-            )
+            pass
 
 
 @router.callback_query(F.data.startswith("veo:aspect:"))
@@ -110,10 +105,18 @@ async def veo_set_aspect(
     imp = int(await settings.get_value('veo_improved_price'))
     data = await state.get_data()
     q = data.get('veo_quality')
+    main_text = (
+        "🎬 Выбери настройки генерируемого видео (формат и качество).\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+    )
     try:
-        await call.message.edit_reply_markup(reply_markup=veo_main_settings_keyboard(aspect, q, std, imp))
+        await call.message.edit_text(main_text, reply_markup=veo_main_settings_keyboard(aspect, q, std, imp))
     except Exception:
-        pass
+        try:
+            await call.message.edit_reply_markup(reply_markup=veo_main_settings_keyboard(aspect, q, std, imp))
+        except Exception:
+            pass
 
 
 @router.callback_query(F.data == "veo:open:quality")
@@ -149,7 +152,13 @@ async def veo_open_aspect(
     data = await state.get_data()
     aspect = data.get('veo_aspect', None)
     await call.answer()
-    await call.message.edit_reply_markup(reply_markup=veo_aspect_keyboard(aspect))
+    try:
+        await call.message.edit_text(
+            "📐 Выбери соотношение сторон видеоролика:",
+            reply_markup=veo_aspect_keyboard(aspect),
+        )
+    except Exception:
+        await call.message.edit_reply_markup(reply_markup=veo_aspect_keyboard(aspect))
 
 
 @router.callback_query(F.data == "veo:main")

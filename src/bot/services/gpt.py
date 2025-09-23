@@ -245,6 +245,33 @@ class OpenAIService(AbcOpenAIService):
             "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
         )
 
+    async def translate_for_veo(self, text: str) -> str:
+        try:
+            system = (
+                "You are a precise translator for a video generation prompt. "
+                "Translate the user's prompt to natural English if needed. "
+                "STRICT RULES:\n"
+                "- Preserve any quoted dialogue exactly as-is: text inside double quotes (\"...\"), single quotes ('...'), or Russian quotes («...»).\n"
+                "- Do not alter URLs, timestamps, emoji, or markup.\n"
+                "- Do not add instructions, explanations, brackets, or metadata.\n"
+                "- If the prompt is already suitable English, return it unchanged.\n"
+                "OUTPUT: Return only the final prompt text."
+            )
+            messages: list[ChatCompletionMessageParam] = [
+                {"role": "system", "content": system},
+                {"role": "user", "content": text},
+            ]
+            response = await self._client.chat.completions.create(
+                model="gpt-5-mini",
+                messages=messages,
+            )
+            out = (response.choices[0].message.content or "").strip()
+            # Fallback to original if model returns empty
+            return out or text
+        except Exception:
+            logger.exception("translate_for_veo failed; returning original text")
+            return text
+
     async def _submit_nano_task(self, user: UserEntity, image_urls: list[str], prompt_text: str) -> None:
         model_name = "google/nano-banana-edit" if image_urls else "google/nano-banana"
 
