@@ -129,7 +129,16 @@ async def veo_open_quality(
     data = await state.get_data()
     q = data.get('veo_quality', 'standard')
     await call.answer()
-    await call.message.edit_reply_markup(reply_markup=veo_quality_keyboard(std, imp, selected=q))
+    # Show quality explanation text with prices, keep buttons without prices
+    text = (
+        "💎 Выбери качество генерируемого видеоролика. От качества зависит зависит цена генерации:\n\n"
+        f"⚖️ Стандартное качество - {std} токенов/запрос\n\n"
+        f"✨ Улучшенное качество - {imp} токенов/запрос"
+    )
+    try:
+        await call.message.edit_text(text=text, reply_markup=veo_quality_keyboard(std, imp, selected=q))
+    except Exception:
+        await call.message.edit_reply_markup(reply_markup=veo_quality_keyboard(std, imp, selected=q))
 
 
 @router.callback_query(F.data == "veo:open:aspect")
@@ -157,10 +166,19 @@ async def veo_back_to_main(
     std = int(await settings.get_value('veo_standard_price'))
     imp = int(await settings.get_value('veo_improved_price'))
     await call.answer()
+    text = (
+        "🎬 Выбери настройки генерируемого видео (формат и качество).\n"
+        "отправьте промпт для генерации.\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+    )
     try:
-        await call.message.edit_reply_markup(reply_markup=veo_main_settings_keyboard(aspect, q, std, imp))
+        await call.message.edit_text(text, reply_markup=veo_main_settings_keyboard(aspect, q, std, imp))
     except Exception:
-        pass
+        try:
+            await call.message.edit_reply_markup(reply_markup=veo_main_settings_keyboard(aspect, q, std, imp))
+        except Exception:
+            pass
 @router.callback_query(F.data.startswith("suno:style:"))
 @inject
 async def suno_select_style(
