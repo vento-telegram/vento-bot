@@ -28,7 +28,7 @@ def mode_keyboard(active_mode: str | None = None) -> InlineKeyboardMarkup:
             mode_button("Nano Banana", "set_mode:nano_banana", BotModeEnum.nano_banana),
         ],
         [
-            mode_button("Suno Music", "set_mode:suno_music", BotModeEnum.suno_music),
+            mode_button("Suno", "set_mode:suno_music", BotModeEnum.suno_music),
             mode_button("Veo Video", "set_mode:veo_video", BotModeEnum.veo_video),
         ],
         [

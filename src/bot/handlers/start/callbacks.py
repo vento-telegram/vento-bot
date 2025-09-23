@@ -339,7 +339,9 @@ async def suno_input_mode_selected(
     data = await state.get_data()
     try:
         await call.message.edit_text(
-            "🎵 Suno Music\n\nВыберите настройки (стиль, вокал, режим ввода) и отправьте промпт.",
+            "🎵 Выберите настройки генерации музыкальной композиции (стиль, вокал, режим ввода).\n\n"
+            "⏩ Когда настройки выбраны, просто отправьте запрос с описанием нужной композиции или текстом.\n\n"
+            "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start",
             reply_markup=suno_main_settings_keyboard(data.get('suno_style'), data.get('suno_instrumental'), data.get('suno_custom_mode')),
         )
     except Exception:
@@ -430,7 +432,7 @@ async def set_mode_suno_music(
     state: FSMContext,
 ):
     await state.update_data(mode=BotModeEnum.suno_music, suno_style=None, suno_style_pending=True, suno_instrumental=None, suno_custom_mode=None, history=[])
-    await call.answer("Режим Suno Music активирован")
+    await call.answer("Режим Suno активирован")
     try:
         await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.suno_music))
     except Exception:
@@ -754,7 +756,7 @@ async def goto_switch(
         "Генерация картинок по описанию.\n\n"
         f"🍌 *Nano Banana* ({nano_price} токенов/запрос)\n"
         "Создание и редактирование изображений.\n\n"
-        f"🎵 *Suno Music* ({suno_price} токенов/запрос)\n"
+        f"🎵 *Suno* ({suno_price} токенов/запрос)\n"
         "Генерация музыки по стилю и описанию.\n\n"
         f"🎬 *Veo Video* (Стандарт: {veo_standard} • Улучш.: {veo_improved} токенов/запрос)\n"
         "Генерация видео по тексту или картинке.\n\n"
