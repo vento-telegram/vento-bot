@@ -53,7 +53,7 @@ async def set_mode_veo_video(
         "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
-    await call.message.answer(text, reply_markup=veo_main_settings_keyboard("16:9", "standard", std, imp))
+    await call.message.answer(text, reply_markup=veo_main_settings_keyboard(None, None, std, imp))
 @router.callback_query(F.data.startswith("veo:quality:"))
 @inject
 async def veo_set_quality(
@@ -109,7 +109,7 @@ async def veo_set_aspect(
     std = int(await settings.get_value('veo_standard_price'))
     imp = int(await settings.get_value('veo_improved_price'))
     data = await state.get_data()
-    q = data.get('veo_quality', 'standard')
+    q = data.get('veo_quality')
     try:
         await call.message.edit_reply_markup(reply_markup=veo_main_settings_keyboard(aspect, q, std, imp))
     except Exception:
@@ -126,7 +126,7 @@ async def veo_open_quality(
     std = int(await settings.get_value('veo_standard_price'))
     imp = int(await settings.get_value('veo_improved_price'))
     data = await state.get_data()
-    q = data.get('veo_quality', 'standard')
+    q = data.get('veo_quality')
     await call.answer()
     # Show quality explanation text with prices, keep buttons without prices
     text = (
@@ -160,7 +160,7 @@ async def veo_back_to_main(
     settings: AbcSettingsService = Provide[Container.settings_service],
 ):
     data = await state.get_data()
-    q = data.get('veo_quality', 'standard')
+    q = data.get('veo_quality')
     aspect = data.get('veo_aspect', None)
     std = int(await settings.get_value('veo_standard_price'))
     imp = int(await settings.get_value('veo_improved_price'))
