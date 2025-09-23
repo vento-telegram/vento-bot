@@ -70,7 +70,6 @@ def suno_main_settings_keyboard(style_label: str | None, instrumental: bool | No
     # Show input mode button only when vocals are enabled (instrumental is False)
     if instrumental is False:
         rows.append([InlineKeyboardButton(text=f"Режим ввода: {mode_text}", callback_data="suno:open:input")])
-    rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:start")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
