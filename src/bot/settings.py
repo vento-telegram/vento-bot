@@ -41,6 +41,16 @@ class KIESettings(BaseSettings):
     CALLBACK_BASE: str = "https://bukhavets.com"
 
 
+class NexusSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="NEXUS__",
+        env_file=".env",
+        extra="ignore",
+    )
+    API_KEY: str | None = None
+    BASE_URL: str = "https://nexusapi.dev"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -50,6 +60,7 @@ class Settings(BaseSettings):
     OPENAI: OpenAISettings = OpenAISettings()
     YOOKASSA: YookassaSettings = YookassaSettings()
     KIE: KIESettings = KIESettings()
+    NEXUS: NexusSettings = NexusSettings()
     WEB_PORT: int = 8080
 
 
