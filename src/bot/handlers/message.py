@@ -277,14 +277,16 @@ async def common_message_handler(
                 image_urls = [url]
             except Exception:
                 image_urls = []
-            prompt = (message.caption or "").strip()
+            _cap = (message.caption or "").strip()
+            prompt = _cap if _cap else "Animate this photo"
         elif message.document and (message.document.mime_type or "").lower().startswith("image/"):
             try:
                 url = await _get_telegram_file_url(message.bot, message.document.file_id)
                 image_urls = [url]
             except Exception:
                 image_urls = []
-            prompt = (message.caption or "").strip()
+            _cap = (message.caption or "").strip()
+            prompt = _cap if _cap else "Animate this photo"
         else:
             # Text-to-video path (optionally containing one image URL)
             text = (message.text or "").strip()
@@ -299,7 +301,7 @@ async def common_message_handler(
 
         # Default prompt for image-only messages
         if not prompt:
-            prompt = "Animate this image into a short cinematic video with smooth motion."
+            prompt = "Animate this photo"
 
         if not aspect or not quality:
             await message.answer(
