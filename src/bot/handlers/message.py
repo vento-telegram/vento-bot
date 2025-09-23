@@ -204,6 +204,51 @@ async def common_message_handler(
                     data.get("suno_custom_mode"),
                 ),
             )
+            return
+
+        # Validate settings completeness before accepting prompt
+        style = state_data.get("suno_style")
+        instrumental = state_data.get("suno_instrumental")
+        custom_mode = state_data.get("suno_custom_mode")
+
+        need_input_mode = (instrumental is False)
+        settings_complete = bool(style) and (instrumental is not None) and (not need_input_mode or (custom_mode is not None))
+
+        if not settings_complete:
+            # Block prompt until settings are filled
+            await message.answer(
+                "🎵 Suno Music\n\nВыберите настройки (стиль, вокал, режим ввода) и отправьте промпт.",
+                reply_markup=suno_main_settings_keyboard(style, instrumental, custom_mode),
+            )
+            return
+
+        if not text:
+            await message.answer("✍️ Пришли промпт — текст песни/описание для трека.", reply_markup=suno_prompt_keyboard())
+            return
+
+        try:
+            await suno_service.submit_suno_request(
+                message,
+                state,
+                user,
+                style=style,
+                prompt=text,
+                instrumental=instrumental,
+                custom_mode=bool(custom_mode),
+            )
+        except InsufficientBalanceError:
+            await message.answer(
+                "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите другую модель.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
+                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
+                        ]
+                    ]
+                ),
+            )
+            return
 
     elif mode == BotModeEnum.veo_video:
         text = (message.text or "").strip()
@@ -247,51 +292,6 @@ async def common_message_handler(
             )
             return
 
-        if not text:
-            await message.answer("✍️ Пришли промпт — текст песни/описание для трека.", reply_markup=suno_prompt_keyboard())
-            return
-        style = state_data.get("suno_style")
-        if not style:
-            await state.update_data(suno_style_pending=True)
-            await message.answer("🧑‍🎤 Напиши свой стиль (жанры/описание), например: 'Pop, Dreamy, 90 BPM'")
-            return
-        instrumental = state_data.get("suno_instrumental")
-        if instrumental is None:
-            # Ask to choose vocals before submitting
-            await message.answer(
-                "Добавить вокал?",
-                reply_markup=suno_vocals_keyboard(),
-            )
-            return
-        custom_mode = state_data.get("suno_custom_mode")
-        if custom_mode is None:
-            await message.answer(
-                "Хочешь добавить свой текст или просто описать песню?",
-                reply_markup=suno_input_mode_keyboard(),
-            )
-            return
-        try:
-            await suno_service.submit_suno_request(
-                message,
-                state,
-                user,
-                style=style,
-                prompt=text,
-                instrumental=instrumental,
-                custom_mode=bool(custom_mode),
-            )
-        except InsufficientBalanceError:
-            await message.answer(
-                "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите другую модель.",
-                reply_markup=InlineKeyboardMarkup(
-                    inline_keyboard=[
-                        [
-                            InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
-                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
-                        ]
-                    ]
-                ),
-            )
 
     elif mode == BotModeEnum.passive or not mode:
         await message.answer(

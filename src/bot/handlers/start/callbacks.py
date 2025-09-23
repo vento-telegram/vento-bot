@@ -325,19 +325,19 @@ async def suno_input_mode_selected(
     value = (call.data or "").split(":")[-1]
     if value == "custom":
         await state.update_data(suno_custom_mode=True)
-        text = "✍️ Вставь текст песни (lyrics)."
     elif value == "desc":
         await state.update_data(suno_custom_mode=False)
-        text = "✍️ Опиши песню (жанр/настроение/инструменты)."
     else:
         await call.answer("Некорректное значение", show_alert=True)
         return
     data = await state.get_data()
-    await call.message.edit_reply_markup(reply_markup=suno_main_settings_keyboard(data.get('suno_style'), data.get('suno_instrumental'), data.get('suno_custom_mode')))
     try:
-        await call.message.answer(text)
+        await call.message.edit_text(
+            "🎵 Suno Music\n\nВыберите настройки (стиль, вокал, режим ввода) и отправьте промпт.",
+            reply_markup=suno_main_settings_keyboard(data.get('suno_style'), data.get('suno_instrumental'), data.get('suno_custom_mode')),
+        )
     except Exception:
-        pass
+        await call.message.edit_reply_markup(reply_markup=suno_main_settings_keyboard(data.get('suno_style'), data.get('suno_instrumental'), data.get('suno_custom_mode')))
 
 
 @router.callback_query(F.data == "set_mode:gpt")
