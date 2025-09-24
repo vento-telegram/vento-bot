@@ -710,10 +710,9 @@ async def goto_start(
         text += "\n"
 
     text += "👇 Что хочешь сделать?"
-    user, _ = await service.is_user_new(call.from_user)
     await call.message.edit_text(
         text=text,
-        reply_markup=start_keyboard(current_mode, is_admin=bool(user.is_admin)),
+        reply_markup=start_keyboard(current_mode),
     )
 
 @router.callback_query(F.data == "goto:switch")

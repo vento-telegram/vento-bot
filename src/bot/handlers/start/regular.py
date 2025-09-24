@@ -60,5 +60,5 @@ async def start_handler(
 
     await message.answer(
         text=text,
-        reply_markup=start_keyboard(current_mode, is_admin=bool(user.is_admin))
+        reply_markup=start_keyboard(current_mode)
     )
