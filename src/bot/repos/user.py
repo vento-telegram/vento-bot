@@ -68,14 +68,3 @@ class UserRepo(AbcUserRepo, BaseRepo):
         res = await self.session.scalars(stmt)
         models = list(res.all())
         return [self.map_model_to_entity(m) for m in models]
-
-    async def set_blocked_by_id(self, user_id: int, is_blocked: bool) -> UserEntity | None:
-        stmt = (
-            update(UserOrm)
-            .where(UserOrm.id == user_id)
-            .values(is_blocked=is_blocked)
-            .returning(UserOrm)
-        )
-        result = await self.session.execute(stmt)
-        user = result.scalar_one_or_none()
-        return self.map_model_to_entity(user) if user else None

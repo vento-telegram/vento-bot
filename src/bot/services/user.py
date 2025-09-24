@@ -80,7 +80,3 @@ class UserService(AbcUserService):
                 if updated:
                     updated_count += 1
         return updated_count
-
-    async def block_user_by_id(self, user_id: int, blocked: bool) -> UserEntity | None:
-        async with self._uow:
-            return await self._uow.user.set_blocked_by_id(user_id, blocked)

@@ -1,4 +1,4 @@
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, update
 
 from bot.database.models import SettingsOrm
 from bot.entities.settings import SettingsEntity
@@ -22,13 +22,15 @@ class SettingsRepo(AbcSettingsRepo, BaseRepo):
 
     async def list_all(self) -> dict[str, str]:
         stmt = select(SettingsOrm)
-        res = await self.session.scalars(stmt)
-        items = res.all()
-        return {i.key: i.value for i in items}
+        result = await self.session.execute(stmt)
+        rows = result.scalars().all()
+        return {row.key: row.value for row in rows}
 
     async def set_value(self, key: str, value: str) -> None:
         existing = await self.session.scalar(select(SettingsOrm).filter_by(key=key).limit(1))
         if existing:
-            existing.value = str(value)
+            await self.session.execute(
+                update(SettingsOrm).where(SettingsOrm.id == existing.id).values(value=str(value))
+            )
         else:
             await self.session.execute(insert(SettingsOrm).values(key=key, value=str(value)))

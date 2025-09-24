@@ -35,7 +35,3 @@ class AbcUserService(ABC):
     @abstractmethod
     async def daily_min_balance_topup(self, min_balance: int) -> int:
         """Ensure all users have at least min_balance tokens; return updated users count."""
-
-    @abstractmethod
-    async def block_user_by_id(self, user_id: int, blocked: bool) -> UserEntity | None:
-        ...

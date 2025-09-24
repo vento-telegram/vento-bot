@@ -11,8 +11,8 @@ class AbcSettingsRepo(AbcRepo[SettingsEntity]):
 
     @abstractmethod
     async def list_all(self) -> dict[str, str]:
-        """Return all settings as a dict key -> value."""
+        """Return all settings as dict key->value."""
 
     @abstractmethod
     async def set_value(self, key: str, value: str) -> None:
-        """Upsert setting value by key."""
+        """Set or create setting value by key."""
