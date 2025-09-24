@@ -22,34 +22,12 @@ def veo_quality_keyboard(standard_price: int, improved_price: int, selected: str
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def veo_settings_keyboard(aspect: str, quality: str, standard_price: int, improved_price: int) -> InlineKeyboardMarkup:
-    # Single menu: first row quality (no prices), second row aspect options, third row back
-    std_selected = quality == 'standard'
-    imp_selected = quality == 'improved'
-    std_label = ("✅ Стандарт") if std_selected else ("Стандарт")
-    imp_label = ("✅ Улучшенное") if imp_selected else ("Улучшенное")
-
-    q_row = [
-        InlineKeyboardButton(text=std_label, callback_data="veo:quality:standard"),
-        InlineKeyboardButton(text=imp_label, callback_data="veo:quality:improved"),
-    ]
-
-    a_row: list[InlineKeyboardButton] = []
-    for opt in ["16:9", "9:16"]:
-        label = f"✅ {opt}" if opt == aspect else opt
-        a_row.append(InlineKeyboardButton(text=label, callback_data=f"veo:aspect:{opt}"))
-
-    back_row = [InlineKeyboardButton(text="🔙 Назад", callback_data="veo:main")]
-
-    return InlineKeyboardMarkup(inline_keyboard=[q_row, a_row, back_row])
-
 
 def veo_back_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад", callback_data="goto:start")]])
 
 
 def veo_main_settings_keyboard(aspect: str | None, quality: str | None, standard_price: int, improved_price: int) -> InlineKeyboardMarkup:
-    # Shows two items lines: quality and aspect; clicking opens submenus
     if quality == 'standard':
         quality_text = "Стандарт"
     elif quality == 'improved':

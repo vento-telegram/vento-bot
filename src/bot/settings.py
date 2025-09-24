@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     KIE: KIESettings = KIESettings()
     NEXUS: NexusSettings = NexusSettings()
     WEB_PORT: int = 8080
+    ADMIN_TOKEN: str | None = None
 
 
 settings = Settings()

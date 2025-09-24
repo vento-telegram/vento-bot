@@ -20,3 +20,4 @@ class LedgerReasonEnum(StrEnum):
     suno_request = auto()
     purchase_stars = auto()
     veo_request = auto()
+    daily_bonus = auto()

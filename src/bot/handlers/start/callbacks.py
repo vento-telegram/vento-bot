@@ -14,7 +14,7 @@ from bot.enums import BotModeEnum, LedgerReasonEnum
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.keyboards.change_ai import mode_keyboard, gpt_image_size_keyboard
-from bot.keyboards.veo import veo_aspect_keyboard, veo_quality_keyboard, veo_settings_keyboard, veo_main_settings_keyboard
+from bot.keyboards.veo import veo_aspect_keyboard, veo_quality_keyboard, veo_main_settings_keyboard
 from bot.keyboards.suno import (
     suno_styles_keyboard,
     suno_back_keyboard,
@@ -133,7 +133,7 @@ async def veo_open_quality(
     await call.answer()
     # Show quality explanation text with prices, keep buttons without prices
     text = (
-        "💎 Выбери качество генерируемого видеоролика. От качества зависит зависит цена генерации:\n\n"
+        "💎 Выбери качество генерируемого видеоролика. От качества зависит цена генерации:\n\n"
         f"⚖️ Стандартное качество - {std} токенов/запрос\n\n"
         f"✨ Улучшенное качество - {imp} токенов/запрос\n\n"
         f"ℹ️ Цена не суммируется с доплатой за формат. При генерации улучшенного видео 9:16 цена будет {imp} токенов/запрос"
@@ -160,7 +160,7 @@ async def veo_open_aspect(
         await call.message.edit_text(
             (
                 "📐 Выбери соотношение сторон видеоролика.\n\n"
-                f"🖥️16:9 — {std} токенов/запрос\n\n"
+                f"🖥️ 16:9 — {std} токенов/запрос\n\n"
                 f"📱 9:16 — {imp} токенов/запрос\n\n"
                     f"ℹ️ Цена не суммируется с доплатой за качество. При генерации улучшенного видео 9:16 цена будет {imp} токенов/запрос"
             ),

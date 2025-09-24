@@ -67,3 +67,16 @@ class UserService(AbcUserService):
     async def unblock_user_by_username(self, username: str) -> UserEntity | None:
         async with self._uow:
             return await self._uow.user.set_blocked_by_username(username, False)
+
+    async def daily_min_balance_topup(self, min_balance: int) -> int:
+        updated_count = 0
+        async with self._uow:
+            users = await self._uow.user.list_with_balance_lt(min_balance)
+            for u in users:
+                delta = int(min_balance) - int(u.balance)
+                if delta <= 0:
+                    continue
+                updated = await self._update_balance(u.id, delta, LedgerReasonEnum.daily_bonus)
+                if updated:
+                    updated_count += 1
+        return updated_count

@@ -31,3 +31,7 @@ class AbcUserService(ABC):
     @abstractmethod
     async def unblock_user_by_username(self, username: str) -> UserEntity | None:
         ...
+
+    @abstractmethod
+    async def daily_min_balance_topup(self, min_balance: int) -> int:
+        """Ensure all users have at least min_balance tokens; return updated users count."""

@@ -153,7 +153,7 @@ async def common_message_handler(
                     inline_keyboard=[
                         [
                             InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
-                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
+                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
                         ]
                     ]
                 ),
@@ -171,7 +171,7 @@ async def common_message_handler(
                     inline_keyboard=[
                         [
                             InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
-                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
+                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
                         ]
                     ]
                 ),
@@ -187,7 +187,7 @@ async def common_message_handler(
                     inline_keyboard=[
                         [
                             InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
-                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
+                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
                         ]
                     ]
                 ),
@@ -254,7 +254,7 @@ async def common_message_handler(
                     inline_keyboard=[
                         [
                             InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
-                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
+                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
                         ]
                     ]
                 ),
@@ -335,7 +335,7 @@ async def common_message_handler(
                         inline_keyboard=[
                             [
                                 InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
-                                InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
+                                InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
                             ]
                         ]
                     ),
@@ -347,7 +347,7 @@ async def common_message_handler(
                         inline_keyboard=[
                             [
                                 InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="goto:account"),
-                                InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:replenish"),
+                                InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
                             ]
                         ]
                     ),

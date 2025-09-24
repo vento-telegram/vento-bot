@@ -62,3 +62,9 @@ class UserRepo(AbcUserRepo, BaseRepo):
         stmt = select(UserOrm).filter_by(id=user_id).limit(1)
         user = await self.session.scalar(stmt)
         return self.map_model_to_entity(user) if user else None
+
+    async def list_with_balance_lt(self, threshold: int) -> list[UserEntity]:
+        stmt = select(UserOrm).where(UserOrm.balance < threshold)
+        res = await self.session.scalars(stmt)
+        models = list(res.all())
+        return [self.map_model_to_entity(m) for m in models]

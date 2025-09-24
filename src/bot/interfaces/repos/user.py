@@ -28,3 +28,7 @@ class AbcUserRepo(AbcRepo[UserEntity]):
     @abstractmethod
     async def set_blocked_by_username(self, username: str, is_blocked: bool) -> UserEntity | None:
         """Block or unblock a user by username and return updated entity, or None if not found."""
+
+    @abstractmethod
+    async def list_with_balance_lt(self, threshold: int) -> list[UserEntity]:
+        """Return all users with balance lower than given threshold."""

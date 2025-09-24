@@ -1,4 +1,4 @@
-from sqlalchemy import insert, select, update, func, case, ColumnElement
+from sqlalchemy import insert, select, update, func, case, ColumnElement, and_
 
 from bot.database.models import LedgerOrm
 from bot.entities.ledger import LedgerEntity
@@ -50,6 +50,10 @@ class LedgerRepo(AbcLedgerRepo, BaseRepo):
         stmt = select(
             self._model_case(LedgerReasonEnum.gpt_request).label("gpt-5"),
             self._model_case(LedgerReasonEnum.gpt_mini_request).label("gpt-5-mini"),
+            self._model_case(LedgerReasonEnum.gpt_image_request).label("gpt-image"),
+            self._model_case(LedgerReasonEnum.nano_banana_request).label("nano-banana"),
+            self._model_case(LedgerReasonEnum.suno_request).label("suno"),
+            self._model_case(LedgerReasonEnum.veo_request).label("veo"),
         ).where(
             LedgerOrm.delta < 0,
             func.date(LedgerOrm.created_at) == today,
@@ -60,6 +64,34 @@ class LedgerRepo(AbcLedgerRepo, BaseRepo):
         return RequestsCounts(**{
             "gpt-5": int(m.get("gpt-5") or 0),
             "gpt-5-mini": int(m.get("gpt-5-mini") or 0),
+            "gpt-image": int(m.get("gpt-image") or 0),
+            "nano-banana": int(m.get("nano-banana") or 0),
+            "suno": int(m.get("suno") or 0),
+            "veo": int(m.get("veo") or 0),
+        })
+
+    async def requests_by_model_on_date(self, date_str: str) -> RequestsCounts:
+        stmt = select(
+            self._model_case(LedgerReasonEnum.gpt_request).label("gpt-5"),
+            self._model_case(LedgerReasonEnum.gpt_mini_request).label("gpt-5-mini"),
+            self._model_case(LedgerReasonEnum.gpt_image_request).label("gpt-image"),
+            self._model_case(LedgerReasonEnum.nano_banana_request).label("nano-banana"),
+            self._model_case(LedgerReasonEnum.suno_request).label("suno"),
+            self._model_case(LedgerReasonEnum.veo_request).label("veo"),
+        ).where(
+            LedgerOrm.delta < 0,
+            func.date(LedgerOrm.created_at) == date_str,
+        )
+        result = await self.session.execute(stmt)
+        row = result.one()
+        m = row._mapping
+        return RequestsCounts(**{
+            "gpt-5": int(m.get("gpt-5") or 0),
+            "gpt-5-mini": int(m.get("gpt-5-mini") or 0),
+            "gpt-image": int(m.get("gpt-image") or 0),
+            "nano-banana": int(m.get("nano-banana") or 0),
+            "suno": int(m.get("suno") or 0),
+            "veo": int(m.get("veo") or 0),
         })
 
     async def user_totals(self, user_id: int) -> UserTotals:
@@ -68,9 +100,21 @@ class LedgerRepo(AbcLedgerRepo, BaseRepo):
             LedgerOrm.user_id == user_id,
             func.date(LedgerOrm.created_at) == self._today()
         )
+        # purchased tokens total
+        stmt_purchase = select(func.coalesce(func.sum(LedgerOrm.delta), 0)).where(
+            LedgerOrm.user_id == user_id,
+            LedgerOrm.delta > 0,
+            LedgerOrm.reason.ilike('%purchase_stars%'),
+        )
+        res_purchase = await self.session.execute(stmt_purchase)
+        purchased_tokens = int(res_purchase.scalar() or 0)
         model_stmt = select(
             self._model_case(LedgerReasonEnum.gpt_request).label("gpt-5"),
             self._model_case(LedgerReasonEnum.gpt_mini_request).label("gpt-5-mini"),
+            self._model_case(LedgerReasonEnum.gpt_image_request).label("gpt-image"),
+            self._model_case(LedgerReasonEnum.nano_banana_request).label("nano-banana"),
+            self._model_case(LedgerReasonEnum.suno_request).label("suno"),
+            self._model_case(LedgerReasonEnum.veo_request).label("veo"),
             func.max(LedgerOrm.created_at).label("last_request_at"),
         ).where(
             LedgerOrm.user_id == user_id,
@@ -85,8 +129,13 @@ class LedgerRepo(AbcLedgerRepo, BaseRepo):
             requests=RequestsCounts(**{
                 "gpt-5": int(m.get("gpt-5") or 0),
                 "gpt-5-mini": int(m.get("gpt-5-mini") or 0),
+                "gpt-image": int(m.get("gpt-image") or 0),
+                "nano-banana": int(m.get("nano-banana") or 0),
+                "suno": int(m.get("suno") or 0),
+                "veo": int(m.get("veo") or 0),
             }),
             last_request_at=m.get("last_request_at"),
+            purchased_tokens=purchased_tokens,
         )
 
     def _model_case(self, reason_enum_value: str) -> ColumnElement:
