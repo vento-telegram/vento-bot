@@ -713,6 +713,10 @@ async def goto_start(
     # Pass admin flag to show admin button when applicable
     user = await service.get_user(call.from_user.id)
     is_admin = bool(getattr(user, 'is_admin', False))
+    try:
+        await state.update_data(is_admin=is_admin)
+    except Exception:
+        pass
     await call.message.edit_text(
         text=text,
         reply_markup=start_keyboard(current_mode, is_admin=is_admin),

@@ -42,6 +42,11 @@ async def start_handler(
                 "Если что, команда /start всегда поможет."
             )
         )
+    # Ensure is_admin is present in state for later checks
+    try:
+        await state.update_data(is_admin=bool(getattr(user, 'is_admin', False)))
+    except Exception:
+        pass
     current_mode = state_data.get('mode', BotModeEnum.passive)
 
     text = (

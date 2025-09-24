@@ -9,7 +9,7 @@ def start_keyboard(current_mode: BotModeEnum, is_admin: bool = False) -> InlineK
         [InlineKeyboardButton(text=switch_label, callback_data="goto:switch")],
     ]
     if is_admin:
-        buttons.append([InlineKeyboardButton(text="🛠️ Админ-панель", callback_data="admin:menu")])
+        buttons.append([InlineKeyboardButton(text="Админка", callback_data="admin:menu")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 account_keyboard = InlineKeyboardMarkup(inline_keyboard=[

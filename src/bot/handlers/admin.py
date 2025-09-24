@@ -84,7 +84,7 @@ async def admin_stats_bydate_prompt(
     await call.message.edit_text("📅 Введи дату в формате YYYY-MM-DD", reply_markup=admin_back_keyboard())
 
 
-@router.message()
+@router.message(F.text & ~F.text.startswith("/"))
 @inject
 async def admin_handle_date_or_inputs(
     message: Message,
