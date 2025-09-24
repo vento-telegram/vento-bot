@@ -135,7 +135,8 @@ async def veo_open_quality(
     text = (
         "💎 Выбери качество генерируемого видеоролика. От качества зависит зависит цена генерации:\n\n"
         f"⚖️ Стандартное качество - {std} токенов/запрос\n\n"
-        f"✨ Улучшенное качество - {imp} токенов/запрос"
+        f"✨ Улучшенное качество - {imp} токенов/запрос\n\n"
+        f"ℹ️ Цена не суммируется с доплатой за формат. При генерации улучшенного видео 9:16 цена будет {imp} токенов/запрос"
     )
     try:
         await call.message.edit_text(text=text, reply_markup=veo_quality_keyboard(std, imp, selected=q))
@@ -148,13 +149,21 @@ async def veo_open_quality(
 async def veo_open_aspect(
     call: CallbackQuery,
     state: FSMContext,
+    settings: AbcSettingsService = Provide[Container.settings_service],
 ):
     data = await state.get_data()
     aspect = data.get('veo_aspect', None)
+    std = int(await settings.get_value('veo_standard_price'))
+    imp = int(await settings.get_value('veo_improved_price'))
     await call.answer()
     try:
         await call.message.edit_text(
-            "📐 Выбери соотношение сторон видеоролика:",
+            (
+                "📐 Выбери соотношение сторон видеоролика.\n\n"
+                f"🖥️16:9 — {std} токенов/запрос\n\n"
+                f"📱 9:16 — {imp} токенов/запрос\n\n"
+                    f"ℹ️ Цена не суммируется с доплатой за качество. При генерации улучшенного видео 9:16 цена будет {imp} токенов/запрос"
+            ),
             reply_markup=veo_aspect_keyboard(aspect),
         )
     except Exception:

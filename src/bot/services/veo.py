@@ -39,13 +39,17 @@ class VeoService(AbcVeoService):
         enable_fallback: bool,
         watermark: str | None,
     ) -> None:
-        # Determine price based on quality
-        price_key = 'veo_improved_price' if quality == 'improved' else 'veo_standard_price'
+        # Pricing rules:
+        # - 16:9 standard => standard price
+        # - 9:16 standard => improved price
+        # - 16:9 improved => improved price
+        # - 9:16 improved => improved price
+        charge_improved = (quality == 'improved') or (aspect_ratio == '9:16')
+        price_key = 'veo_improved_price' if charge_improved else 'veo_standard_price'
         request_price = int(await self._settings_service.get_value(price_key))
         if user.balance < request_price:
             raise InsufficientBalanceError
 
-        # Build Nexus payload (see veo3bot example)
         base_url = settings.NEXUS.BASE_URL.rstrip('/') if getattr(settings, 'NEXUS', None) else "https://nexusapi.dev"
         api_key = (getattr(settings.NEXUS, 'API_KEY', None) if getattr(settings, 'NEXUS', None) else None) or ""
         headers = {
