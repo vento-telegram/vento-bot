@@ -5,6 +5,7 @@ from aiogram.types import (
     CallbackQuery,
     Message,
     PreCheckoutQuery,
+    InlineKeyboardButton,
 )
 from dependency_injector.wiring import Provide, inject
 
@@ -710,9 +711,16 @@ async def goto_start(
         text += "\n"
 
     text += "👇 Что хочешь сделать?"
+    kb = start_keyboard(current_mode)
+    try:
+        if bool(user.is_admin):
+            kb.inline_keyboard.insert(0, [InlineKeyboardButton(text="🛠 Админка", callback_data="goto:admin")])
+    except Exception:
+        pass
+
     await call.message.edit_text(
         text=text,
-        reply_markup=start_keyboard(current_mode),
+        reply_markup=kb,
     )
 
 @router.callback_query(F.data == "goto:switch")

@@ -3,7 +3,7 @@ import logging
 from aiogram import Router
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import Message, InlineKeyboardButton
 from aiogram.filters import CommandStart
 from dependency_injector.wiring import inject, Provide
 from sqlalchemy.orm import mapper
@@ -58,7 +58,14 @@ async def start_handler(
 
     text += "👇 Что хочешь сделать?"
 
+    kb = start_keyboard(current_mode)
+    try:
+        if bool(user.is_admin):
+            kb.inline_keyboard.insert(0, [InlineKeyboardButton(text="🛠 Админка", callback_data="goto:admin")])
+    except Exception:
+        pass
+
     await message.answer(
         text=text,
-        reply_markup=start_keyboard(current_mode)
+        reply_markup=kb,
     )
