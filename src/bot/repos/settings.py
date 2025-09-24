@@ -1,5 +1,4 @@
-from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import select, insert
 
 from bot.database.models import SettingsOrm
 from bot.entities.settings import SettingsEntity
@@ -21,19 +20,15 @@ class SettingsRepo(AbcSettingsRepo, BaseRepo):
         instance = await self.session.scalar(stmt)
         return self.map_model_to_entity(instance) if instance else None
 
-    async def list_all(self) -> list[SettingsEntity]:
+    async def list_all(self) -> dict[str, str]:
         stmt = select(SettingsOrm)
         res = await self.session.scalars(stmt)
-        models = list(res.all())
-        return [self.map_model_to_entity(m) for m in models]
+        items = res.all()
+        return {i.key: i.value for i in items}
 
-    async def set_value(self, key: str, value: str) -> SettingsEntity:
-        stmt = (
-            insert(SettingsOrm)
-            .values(key=key, value=value)
-            .on_conflict_do_update(index_elements=[SettingsOrm.key], set_={"value": value})
-            .returning(SettingsOrm)
-        )
-        result = await self.session.execute(stmt)
-        instance = result.scalar_one()
-        return self.map_model_to_entity(instance)
+    async def set_value(self, key: str, value: str) -> None:
+        existing = await self.session.scalar(select(SettingsOrm).filter_by(key=key).limit(1))
+        if existing:
+            existing.value = str(value)
+        else:
+            await self.session.execute(insert(SettingsOrm).values(key=key, value=str(value)))

@@ -710,9 +710,12 @@ async def goto_start(
         text += "\n"
 
     text += "👇 Что хочешь сделать?"
+    # Pass admin flag to show admin button when applicable
+    user = await service.get_user(call.from_user.id)
+    is_admin = bool(getattr(user, 'is_admin', False))
     await call.message.edit_text(
         text=text,
-        reply_markup=start_keyboard(current_mode),
+        reply_markup=start_keyboard(current_mode, is_admin=is_admin),
     )
 
 @router.callback_query(F.data == "goto:switch")

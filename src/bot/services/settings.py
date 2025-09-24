@@ -13,8 +13,7 @@ class SettingsService(AbcSettingsService):
 
     async def list_all(self) -> dict[str, str]:
         async with self._uow:
-            items = await self._uow.settings.list_all()
-        return {it.key: it.value for it in items}
+            return await self._uow.settings.list_all()
 
     async def set_value(self, key: str, value: str) -> None:
         async with self._uow:

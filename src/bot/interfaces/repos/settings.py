@@ -10,9 +10,9 @@ class AbcSettingsRepo(AbcRepo[SettingsEntity]):
         """Fetch a model price by programmatic key (e.g., 'gpt5')."""
 
     @abstractmethod
-    async def list_all(self) -> list[SettingsEntity]:
-        """Return all settings entries."""
+    async def list_all(self) -> dict[str, str]:
+        """Return all settings as a dict key -> value."""
 
     @abstractmethod
-    async def set_value(self, key: str, value: str) -> SettingsEntity:
-        """Create or update a setting by key and return the updated entity."""
+    async def set_value(self, key: str, value: str) -> None:
+        """Upsert setting value by key."""

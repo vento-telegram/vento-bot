@@ -12,8 +12,8 @@ class RequestsCounts(BaseModel):
     gpt_5_mini: int = Field(0, alias="gpt-5-mini")
     gpt_image: int = Field(0, alias="gpt-image")
     nano_banana: int = Field(0, alias="nano-banana")
-    suno: int = 0
-    veo: int = 0
+    suno: int = Field(0, alias="suno")
+    veo: int = Field(0, alias="veo")
 
 
 class UserTotals(BaseModel):
@@ -21,4 +21,4 @@ class UserTotals(BaseModel):
     today_spent: int
     requests: RequestsCounts
     last_request_at: datetime | None = None
-    purchased_tokens: int = 0
+    tokens_purchased: int = 0

@@ -58,7 +58,8 @@ async def start_handler(
 
     text += "👇 Что хочешь сделать?"
 
+    is_admin = bool(getattr(user, 'is_admin', False))
     await message.answer(
         text=text,
-        reply_markup=start_keyboard(current_mode)
+        reply_markup=start_keyboard(current_mode, is_admin=is_admin)
     )

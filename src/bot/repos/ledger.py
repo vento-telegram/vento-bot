@@ -1,4 +1,4 @@
-from sqlalchemy import insert, select, update, func, case, ColumnElement, and_
+from sqlalchemy import insert, select, update, func, case, ColumnElement
 
 from bot.database.models import LedgerOrm
 from bot.entities.ledger import LedgerEntity
@@ -70,6 +70,51 @@ class LedgerRepo(AbcLedgerRepo, BaseRepo):
             "veo": int(m.get("veo") or 0),
         })
 
+    async def user_totals(self, user_id: int) -> UserTotals:
+        total_spent = await self._sum_negative_delta(LedgerOrm.user_id == user_id)
+        today_spent = await self._sum_negative_delta(
+            LedgerOrm.user_id == user_id,
+            func.date(LedgerOrm.created_at) == self._today()
+        )
+        model_stmt = select(
+            self._model_case(LedgerReasonEnum.gpt_request).label("gpt-5"),
+            self._model_case(LedgerReasonEnum.gpt_mini_request).label("gpt-5-mini"),
+            self._model_case(LedgerReasonEnum.gpt_image_request).label("gpt-image"),
+            self._model_case(LedgerReasonEnum.nano_banana_request).label("nano-banana"),
+            self._model_case(LedgerReasonEnum.suno_request).label("suno"),
+            self._model_case(LedgerReasonEnum.veo_request).label("veo"),
+            func.max(LedgerOrm.created_at).label("last_request_at"),
+        ).where(
+            LedgerOrm.user_id == user_id,
+            LedgerOrm.delta < 0,
+        )
+        model_result = await self.session.execute(model_stmt)
+        row = model_result.one()
+        m = row._mapping
+        # Sum tokens purchased
+        purchased_stmt = select(func.coalesce(func.sum(LedgerOrm.delta), 0)).where(
+            LedgerOrm.user_id == user_id,
+            LedgerOrm.delta > 0,
+            LedgerOrm.reason == LedgerReasonEnum.purchase_stars,
+        )
+        purchased_res = await self.session.execute(purchased_stmt)
+        purchased = int(purchased_res.scalar() or 0)
+
+        return UserTotals(
+            total_spent=total_spent,
+            today_spent=today_spent,
+            requests=RequestsCounts(**{
+                "gpt-5": int(m.get("gpt-5") or 0),
+                "gpt-5-mini": int(m.get("gpt-5-mini") or 0),
+                "gpt-image": int(m.get("gpt-image") or 0),
+                "nano-banana": int(m.get("nano-banana") or 0),
+                "suno": int(m.get("suno") or 0),
+                "veo": int(m.get("veo") or 0),
+            }),
+            last_request_at=m.get("last_request_at"),
+            tokens_purchased=purchased,
+        )
+
     async def requests_by_model_on_date(self, date_str: str) -> RequestsCounts:
         stmt = select(
             self._model_case(LedgerReasonEnum.gpt_request).label("gpt-5"),
@@ -93,50 +138,6 @@ class LedgerRepo(AbcLedgerRepo, BaseRepo):
             "suno": int(m.get("suno") or 0),
             "veo": int(m.get("veo") or 0),
         })
-
-    async def user_totals(self, user_id: int) -> UserTotals:
-        total_spent = await self._sum_negative_delta(LedgerOrm.user_id == user_id)
-        today_spent = await self._sum_negative_delta(
-            LedgerOrm.user_id == user_id,
-            func.date(LedgerOrm.created_at) == self._today()
-        )
-        # purchased tokens total
-        stmt_purchase = select(func.coalesce(func.sum(LedgerOrm.delta), 0)).where(
-            LedgerOrm.user_id == user_id,
-            LedgerOrm.delta > 0,
-            LedgerOrm.reason.ilike('%purchase_stars%'),
-        )
-        res_purchase = await self.session.execute(stmt_purchase)
-        purchased_tokens = int(res_purchase.scalar() or 0)
-        model_stmt = select(
-            self._model_case(LedgerReasonEnum.gpt_request).label("gpt-5"),
-            self._model_case(LedgerReasonEnum.gpt_mini_request).label("gpt-5-mini"),
-            self._model_case(LedgerReasonEnum.gpt_image_request).label("gpt-image"),
-            self._model_case(LedgerReasonEnum.nano_banana_request).label("nano-banana"),
-            self._model_case(LedgerReasonEnum.suno_request).label("suno"),
-            self._model_case(LedgerReasonEnum.veo_request).label("veo"),
-            func.max(LedgerOrm.created_at).label("last_request_at"),
-        ).where(
-            LedgerOrm.user_id == user_id,
-            LedgerOrm.delta < 0,
-        )
-        model_result = await self.session.execute(model_stmt)
-        row = model_result.one()
-        m = row._mapping
-        return UserTotals(
-            total_spent=total_spent,
-            today_spent=today_spent,
-            requests=RequestsCounts(**{
-                "gpt-5": int(m.get("gpt-5") or 0),
-                "gpt-5-mini": int(m.get("gpt-5-mini") or 0),
-                "gpt-image": int(m.get("gpt-image") or 0),
-                "nano-banana": int(m.get("nano-banana") or 0),
-                "suno": int(m.get("suno") or 0),
-                "veo": int(m.get("veo") or 0),
-            }),
-            last_request_at=m.get("last_request_at"),
-            purchased_tokens=purchased_tokens,
-        )
 
     def _model_case(self, reason_enum_value: str) -> ColumnElement:
         return func.sum(

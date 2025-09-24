@@ -356,7 +356,7 @@ async def common_message_handler(
 
 
     elif mode == BotModeEnum.passive or not mode:
-        await message.answer(
+            await message.answer(
             "👇 Сначала выбери, куда будем делать запрос:",
-            reply_markup=mode_keyboard(BotModeEnum.passive),
+                reply_markup=mode_keyboard(BotModeEnum.passive),
         )
