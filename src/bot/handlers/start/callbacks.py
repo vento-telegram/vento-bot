@@ -27,7 +27,7 @@ from bot.keyboards.suno import (
 from bot.keyboards.start import (
     start_keyboard,
 )
-from bot.keyboards.payments import payments_keyboard, payments_back_keyboard, ru_bundles_keyboard, ru_bundles_back_keyboard, pay_link_keyboard, stars_bundles_keyboard
+from bot.keyboards.payments import payments_keyboard, payments_back_keyboard, ru_bundles_keyboard, ru_bundles_back_keyboard, pay_link_keyboard, stars_bundles_keyboard, card_bundles_keyboard
 from bot.interfaces.services.payments import AbcPaymentsService
 from bot.enums import BotModeEnum
 from bot.interfaces.services.veo import AbcVeoService
@@ -605,7 +605,7 @@ async def pay_card(
             "💳 *Банковская карта*\n\n"
             "Оплата картой VISA/Mastercard/МИР.\n\n"
             "Выбери пакет токенов:"),
-        reply_markup=ru_bundles_keyboard(bundles),
+        reply_markup=card_bundles_keyboard(bundles),
     )
 
 
