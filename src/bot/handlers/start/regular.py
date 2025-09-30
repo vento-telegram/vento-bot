@@ -47,10 +47,17 @@ async def start_handler(
 
     text = (
         f"👋 Привет, *{message.from_user.first_name}*!\n\n"
-        f"🪙 Твой баланс: *{user.balance}* токенов\n\n"
-        f"⚡ Ежедневно: до *{daily_bonus}* токенов\n\n"
-        f"🤖 Текущий ИИ: *{current_mode}*\n"
+        f"🪙 Твой баланс: *{user.balance}* токенов\n"
     )
+    try:
+        user_balance_int = int(user.balance)
+    except Exception:
+        user_balance_int = 0
+    if user_balance_int <= 50:
+        text += f"⚡ Ежедневно: до *{daily_bonus}* токенов\n\n"
+    else:
+        text += "\n"
+    text += f"🤖 Текущий ИИ: *{current_mode}*\n"
 
     if current_mode != BotModeEnum.passive:
         price = await settings_service.get_value(settings_models_mapper[current_mode])
