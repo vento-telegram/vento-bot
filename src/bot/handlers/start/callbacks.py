@@ -670,7 +670,7 @@ async def goto_start(
     text = (
         f"👋 Привет, *{call.from_user.first_name}*!\n\n"
         f"🪙 Твой баланс: *{user.balance}* токенов\n\n"
-        f"⚡ Ежедневно: до*{daily_bonus}* токенов\n\n"
+        f"⚡ Ежедневно: до *{daily_bonus}* токенов\n\n"
         f"🤖 Текущий ИИ: *{current_mode}*\n"
     )
 
