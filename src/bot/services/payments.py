@@ -74,23 +74,20 @@ class PaymentsService(AbcPaymentsService):
                 "transaction_type": "payment",
                 "test": True,
                 "order": {
-                    # BePaid expects minor currency units (kopeks)
                     "amount": int(price_rub) * 100,
                     "currency": "RUB",
                     "description": f"Vento tokens: {tokens} for user {user_id}",
-                    # Use tracking_id to pass our identifiers
                     "tracking_id": f"{user_id}:{tokens}",
                 },
-                # Minimal customer block; extend if needed
                 "customer": {
                     "first_name": str(user_id),
                 },
                 "settings": {
                     "notification_url": "https://bukhavets.com/webhooks/bepaid",
-                    "success_url": "https://t.me",
-                    "decline_url": "https://t.me",
-                    "fail_url": "https://t.me",
-                    "cancel_url": "https://t.me",
+                    "success_url": "https://t.me/vento_toolbot",
+                    "decline_url": "https://t.me/vento_toolbot",
+                    "fail_url": "https://t.me/vento_toolbot",
+                    "cancel_url": "https://t.me/vento_toolbot",
                     "language": "ru",
                 },
             }
