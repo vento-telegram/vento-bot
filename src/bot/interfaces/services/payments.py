@@ -8,3 +8,7 @@ class AbcPaymentsService(ABC):
     @abstractmethod
     async def check_payment_and_credit(self, payment_id: str) -> bool:
         """Check payment and credit tokens if succeeded."""
+
+    @abstractmethod
+    async def create_card_payment(self, user_id: int, tokens: int, price_rub: int) -> str:
+        """Create BePaid payment and return confirmation URL for card payment in RUB."""

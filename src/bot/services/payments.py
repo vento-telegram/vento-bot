@@ -1,4 +1,9 @@
 import logging
+import base64
+import json
+from typing import Any
+
+import aiohttp
 from yookassa import Configuration, Payment
 
 from bot.interfaces.services.payments import AbcPaymentsService
@@ -17,6 +22,16 @@ class PaymentsService(AbcPaymentsService):
         if settings.YOOKASSA.SHOP_ID and settings.YOOKASSA.SECRET_KEY:
             Configuration.account_id = settings.YOOKASSA.SHOP_ID
             Configuration.secret_key = settings.YOOKASSA.SECRET_KEY
+        # Prepare BePaid auth header if configured
+        self._bepaid_auth: str | None = None
+        try:
+            shop_id = settings.BEPAID.SHOP_ID or ""
+            token = settings.BEPAID.TOKEN or ""
+            if shop_id and token:
+                creds = f"{shop_id}:{token}".encode()
+                self._bepaid_auth = base64.b64encode(creds).decode()
+        except Exception:
+            self._bepaid_auth = None
 
     async def create_ru_payment(self, user_id: int, tokens: int, price_rub: int) -> str:
         if not (settings.YOOKASSA.SHOP_ID and settings.YOOKASSA.SECRET_KEY):
@@ -49,4 +64,68 @@ class PaymentsService(AbcPaymentsService):
                     LedgerEntity(user_id=user.id, delta=tokens, reason=LedgerReasonEnum.purchase_stars)
                 )
         return True
+
+    async def create_card_payment(self, user_id: int, tokens: int, price_rub: int) -> str:
+        if not self._bepaid_auth:
+            raise RuntimeError("BePaid credentials are not configured")
+
+        payload: dict[str, Any] = {
+            "checkout": {
+                "transaction_type": "payment",
+                "test": False,
+                "order": {
+                    # BePaid expects minor currency units (kopeks)
+                    "amount": int(price_rub) * 100,
+                    "currency": "RUB",
+                    "description": f"Vento tokens: {tokens} for user {user_id}",
+                    # Use tracking_id to pass our identifiers
+                    "tracking_id": f"{user_id}:{tokens}",
+                },
+                # Minimal customer block; extend if needed
+                "customer": {
+                    "first_name": str(user_id),
+                },
+                "settings": {
+                    "notification_url": "https://bukhavets.com/webhooks/bepaid",
+                    "success_url": "https://t.me",
+                    "decline_url": "https://t.me",
+                    "fail_url": "https://t.me",
+                    "cancel_url": "https://t.me",
+                    "language": "ru",
+                },
+            }
+        }
+
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "X-API-Version": "2",
+            "Authorization": f"Basic {self._bepaid_auth}",
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                "https://checkout.bepaid.by/ctp/api/checkouts",
+                data=json.dumps(payload),
+                headers=headers,
+            ) as resp:
+                data = await resp.json(content_type=None)
+                if resp.status not in {200, 201}:
+                    raise RuntimeError(f"BePaid error {resp.status}: {data}")
+                # Try common fields for redirect URL
+                checkout = data.get("checkout") if isinstance(data, dict) else None
+                if isinstance(checkout, dict):
+                    url = (
+                        checkout.get("redirect_url")
+                        or checkout.get("redirect_to")
+                        or checkout.get("redirect")
+                        or checkout.get("url")
+                    )
+                    if url:
+                        return str(url)
+                # Fallback: try to find any URL in response
+                for key, value in (checkout or data or {}).items():
+                    if isinstance(value, str) and value.startswith("http"):
+                        return value
+                raise RuntimeError("BePaid response did not contain redirect URL")
 

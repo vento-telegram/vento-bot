@@ -584,6 +584,61 @@ async def pay_ru_bundle_selected(
         )
 
 
+@router.callback_query(F.data == "pay:card")
+@inject
+async def pay_card(
+    call: CallbackQuery,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+):
+    await call.answer()
+    bundle_token_amounts = [700, 1600, 4500, 11000, 28000]
+    bundles: list[tuple[int, int]] = []
+    for amount in bundle_token_amounts:
+        price_value = await settings.get_value(f"{amount}_bundle_price")
+        try:
+            price = int(price_value)
+        except Exception:
+            price = 0
+        bundles.append((amount, price))
+    await call.message.edit_text(
+        text=(
+            "💳 *Банковская карта*\n\n"
+            "Оплата картой VISA/Mastercard/МИР.\n\n"
+            "Выбери пакет токенов:"),
+        reply_markup=ru_bundles_keyboard(bundles),
+    )
+
+
+@router.callback_query(F.data.startswith("pay:card:"))
+@inject
+async def pay_card_bundle_selected(
+    call: CallbackQuery,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+    payments: AbcPaymentsService = Provide[Container.payments_service],
+):
+    await call.answer()
+    parts = (call.data or "").split(":", maxsplit=2)
+    tokens = parts[-1] if parts and len(parts) >= 3 else ""
+    price_value = await settings.get_value(f"{tokens}_bundle_price")
+    try:
+        price = int(price_value)
+    except Exception:
+        price = 0
+    try:
+        confirm_url = await payments.create_card_payment(user_id=call.from_user.id, tokens=int(tokens), price_rub=price)
+        await call.message.edit_text(
+            text=(
+                f"🧾 *Вы выбрали*: {tokens} токенов — {price} ₽\n\n"
+                "Нажми кнопку, чтобы перейти к оплате."),
+            reply_markup=pay_link_keyboard(confirm_url),
+        )
+    except Exception:
+        await call.message.edit_text(
+            text=(
+                "☹️ Не удалось создать платёж. Попробуй ещё раз позже."),
+            reply_markup=ru_bundles_back_keyboard(),
+        )
+
 @router.callback_query(F.data == "pay:stars")
 @inject
 async def pay_stars(

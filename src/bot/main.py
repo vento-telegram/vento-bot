@@ -17,7 +17,7 @@ from bot.settings import settings
 from bot.interfaces.services.payments import AbcPaymentsService
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.settings import AbcSettingsService
-from bot.enums import BotModeEnum
+from bot.enums import BotModeEnum, LedgerReasonEnum
 from bot.keyboards.start import start_keyboard
 
 logging.basicConfig(level=logging.DEBUG)
@@ -106,6 +106,61 @@ async def _run(
                 await bot.send_message(user_id, f"☹️ {msg}")
         except Exception:
             logger.exception("Error sending KIE image to user %s (task %s)", user_id, task_id)
+
+        return web.json_response({"ok": True})
+
+    async def bepaid_handle(request: web.Request):
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({"status": "bad json"}, status=400)
+
+        # BePaid sends notification with payment details; expect tracking_id as "user_id:tokens"
+        try:
+            checkout = body.get("checkout") or {}
+            order = checkout.get("order") or {}
+            status = checkout.get("status") or body.get("status")
+            tracking_id = order.get("tracking_id") or body.get("tracking_id") or ""
+            # Parse identifiers
+            parts = str(tracking_id).split(":", maxsplit=1)
+            telegram_id = int(parts[0]) if parts and parts[0].isdigit() else None
+            tokens = int(parts[1]) if len(parts) >= 2 and parts[1].isdigit() else None
+        except Exception:
+            telegram_id = None
+            tokens = None
+
+        if not (telegram_id and tokens):
+            return web.json_response({"ok": False})
+
+        # Success statuses according to BePaid docs: "successful"
+        if str(status).lower() not in {"successful", "succeeded", "paid"}:
+            return web.json_response({"ok": True})
+
+        try:
+            # Credit tokens
+            await user_service.add_tokens_by_telegram_id(
+                telegram_id=telegram_id,
+                amount=int(tokens),
+                reason=LedgerReasonEnum.purchase_stars,
+            )
+        except Exception:
+            pass
+
+        try:
+            user = await user_service.get_user(telegram_id)
+            balance = user.balance if user else None
+            balance_text = f"*{balance}*" if balance is not None else "обновлён"
+            await bot.send_message(
+                telegram_id,
+                text=(
+                    f"✅ Оплата прошла успешно! Зачислено {tokens} токенов.\n\n"
+                    f"🪙 Твой баланс: {balance_text} токенов\n\n"
+                    "👇 Что хочешь сделать?"
+                ),
+                reply_markup=start_keyboard(BotModeEnum.passive),
+            )
+        except Exception:
+            pass
 
         return web.json_response({"ok": True})
 
@@ -252,6 +307,7 @@ async def _run(
         return web.json_response({"ok": True})
 
     webhooks_app.router.add_post('/yookassa', yookassa_handle)
+    webhooks_app.router.add_post('/bepaid', bepaid_handle)
     webhooks_app.router.add_post('/kie-image', kie_image_handle)
     webhooks_app.router.add_post('/kie-nano', kie_nano_handle)
     webhooks_app.router.add_post('/suno', suno_handle)

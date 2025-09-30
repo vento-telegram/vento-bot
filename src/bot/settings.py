@@ -30,6 +30,15 @@ class YookassaSettings(BaseSettings):
     SHOP_ID: str
     SECRET_KEY: str
 
+class BepaidSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="BEPAID__",
+        env_file=".env",
+        extra="ignore",
+    )
+    SHOP_ID: str | None = None
+    TOKEN: str | None = None
+
 class KIESettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="KIE__",
@@ -59,6 +68,7 @@ class Settings(BaseSettings):
     POSTGRES: PostgresSettings = PostgresSettings()
     OPENAI: OpenAISettings = OpenAISettings()
     YOOKASSA: YookassaSettings = YookassaSettings()
+    BEPAID: BepaidSettings = BepaidSettings()
     KIE: KIESettings = KIESettings()
     NEXUS: NexusSettings = NexusSettings()
     WEB_PORT: int = 8080
