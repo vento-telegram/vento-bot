@@ -84,3 +84,5 @@ def downgrade() -> None:
         bepay_curr_key = f"{tokens}_card_currency"
         conn.execute(sa.text("DELETE FROM settings WHERE key = :key"), {"key": bepay_price_key})
         conn.execute(sa.text("DELETE FROM settings WHERE key = :key"), {"key": bepay_curr_key})
+
+

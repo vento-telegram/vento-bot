@@ -60,8 +60,6 @@ class PaymentsService(AbcPaymentsService):
         secret = settings.BEPAY.SECRET_KEY
         if not (shop_id and secret):
             raise RuntimeError("bePaid credentials are not configured")
-        if not amount_minor or amount_minor <= 0:
-            raise RuntimeError("bePaid amount is not configured (minor units <= 0)")
 
         request_id = str(uuid.uuid4())
         auth_bytes = f"{shop_id}:{secret}".encode()
@@ -100,36 +98,23 @@ class PaymentsService(AbcPaymentsService):
             "Accept": "application/json",
             "RequestID": request_id,
         }
-        logger.debug(
-            "bePaid create checkout: user_id=%s tokens=%s amount_minor=%s currency=%s request_id=%s",
-            user_id, tokens, amount_minor, currency, request_id,
-        )
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=payload, headers=headers) as resp:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload, headers=headers) as resp:
+                if resp.status != 200:
                     text = await resp.text()
-                    if resp.status != 200:
-                        logger.error("bePaid checkout error status=%s body=%s", resp.status, text)
-                        raise RuntimeError("Failed to create bePaid checkout token")
-                    try:
-                        data = await resp.json()
-                    except Exception:
-                        logger.error("bePaid non-JSON response: %s", text)
-                        raise RuntimeError("Invalid bePaid response")
-
-                    obj = data.get("checkout") or data
-                    redirect = obj.get("redirect_url") or data.get("redirect_url")
-                    if not redirect:
-                        token = obj.get("token") or data.get("token")
-                        if token:
-                            redirect = f"{settings.BEPAY.CHECKOUT_BASE}/v2/confirm_order/{token}"
-                    if not redirect:
-                        logger.error("bePaid response missing redirect_url and token: %s", data)
-                        raise RuntimeError("bePaid did not return redirect_url")
-                    return redirect
-        except Exception:
-            logger.exception("bePaid checkout request failed")
-            raise
+                    logger.error("bePaid checkout error status=%s body=%s", resp.status, text)
+                    raise RuntimeError("Failed to create bePaid checkout token")
+                data = await resp.json()
+                checkout = data.get("checkout") or {}
+                redirect = checkout.get("redirect_url") or checkout.get("redirect_url".upper())
+                if not redirect:
+                    # Some responses return a token; build redirect url if provided
+                    token = checkout.get("token")
+                    if token:
+                        redirect = f"{settings.BEPAY.CHECKOUT_BASE}/v2/confirm_order/{token}"
+                if not redirect:
+                    raise RuntimeError("bePaid did not return redirect_url")
+                return redirect
 
     async def process_bepaid_webhook(self, payload: dict) -> Tuple[bool, int | None, int | None]:
         try:

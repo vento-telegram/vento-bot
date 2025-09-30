@@ -1,5 +1,4 @@
 from aiogram import Router, F
-import logging
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
@@ -34,7 +33,6 @@ from bot.enums import BotModeEnum
 from bot.interfaces.services.veo import AbcVeoService
 
 router = Router()
-logger = logging.getLogger(__name__)
 @router.callback_query(F.data == "set_mode:veo_video")
 @inject
 async def set_mode_veo_video(
@@ -704,7 +702,6 @@ async def pay_card(
     settings: AbcSettingsService = Provide[Container.settings_service],
 ):
     await call.answer()
-    logger.debug("pay_card: user=%s", call.from_user.id)
     bundle_token_amounts = [700, 1600, 4500, 11000, 28000]
     bundles: list[tuple[int, int, str]] = []
     for amount in bundle_token_amounts:
@@ -734,7 +731,6 @@ async def pay_card_bundle_selected(
     payments: AbcPaymentsService = Provide[Container.payments_service],
 ):
     await call.answer()
-    logger.debug("pay_card_bundle_selected: raw=%r user=%s", call.data, call.from_user.id)
     # Format: pay:card:{tokens}:{amount_minor}:{currency}
     try:
         _, _, tokens_s, amount_minor_s, currency = (call.data or "").split(":", maxsplit=4)
@@ -756,11 +752,7 @@ async def pay_card_bundle_selected(
                 "Нажми кнопку, чтобы перейти к оплате."),
             reply_markup=pay_link_keyboard(confirm_url),
         )
-    except Exception as e:
-        logger.exception(
-            "Failed to create bePaid checkout user=%s tokens=%s amount_minor=%s currency=%s",
-            call.from_user.id, tokens, amount_minor, currency,
-        )
+    except Exception:
         await call.message.edit_text(
             text=(
                 "☹️ Не удалось создать платёж. Попробуй ещё раз позже."),
