@@ -25,7 +25,6 @@ from bot.keyboards.suno import (
     suno_main_settings_keyboard,
 )
 from bot.keyboards.start import (
-    account_keyboard,
     start_keyboard,
 )
 from bot.keyboards.payments import payments_keyboard, payments_back_keyboard, ru_bundles_keyboard, ru_bundles_back_keyboard, pay_link_keyboard, stars_bundles_keyboard
@@ -513,39 +512,7 @@ async def set_gpt_image_size(
     except Exception:
         await call.message.edit_reply_markup(reply_markup=gpt_image_size_keyboard(size))
 
-@router.callback_query(F.data == "goto:account")
-@inject
-async def goto_account(
-    call: CallbackQuery,
-    service: AbcUserService = Provide[Container.user_service],
-    settings: AbcSettingsService = Provide[Container.settings_service],
-):
-    await call.answer()
-
-    first_name = call.from_user.first_name
-    last_name = call.from_user.last_name if call.from_user.last_name else None
-    username = call.from_user.username if call.from_user.username else None
-    user = await service.get_user(call.from_user.id)
-
-    display_name_parts = [first_name or ""]
-    if last_name:
-        display_name_parts.append(f" {last_name}")
-    if username:
-        display_name_parts.append(f" (@{username})")
-    display_name = "".join(display_name_parts)
-
-    daily_bonus = await settings.get_value("daily_bonus")
-
-    await call.message.edit_text(
-        text=(
-            f"🎟️ *Аккаунт*\n\n"
-            f"🐻‍❄️ *{display_name}*\n\n"
-            f"🪙 Баланс: *{user.balance}* токенов\n"
-            f"🎁 Ежедневно: *{daily_bonus}* токенов\n\n"
-            f"👇 Действия:"
-        ),
-        reply_markup=account_keyboard,
-    )
+ 
 @router.callback_query(F.data == "goto:replenish")
 @inject
 async def goto_replenish(
@@ -698,9 +665,11 @@ async def goto_start(
     await state.update_data(history=[])
     user, _ = await service.is_user_new(call.from_user)
     current_mode = (await state.get_data()).get('mode', BotModeEnum.passive)
+    daily_bonus = await settings.get_value("daily_bonus")
     text = (
         f"👋 Привет, *{call.from_user.first_name}*!\n\n"
-        f"🪙 Твой баланс: *{user.balance}* токенов\n\n"
+        f"🪙 Твой баланс: *{user.balance}* токенов\n"
+        f"🎁 Ежедневно: *{daily_bonus}* токенов\n\n"
         f"🤖 Текущий ИИ: *{current_mode}*\n"
     )
 

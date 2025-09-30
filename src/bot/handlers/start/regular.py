@@ -43,10 +43,12 @@ async def start_handler(
             )
         )
     current_mode = state_data.get('mode', BotModeEnum.passive)
+    daily_bonus = await settings_service.get_value("daily_bonus")
 
     text = (
         f"👋 Привет, *{message.from_user.first_name}*!\n\n"
-        f"🪙 Твой баланс: *{user.balance}* токенов\n\n"
+        f"🪙 Твой баланс: *{user.balance}* токенов\n"
+        f"🎁 Ежедневно: *{daily_bonus}* токенов\n\n"
         f"🤖 Текущий ИИ: *{current_mode}*\n"
     )
 
