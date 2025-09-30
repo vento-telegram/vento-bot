@@ -547,8 +547,7 @@ async def pay_ru(
     await call.message.edit_text(
         text=(
             "🇷🇺 *SberPay | T‑Pay | ЮMoney*\n\n"
-            "⚠️ Временно не принимаем оплату по номеру карты МИР.\n"
-            "Пожалуйста, используй SberPay, T‑Pay или ЮMoney.\n\n"
+            "💳 Для оплаты но номеру банковской карты используй способ оплаты \"Банковской картой\".\n\n"
             "Выбери пакет токенов:"),
         reply_markup=ru_bundles_keyboard(bundles),
     )
