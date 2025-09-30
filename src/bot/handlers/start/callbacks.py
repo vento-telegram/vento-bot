@@ -27,7 +27,7 @@ from bot.keyboards.suno import (
 from bot.keyboards.start import (
     start_keyboard,
 )
-from bot.keyboards.payments import payments_keyboard, payments_back_keyboard, ru_bundles_keyboard, ru_bundles_back_keyboard, pay_link_keyboard, stars_bundles_keyboard
+from bot.keyboards.payments import payments_keyboard, payments_back_keyboard, ru_bundles_keyboard, ru_bundles_back_keyboard, pay_link_keyboard, stars_bundles_keyboard, card_bundles_keyboard
 from bot.interfaces.services.payments import AbcPaymentsService
 from bot.enums import BotModeEnum
 from bot.interfaces.services.veo import AbcVeoService
@@ -693,6 +693,71 @@ async def goto_start(
         text=text,
         reply_markup=kb,
     )
+
+
+@router.callback_query(F.data == "pay:card")
+@inject
+async def pay_card(
+    call: CallbackQuery,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+):
+    await call.answer()
+    bundle_token_amounts = [700, 1600, 4500, 11000, 28000]
+    bundles: list[tuple[int, int, str]] = []
+    for amount in bundle_token_amounts:
+        # Expect keys like 700_card_price_minor and 700_card_currency
+        try:
+            price_minor_raw = await settings.get_value(f"{amount}_card_price_minor")
+            price_minor = int(price_minor_raw)
+        except Exception:
+            price_minor = 0
+        try:
+            currency = (await settings.get_value(f"{amount}_card_currency")).upper()
+        except Exception:
+            currency = "USD"
+        bundles.append((amount, price_minor, currency))
+    await call.message.edit_text(
+        text=(
+            "💳 *Банковская карта (bePaid)*\n\n"
+            "Выбери пакет токенов:"),
+        reply_markup=card_bundles_keyboard(bundles),
+    )
+
+
+@router.callback_query(F.data.startswith("pay:card:"))
+@inject
+async def pay_card_bundle_selected(
+    call: CallbackQuery,
+    payments: AbcPaymentsService = Provide[Container.payments_service],
+):
+    await call.answer()
+    # Format: pay:card:{tokens}:{amount_minor}:{currency}
+    try:
+        _, _, tokens_s, amount_minor_s, currency = (call.data or "").split(":", maxsplit=4)
+        tokens = int(tokens_s)
+        amount_minor = int(amount_minor_s)
+    except Exception:
+        tokens, amount_minor, currency = 0, 0, "USD"
+    try:
+        confirm_url = await payments.create_card_payment(
+            user_id=call.from_user.id,
+            tokens=tokens,
+            amount_minor=amount_minor,
+            currency=currency,
+        )
+        major = f"{amount_minor/100:.2f} {currency.upper()}"
+        await call.message.edit_text(
+            text=(
+                f"🧾 *Вы выбрали*: {tokens} токенов — {major}\n\n"
+                "Нажми кнопку, чтобы перейти к оплате."),
+            reply_markup=pay_link_keyboard(confirm_url),
+        )
+    except Exception:
+        await call.message.edit_text(
+            text=(
+                "☹️ Не удалось создать платёж. Попробуй ещё раз позже."),
+            reply_markup=ru_bundles_back_keyboard(),
+        )
 
 @router.callback_query(F.data == "goto:switch")
 @inject
