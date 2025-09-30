@@ -4,7 +4,6 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 def payments_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🇷🇺 SberPay | T‑Pay | ЮMoney", callback_data="pay:ru")],
-        [InlineKeyboardButton(text="💳 Банковская карта (bePaid)", callback_data="pay:card")],
         [InlineKeyboardButton(text="⭐ Звезды", callback_data="pay:stars")],
         [InlineKeyboardButton(text="🔙 Назад", callback_data="goto:start")],
     ])
@@ -95,37 +94,6 @@ async def stars_bundles_keyboard(settings_service) -> InlineKeyboardMarkup:
         label = f"{icon} {base_tokens} токенов{bonus_text} — {stars} ⭐{tag_text}"
         rows.append([InlineKeyboardButton(text=label, callback_data=f"pay:stars:{total_tokens}:{stars}")])
     
-    rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
-
-
-def card_bundles_keyboard(bundles: list[tuple[int, int, str]]) -> InlineKeyboardMarkup:
-    icons_map: dict[int, str] = {
-        700: "🐣",
-        1600: "🎯",
-        4500: "👑",
-        11000: "💎",
-        28000: "🚀",
-    }
-    bonus_map: dict[int, int] = {
-        700: 0,
-        1600: 200,
-        4500: 900,
-        11000: 2100,
-        28000: 8000,
-    }
-    tag_map: dict[int, str] = {
-        4500: " 🔥",
-    }
-    rows: list[list[InlineKeyboardButton]] = []
-    for tokens, amount_minor, currency in bundles:
-        icon = icons_map.get(tokens, "🎁")
-        bonus = bonus_map.get(tokens, 0)
-        bonus_text = f" (+{bonus} 🎁)" if bonus else ""
-        tag_text = tag_map.get(tokens, "")
-        # Show major units with 2 decimals
-        value_major = f"{amount_minor/100:.2f} {currency.upper()}"
-        rows.append([InlineKeyboardButton(text=f"{icon} {tokens} токенов{bonus_text} — {value_major}{tag_text}", callback_data=f"pay:card:{tokens}:{amount_minor}:{currency.upper()}")])
     rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 

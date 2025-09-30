@@ -6,10 +6,6 @@ bukhavets.com {
         reverse_proxy bot:8080
     }
 
-    handle /webhooks/bepaid* {
-        reverse_proxy bot:8080
-    }
-
     handle /webhooks/kie-image* {
         reverse_proxy bot:8080
     }

@@ -30,21 +30,6 @@ class YookassaSettings(BaseSettings):
     SHOP_ID: str
     SECRET_KEY: str
 
-class BePaidSettings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_prefix="BEPAY__",
-        env_file=".env",
-        extra="ignore",
-    )
-    SHOP_ID: str | None = None
-    SECRET_KEY: str | None = None
-    PUBLIC_KEY: str | None = None
-    TEST: bool = True
-    CALLBACK_BASE: str = "https://bukhavets.com"
-    GATEWAY_BASE: str = "https://gateway.bepaid.by"
-    API_BASE: str = "https://api.bepaid.by"
-    CHECKOUT_BASE: str = "https://checkout.bepaid.by"
-
 class KIESettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="KIE__",
@@ -74,7 +59,6 @@ class Settings(BaseSettings):
     POSTGRES: PostgresSettings = PostgresSettings()
     OPENAI: OpenAISettings = OpenAISettings()
     YOOKASSA: YookassaSettings = YookassaSettings()
-    BEPAY: BePaidSettings = BePaidSettings()
     KIE: KIESettings = KIESettings()
     NEXUS: NexusSettings = NexusSettings()
     WEB_PORT: int = 8080

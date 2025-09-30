@@ -79,54 +79,6 @@ async def _run(
             return web.json_response({"ok": True})
         return web.json_response({"ok": True})
 
-    async def bepaid_handle(request: web.Request):
-        # bePaid sends Basic auth with Shop ID and Secret Key; optional to verify here.
-        try:
-            body = await request.json()
-        except Exception:
-            return web.json_response({"status": "bad json"}, status=400)
-        try:
-            ok, telegram_id, tokens = await payments.process_bepaid_webhook(body)
-            if ok and telegram_id and tokens:
-                try:
-                    user = await user_service.get_user(int(telegram_id))
-                    if user:
-                        text = (
-                            f"✅ Оплата прошла успешно! Зачислено {tokens} токенов.\n\n"
-                            f"🪙 Твой баланс: *{user.balance}* токенов\n\n"
-                            "👇 Что хочешь сделать?"
-                        )
-                        await bot.send_message(int(telegram_id), text, reply_markup=start_keyboard(BotModeEnum.passive))
-                except Exception:
-                    pass
-            return web.json_response({"ok": ok})
-        except Exception:
-            logger.exception("bepaid webhook error")
-            return web.json_response({"ok": False}, status=500)
-
-    async def bepaid_redirect_handle(request: web.Request):
-        status = request.query.get('status') or 'success'
-        status_map = {
-            'success': '✅ Оплата успешно выполнена',
-            'fail': '❌ Оплата не выполнена',
-            'decline': '❌ Оплата отклонена',
-            'cancel': '⚠️ Оплата отменена',
-        }
-        text = status_map.get(status, 'ℹ️ Статус оплаты получен')
-        html = f"""
-<!doctype html>
-<html lang=ru>
-  <meta charset=utf-8>
-  <meta name=viewport content="width=device-width,initial-scale=1">
-  <title>Vento — Оплата</title>
-  <body style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; padding: 24px;">
-    <h2>{text}</h2>
-    <p>Можете вернуться в Telegram — бот пришлёт результат автоматически.</p>
-  </body>
-</html>
-"""
-        return web.Response(text=html, content_type='text/html')
-
     async def kie_image_handle(request: web.Request):
         user_id = request.query.get('user_id')
         try:
@@ -300,8 +252,6 @@ async def _run(
         return web.json_response({"ok": True})
 
     webhooks_app.router.add_post('/yookassa', yookassa_handle)
-    webhooks_app.router.add_post('/bepaid', bepaid_handle)
-    webhooks_app.router.add_get('/bepaid', bepaid_redirect_handle)
     webhooks_app.router.add_post('/kie-image', kie_image_handle)
     webhooks_app.router.add_post('/kie-nano', kie_nano_handle)
     webhooks_app.router.add_post('/suno', suno_handle)
