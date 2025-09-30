@@ -668,8 +668,8 @@ async def goto_start(
     daily_bonus = await settings.get_value("daily_bonus")
     text = (
         f"👋 Привет, *{call.from_user.first_name}*!\n\n"
-        f"🪙 Твой баланс: *{user.balance}* токенов\n"
-        f"🎁 Ежедневно: *{daily_bonus}* токенов\n\n"
+        f"🪙 Твой баланс: *{user.balance}* токенов\n\n"
+        f"⚡ Ежедневно: до*{daily_bonus}* токенов\n\n"
         f"🤖 Текущий ИИ: *{current_mode}*\n"
     )
 

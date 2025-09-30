@@ -47,8 +47,8 @@ async def start_handler(
 
     text = (
         f"👋 Привет, *{message.from_user.first_name}*!\n\n"
-        f"🪙 Твой баланс: *{user.balance}* токенов\n"
-        f"🎁 Ежедневно: *{daily_bonus}* токенов\n\n"
+        f"🪙 Твой баланс: *{user.balance}* токенов\n\n"
+        f"⚡ Ежедневно: до *{daily_bonus}* токенов\n\n"
         f"🤖 Текущий ИИ: *{current_mode}*\n"
     )
 
