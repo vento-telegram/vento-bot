@@ -43,6 +43,9 @@ async def common_message_handler(
     veo_service: AbcVeoService = Provide[Container.veo_service],
     user_service: AbcUserService = Provide[Container.user_service],
 ):
+    # Ignore slash-commands to avoid conflicts with command routers
+    if (message.text or "").strip().startswith("/"):
+        return
     state_data = await state.get_data()
     mode = state_data.get("mode")
     user = await user_service.get_user(message.from_user.id)

@@ -1,17 +1,16 @@
 import logging
 from typing import Tuple
 
-from aiogram import Router, F
+from aiogram import Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import Message
+from aiogram.filters import Command
 from dependency_injector.wiring import Provide, inject
 
 from bot.container import Container
 from bot.interfaces.services.user import AbcUserService
-from bot.keyboards.admin import admin_main_keyboard, admin_back_keyboard
-from bot.keyboards.start import start_keyboard
-from bot.enums import LedgerReasonEnum, BotModeEnum
+from bot.enums import LedgerReasonEnum
 
 
 logger = logging.getLogger(__name__)
@@ -34,86 +33,127 @@ async def _ensure_admin(user_service: AbcUserService, telegram_id: int) -> Tuple
     return True, bool(user.is_admin)
 
 
-@router.callback_query(F.data == "goto:admin")
+@router.message(Command("admin"))
 @inject
-async def open_admin(
-    call: CallbackQuery,
+async def admin_help(
+    message: Message,
     user_service: AbcUserService = Provide[Container.user_service],
 ):
-    exists, is_admin = await _ensure_admin(user_service, call.from_user.id)
+    exists, is_admin = await _ensure_admin(user_service, message.from_user.id)
     if not exists or not is_admin:
-        try:
-            await call.answer("Раздел доступен только администраторам", show_alert=True)
-        except Exception:
-            pass
+        await message.answer("Раздел доступен только администраторам")
         return
-    await call.message.edit_text(
-        "Админ-панель. Выберите действие:",
-        reply_markup=admin_main_keyboard(),
+    await message.answer(
+        (
+            "🛠 Админ-команды:\n"
+            "/addtokens @username amount — начислить токены\n"
+            "/block @username — заблокировать пользователя\n"
+            "/unblock @username — разблокировать пользователя"
+        )
     )
 
 
-@router.callback_query(F.data == "admin:add_tokens")
+@router.message(Command("addtokens"))
 @inject
-async def admin_add_tokens_prompt(
-    call: CallbackQuery,
+async def admin_add_tokens_command(
+    message: Message,
     state: FSMContext,
     user_service: AbcUserService = Provide[Container.user_service],
 ):
-    exists, is_admin = await _ensure_admin(user_service, call.from_user.id)
+    exists, is_admin = await _ensure_admin(user_service, message.from_user.id)
     if not exists or not is_admin:
-        try:
-            await call.answer("Недостаточно прав", show_alert=True)
-        except Exception:
-            pass
+        await message.answer("Недостаточно прав")
         return
+    # Try parse arguments: /addtokens @user 100
+    text = (message.text or "").replace("\n", " ").strip()
+    parts = text.split()
+    username = None
+    amount = None
+    if len(parts) >= 3:
+        # parts[0] is command
+        raw_user = parts[1]
+        if raw_user.startswith("@"): raw_user = raw_user[1:]
+        username = raw_user
+        try:
+            amount = int(parts[2])
+        except Exception:
+            amount = None
+    if username and isinstance(amount, int) and amount > 0:
+        updated = await user_service.add_tokens_by_username(
+            username=username,
+            amount=amount,
+            reason=LedgerReasonEnum.admin_adjustment,
+        )
+        if not updated:
+            await message.answer(f"Пользователь @{username} не найден")
+            return
+        await message.answer(
+            f"Зачислено {amount} токенов пользователю @{username}. Текущий баланс: {updated.balance}"
+        )
+        return
+    # Fallback to state flow
     await state.set_state(AdminStates.add_tokens)
-    await call.message.edit_text(
+    await message.answer(
         "Введите в одной строке: @username и количество токенов. Пример: @username 100",
-        reply_markup=admin_back_keyboard(),
     )
 
 
-@router.callback_query(F.data == "admin:block")
+@router.message(Command("block"))
 @inject
-async def admin_block_prompt(
-    call: CallbackQuery,
+async def admin_block_command(
+    message: Message,
     state: FSMContext,
     user_service: AbcUserService = Provide[Container.user_service],
 ):
-    exists, is_admin = await _ensure_admin(user_service, call.from_user.id)
+    exists, is_admin = await _ensure_admin(user_service, message.from_user.id)
     if not exists or not is_admin:
-        try:
-            await call.answer("Недостаточно прав", show_alert=True)
-        except Exception:
-            pass
+        await message.answer("Недостаточно прав")
+        return
+    text = (message.text or "").replace("\n", " ").strip()
+    parts = text.split()
+    username = None
+    if len(parts) >= 2:
+        raw = parts[1]
+        if raw.startswith("@"): raw = raw[1:]
+        username = raw
+    if username:
+        updated = await user_service.block_user_by_username(username)
+        if not updated:
+            await message.answer(f"Пользователь @{username} не найден")
+            return
+        await message.answer(f"Пользователь @{username} заблокирован")
         return
     await state.set_state(AdminStates.block_user)
-    await call.message.edit_text(
-        "Введите @username пользователя для блокировки",
-        reply_markup=admin_back_keyboard(),
-    )
+    await message.answer("Введите @username пользователя для блокировки")
 
 
-@router.callback_query(F.data == "admin:unblock")
+@router.message(Command("unblock"))
 @inject
-async def admin_unblock_prompt(
-    call: CallbackQuery,
+async def admin_unblock_command(
+    message: Message,
     state: FSMContext,
     user_service: AbcUserService = Provide[Container.user_service],
 ):
-    exists, is_admin = await _ensure_admin(user_service, call.from_user.id)
+    exists, is_admin = await _ensure_admin(user_service, message.from_user.id)
     if not exists or not is_admin:
-        try:
-            await call.answer("Недостаточно прав", show_alert=True)
-        except Exception:
-            pass
+        await message.answer("Недостаточно прав")
+        return
+    text = (message.text or "").replace("\n", " ").strip()
+    parts = text.split()
+    username = None
+    if len(parts) >= 2:
+        raw = parts[1]
+        if raw.startswith("@"): raw = raw[1:]
+        username = raw
+    if username:
+        updated = await user_service.unblock_user_by_username(username)
+        if not updated:
+            await message.answer(f"Пользователь @{username} не найден")
+            return
+        await message.answer(f"Пользователь @{username} разблокирован")
         return
     await state.set_state(AdminStates.unblock_user)
-    await call.message.edit_text(
-        "Введите @username пользователя для разблокировки",
-        reply_markup=admin_back_keyboard(),
-    )
+    await message.answer("Введите @username пользователя для разблокировки")
 
 
 def _parse_username_and_amount(text: str) -> tuple[str | None, int | None]:
@@ -149,19 +189,17 @@ async def admin_add_tokens_handle(
     if not username or amount is None:
         await message.answer(
             "Неверный формат. Введите: @username и число токенов. Пример: @user 100",
-            reply_markup=admin_back_keyboard(),
         )
         return
 
     updated = await user_service.add_tokens_by_username(username=username, amount=amount, reason=LedgerReasonEnum.admin_adjustment)
     if not updated:
-        await message.answer(f"Пользователь @{username} не найден", reply_markup=admin_back_keyboard())
+        await message.answer(f"Пользователь @{username} не найден")
         return
-
+    
     await state.clear()
     await message.answer(
         f"Зачислено {amount} токенов пользователю @{username}. Текущий баланс: {updated.balance}",
-        reply_markup=admin_main_keyboard(),
     )
 
 
@@ -189,14 +227,14 @@ async def admin_block_handle(
 
     username = _parse_username_only(message.text or "")
     if not username:
-        await message.answer("Укажите @username", reply_markup=admin_back_keyboard())
+        await message.answer("Укажите @username")
         return
     updated = await user_service.block_user_by_username(username)
     if not updated:
-        await message.answer(f"Пользователь @{username} не найден", reply_markup=admin_back_keyboard())
+        await message.answer(f"Пользователь @{username} не найден")
         return
     await state.clear()
-    await message.answer(f"Пользователь @{username} заблокирован", reply_markup=admin_main_keyboard())
+    await message.answer(f"Пользователь @{username} заблокирован")
 
 
 @router.message(AdminStates.unblock_user)
@@ -214,12 +252,12 @@ async def admin_unblock_handle(
 
     username = _parse_username_only(message.text or "")
     if not username:
-        await message.answer("Укажите @username", reply_markup=admin_back_keyboard())
+        await message.answer("Укажите @username")
         return
     updated = await user_service.unblock_user_by_username(username)
     if not updated:
-        await message.answer(f"Пользователь @{username} не найден", reply_markup=admin_back_keyboard())
+        await message.answer(f"Пользователь @{username} не найден")
         return
     await state.clear()
-    await message.answer(f"Пользователь @{username} разблокирован", reply_markup=admin_main_keyboard())
+    await message.answer(f"Пользователь @{username} разблокирован")
 

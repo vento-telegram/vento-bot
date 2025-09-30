@@ -59,11 +59,6 @@ async def start_handler(
     text += "👇 Что хочешь сделать?"
 
     kb = start_keyboard(current_mode)
-    try:
-        if bool(user.is_admin):
-            kb.inline_keyboard.insert(0, [InlineKeyboardButton(text="🛠 Админка", callback_data="goto:admin")])
-    except Exception:
-        pass
 
     await message.answer(
         text=text,
