@@ -72,7 +72,7 @@ class PaymentsService(AbcPaymentsService):
         payload: dict[str, Any] = {
             "checkout": {
                 "transaction_type": "payment",
-                "test": False,
+                "test": True,
                 "order": {
                     # BePaid expects minor currency units (kopeks)
                     "amount": int(price_rub) * 100,
