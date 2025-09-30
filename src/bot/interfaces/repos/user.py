@@ -32,3 +32,7 @@ class AbcUserRepo(AbcRepo[UserEntity]):
     @abstractmethod
     async def list_with_balance_lt(self, threshold: int) -> list[UserEntity]:
         """Return all users with balance lower than given threshold."""
+
+    @abstractmethod
+    async def try_debit(self, user_id: int, amount: int) -> UserEntity | None:
+        """Atomically subtract amount if balance is sufficient; return updated entity, else None."""

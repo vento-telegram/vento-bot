@@ -68,3 +68,16 @@ class UserRepo(AbcUserRepo, BaseRepo):
         res = await self.session.scalars(stmt)
         models = list(res.all())
         return [self.map_model_to_entity(m) for m in models]
+
+    async def try_debit(self, user_id: int, amount: int) -> UserEntity | None:
+        # Only debit if balance is sufficient to avoid negatives (single SQL atomic check)
+        stmt = (
+            update(UserOrm)
+            .where(UserOrm.id == user_id)
+            .where(UserOrm.balance >= amount)
+            .values(balance=UserOrm.balance - amount)
+            .returning(UserOrm)
+        )
+        result = await self.session.execute(stmt)
+        user = result.scalar_one_or_none()
+        return self.map_model_to_entity(user) if user else None

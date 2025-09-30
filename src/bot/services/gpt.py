@@ -47,21 +47,25 @@ class OpenAIService(AbcOpenAIService):
         if user.balance < request_price:
             raise InsufficientBalanceError
 
+        # Pre-charge before calling the model to prevent negative balances on multiple parallel requests
+        # We still keep an early balance check above for UX, but enforce atomic debit here
+        # Build request object first to include in meta
         gpt_request = await self._transform_for_gpt(message)
         history.append(gpt_request)
+
+        # Perform atomic debit; if it fails due to race/insufficient balance, raise error
+        meta_preview = self._make_meta(gpt_request, ChatCompletionAssistantMessageParam(role="assistant", content=""))
+        async with self._uow:
+            updated_user = await self._uow.user.try_debit(user.id, request_price)
+            if not updated_user:
+                raise InsufficientBalanceError
+            await self._uow.ledger.add(
+                LedgerEntity(user_id=user.id, delta=-request_price, reason=LedgerReasonEnum.gpt_request, meta=meta_preview)
+            )
 
         gpt_response = await self._get_gpt_response(history, mode)
         history.append(gpt_response)
         await state.update_data(history=history[-10:])
-
-        meta_json = self._make_meta(gpt_request, gpt_response)
-
-        await self._process_tokens_transaction(
-            user_id=user.id,
-            amount=request_price,
-            reason=LedgerReasonEnum.gpt_request,
-            meta=meta_json,
-        )
 
         telegram_response = GPTMessageResponse(text=gpt_response.get("content"))
 
