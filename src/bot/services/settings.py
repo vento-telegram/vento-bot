@@ -6,7 +6,7 @@ class SettingsService(AbcSettingsService):
     def __init__(self, uow: AbcUnitOfWork):
         self._uow = uow
 
-    async def get_value(self, key: str) -> str:
+    async def get_value(self, key: str) -> str | None:
         async with self._uow:
             settings = await self._uow.settings.get_by_key(key)
         return settings.value
