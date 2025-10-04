@@ -1,6 +1,7 @@
 import logging
-from aiohttp import web
+
 from aiogram import Bot
+from aiohttp import web
 
 logger = logging.getLogger(__name__)
 

@@ -2,10 +2,9 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
+from bot.database.connection import long_operation_db
 from bot.database.models import metadata
 from bot.settings import settings
-
-from bot.database.connection import long_operation_db
 
 config = context.config
 

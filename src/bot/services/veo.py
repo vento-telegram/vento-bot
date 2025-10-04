@@ -1,24 +1,21 @@
+import asyncio
 import json
 import logging
-import asyncio
 import time
 from typing import Any
 
-from aiohttp import ClientSession, ClientTimeout, ClientError
-
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
+from aiohttp import ClientError, ClientSession, ClientTimeout
 
-from bot.constants import settings_models_mapper
 from bot.entities.ledger import LedgerEntity
 from bot.entities.user import UserEntity
-from bot.enums import BotModeEnum, LedgerReasonEnum
+from bot.enums import LedgerReasonEnum
 from bot.errors import InsufficientBalanceError
-from bot.interfaces.services.veo import AbcVeoService
 from bot.interfaces.services.settings import AbcSettingsService
+from bot.interfaces.services.veo import AbcVeoService
 from bot.interfaces.uow import AbcUnitOfWork
 from bot.settings import settings
-
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +101,7 @@ class VeoService(AbcVeoService):
                         await message.answer(f"☹️ Не удалось запустить генерацию видео: {msg}")
                         logger.warning("veo_request_no_task_id", extra={"user_id": user.id})
                         return
-            except (ClientError, asyncio.TimeoutError) as e:
+            except (ClientError, asyncio.TimeoutError):
                 await message.answer("☹️ Не удалось связаться с сервисом генерации. Попробуй ещё раз позже.")
                 logger.exception("veo_request_network_error", extra={"user_id": user.id})
                 return

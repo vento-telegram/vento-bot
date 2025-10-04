@@ -5,12 +5,12 @@ Revises: 202509140000
 Create Date: 2025-09-14 01:00:00.000000
 
 """
+import datetime
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
-import datetime
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '202509140100'

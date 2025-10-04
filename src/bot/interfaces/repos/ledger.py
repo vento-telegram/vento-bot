@@ -1,8 +1,8 @@
 from abc import abstractmethod
 
 from bot.entities.ledger import LedgerEntity
-from bot.schemas import RequestsCounts, UserTotals
 from bot.interfaces.repos.base import AbcRepo
+from bot.schemas import RequestsCounts, UserTotals
 
 
 class AbcLedgerRepo(AbcRepo[LedgerEntity]):

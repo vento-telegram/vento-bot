@@ -1,9 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from bot.interfaces.uow import AbcUnitOfWork
-from bot.repos.user import UserRepo
-from bot.repos.settings import SettingsRepo
 from bot.repos.ledger import LedgerRepo
+from bot.repos.settings import SettingsRepo
+from bot.repos.user import UserRepo
 
 
 class Uow(AbcUnitOfWork):

@@ -1,6 +1,5 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-
 SUNO_STYLE_PRESETS: list[tuple[str, str]] = [
     ("pop", "Pop"),
     ("rock", "Rock"),

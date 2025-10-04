@@ -1,8 +1,8 @@
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Annotated
 
-from sqlalchemy import MetaData, func, Boolean, BigInteger
-from sqlalchemy.orm import Mapped, mapped_column, declarative_mixin, DeclarativeBase
+from sqlalchemy import BigInteger, Boolean, MetaData, func
+from sqlalchemy.orm import DeclarativeBase, Mapped, declarative_mixin, mapped_column
 
 metadata = MetaData()
 

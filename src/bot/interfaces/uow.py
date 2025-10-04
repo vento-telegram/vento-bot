@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 from types import TracebackType
 from typing import Self
 
-from bot.interfaces.repos.user import AbcUserRepo
-from bot.interfaces.repos.settings import AbcSettingsRepo
 from bot.interfaces.repos.ledger import AbcLedgerRepo
+from bot.interfaces.repos.settings import AbcSettingsRepo
+from bot.interfaces.repos.user import AbcUserRepo
 
 
 class AbcUnitOfWork(ABC):

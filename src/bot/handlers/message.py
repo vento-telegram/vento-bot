@@ -1,28 +1,24 @@
 import logging
 
 from aiogram import Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-from dependency_injector.wiring import inject, Provide
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
+from dependency_injector.wiring import Provide, inject
 
 from bot.container import Container
 from bot.enums import BotModeEnum
-from bot.errors import OpenAIBadRequestError, InsufficientBalanceError
+from bot.errors import InsufficientBalanceError, OpenAIBadRequestError
 from bot.interfaces.services.gpt import AbcOpenAIService
-from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.suno import AbcSunoService
+from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.veo import AbcVeoService
 from bot.keyboards.change_ai import mode_keyboard
 from bot.keyboards.suno import (
-    suno_styles_keyboard,
-    suno_prompt_keyboard,
-    suno_back_keyboard,
-    suno_vocals_keyboard,
-    suno_input_mode_keyboard,
     suno_main_settings_keyboard,
+    suno_prompt_keyboard,
 )
 from bot.utils.telegram_format import prepare_telegram_messages_from_markdown
-from aiogram.exceptions import TelegramBadRequest
 
 logger = logging.getLogger(__name__)
 

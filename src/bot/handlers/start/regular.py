@@ -1,18 +1,16 @@
 import logging
 
 from aiogram import Router
-from aiogram.enums import ParseMode
-from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, InlineKeyboardButton
 from aiogram.filters import CommandStart
-from dependency_injector.wiring import inject, Provide
-from sqlalchemy.orm import mapper
+from aiogram.fsm.context import FSMContext
+from aiogram.types import Message
+from dependency_injector.wiring import Provide, inject
 
 from bot.constants import settings_models_mapper
 from bot.container import Container
 from bot.enums import BotModeEnum
-from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.settings import AbcSettingsService
+from bot.interfaces.services.user import AbcUserService
 from bot.keyboards.start import start_keyboard
 
 logger = logging.getLogger(__name__)

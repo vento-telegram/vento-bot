@@ -1,3 +1,6 @@
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -8,16 +11,12 @@ from openai import AsyncOpenAI
 from bot.database.connection import AlchemyDatabase
 from bot.database.uow import Uow
 from bot.services.gpt import OpenAIService
-from bot.services.user import UserService
-from bot.services.settings import SettingsService
 from bot.services.payments import PaymentsService
+from bot.services.settings import SettingsService
 from bot.services.suno import SunoService
+from bot.services.user import UserService
 from bot.services.veo import VeoService
 from bot.settings import settings
-
-
-from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 
 class Container(containers.DeclarativeContainer):

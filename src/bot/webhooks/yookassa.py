@@ -1,13 +1,13 @@
-import json
 import logging
-from aiohttp import web
+
 from aiogram import Bot
-from bot.interfaces.services.user import AbcUserService
-from bot.interfaces.services.settings import AbcSettingsService
-from bot.keyboards.start import start_keyboard
+from aiohttp import web
+
 from bot.enums import BotModeEnum
 from bot.interfaces.services.payments import AbcPaymentsService
-
+from bot.interfaces.services.settings import AbcSettingsService
+from bot.interfaces.services.user import AbcUserService
+from bot.keyboards.start import start_keyboard
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from typing import List
 
-
 CODE_FENCE_RE = re.compile(r"```[ \t]*([a-zA-Z0-9_+-]+)?\n")
 
 

@@ -3,7 +3,12 @@ from typing import Any, AsyncGenerator, Callable
 
 import orjson
 from pydantic_core import to_jsonable_python as pydantic_encoder
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from bot.settings import PostgresSettings
 from bot.settings import settings as config

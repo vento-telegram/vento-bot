@@ -2,16 +2,15 @@ import logging
 from typing import Tuple
 
 from aiogram import Router
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import Message
 from dependency_injector.wiring import Provide, inject
 
 from bot.container import Container
-from bot.interfaces.services.user import AbcUserService
 from bot.enums import LedgerReasonEnum
-
+from bot.interfaces.services.user import AbcUserService
 
 logger = logging.getLogger(__name__)
 

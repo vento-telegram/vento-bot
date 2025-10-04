@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 from typing import Tuple
 
 from aiogram.types import User as TelegramUser
-from bot.enums import LedgerReasonEnum
 
 from bot.entities.user import UserEntity
+from bot.enums import LedgerReasonEnum
 
 
 class AbcUserService(ABC):

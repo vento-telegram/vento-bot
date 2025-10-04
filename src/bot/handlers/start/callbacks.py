@@ -1,36 +1,42 @@
-from aiogram import Router, F
-from aiogram.enums import ParseMode
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery,
     Message,
     PreCheckoutQuery,
-    InlineKeyboardButton,
 )
 from dependency_injector.wiring import Provide, inject
 
 from bot.constants import settings_models_mapper
 from bot.container import Container
 from bot.enums import BotModeEnum, LedgerReasonEnum
-from bot.interfaces.services.user import AbcUserService
+from bot.interfaces.services.payments import AbcPaymentsService
 from bot.interfaces.services.settings import AbcSettingsService
-from bot.keyboards.change_ai import mode_keyboard, gpt_image_size_keyboard
-from bot.keyboards.veo import veo_aspect_keyboard, veo_quality_keyboard, veo_main_settings_keyboard
-from bot.keyboards.suno import (
-    suno_styles_keyboard,
-    suno_back_keyboard,
-    suno_vocals_keyboard,
-    suno_prompt_keyboard,
-    suno_input_mode_keyboard,
-    suno_main_settings_keyboard,
+from bot.interfaces.services.user import AbcUserService
+from bot.keyboards.change_ai import gpt_image_size_keyboard, mode_keyboard
+from bot.keyboards.payments import (
+    card_bundles_keyboard,
+    pay_link_keyboard,
+    payments_keyboard,
+    ru_bundles_back_keyboard,
+    ru_bundles_keyboard,
+    stars_bundles_keyboard,
 )
 from bot.keyboards.start import (
     start_keyboard,
 )
-from bot.keyboards.payments import payments_keyboard, payments_back_keyboard, ru_bundles_keyboard, ru_bundles_back_keyboard, pay_link_keyboard, stars_bundles_keyboard, card_bundles_keyboard
-from bot.interfaces.services.payments import AbcPaymentsService
-from bot.enums import BotModeEnum
-from bot.interfaces.services.veo import AbcVeoService
+from bot.keyboards.suno import (
+    suno_back_keyboard,
+    suno_input_mode_keyboard,
+    suno_main_settings_keyboard,
+    suno_styles_keyboard,
+    suno_vocals_keyboard,
+)
+from bot.keyboards.veo import (
+    veo_aspect_keyboard,
+    veo_main_settings_keyboard,
+    veo_quality_keyboard,
+)
 
 router = Router()
 @router.callback_query(F.data == "set_mode:veo_video")

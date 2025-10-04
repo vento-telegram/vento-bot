@@ -1,14 +1,14 @@
 import logging
 from typing import Tuple
 
+from aiogram.types import User as TelegramUser
+
+from bot.entities.ledger import LedgerEntity
 from bot.entities.user import UserDTO, UserEntity
 from bot.enums import LedgerReasonEnum
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.uow import AbcUnitOfWork
-from aiogram.types import User as TelegramUser
-from bot.entities.ledger import LedgerEntity
-from bot.settings import settings
 
 logger = logging.getLogger(__name__)
 

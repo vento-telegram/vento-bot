@@ -21,6 +21,7 @@ class OpenAISettings(BaseSettings):
     )
     API_KEY: str
 
+
 class YookassaSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="YOOKASSA__",
@@ -30,6 +31,7 @@ class YookassaSettings(BaseSettings):
     SHOP_ID: str
     SECRET_KEY: str
 
+
 class BepaidSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="BEPAID__",
@@ -38,6 +40,7 @@ class BepaidSettings(BaseSettings):
     )
     SHOP_ID: str | None = None
     TOKEN: str | None = None
+
 
 class KIESettings(BaseSettings):
     model_config = SettingsConfigDict(

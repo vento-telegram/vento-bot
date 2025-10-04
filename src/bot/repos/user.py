@@ -1,7 +1,7 @@
-from sqlalchemy import select, insert, update
+from sqlalchemy import insert, select, update
 
 from bot.database.models import UserOrm
-from bot.entities.user import UserEntity, UserDTO
+from bot.entities.user import UserDTO, UserEntity
 from bot.interfaces.repos.base import DataMapper
 from bot.interfaces.repos.user import AbcUserRepo
 from bot.repos.base import BaseRepo

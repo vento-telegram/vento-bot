@@ -1,28 +1,29 @@
-import logging
-import json
 import asyncio
+import json
+import logging
 from typing import Any
 
-from aiohttp import ClientSession
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
+from aiohttp import ClientSession
 from openai import OpenAI as OpenAIClient
+from openai.types.chat import (
+    ChatCompletionAssistantMessageParam,
+    ChatCompletionContentPartImageParam,
+    ChatCompletionContentPartTextParam,
+    ChatCompletionMessageParam,
+    ChatCompletionUserMessageParam,
+)
 
 from bot.constants import settings_models_mapper
+from bot.entities.ledger import LedgerEntity
 from bot.entities.user import UserEntity
 from bot.enums import BotModeEnum, LedgerReasonEnum
 from bot.errors import InsufficientBalanceError
 from bot.interfaces.services.gpt import AbcOpenAIService
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.interfaces.uow import AbcUnitOfWork
-from openai.types.chat import (
-    ChatCompletionUserMessageParam,
-    ChatCompletionAssistantMessageParam, ChatCompletionMessageParam, ChatCompletionContentPartTextParam,
-    ChatCompletionContentPartImageParam
-)
-
 from bot.schemas import GPTMessageResponse
-from bot.entities.ledger import LedgerEntity
 from bot.settings import settings
 
 logger = logging.getLogger(__name__)

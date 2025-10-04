@@ -5,7 +5,6 @@ from aiogram.types import Message
 
 from bot.entities.user import UserEntity
 from bot.schemas import GPTMessageResponse
-from openai.types.chat import ChatCompletionMessageParam
 
 
 class AbcOpenAIService(ABC):

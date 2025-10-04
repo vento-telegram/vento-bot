@@ -2,21 +2,19 @@ import json
 import logging
 from typing import Any
 
-from aiohttp import ClientSession
-
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
+from aiohttp import ClientSession
 
 from bot.constants import settings_models_mapper
 from bot.entities.ledger import LedgerEntity
 from bot.entities.user import UserEntity
 from bot.enums import BotModeEnum, LedgerReasonEnum
 from bot.errors import InsufficientBalanceError
-from bot.interfaces.services.suno import AbcSunoService
 from bot.interfaces.services.settings import AbcSettingsService
+from bot.interfaces.services.suno import AbcSunoService
 from bot.interfaces.uow import AbcUnitOfWork
 from bot.settings import settings
-
 
 logger = logging.getLogger(__name__)
 
