@@ -687,7 +687,6 @@ async def pay_stars_bundle_selected(
         )
         return
 
-    # Create invoice payload for processing in successful_payment handler
     payload = f"stars:{tokens_int}:{stars_int}"
 
     try:
@@ -709,14 +708,6 @@ async def pay_stars_bundle_selected(
             send_email_to_provider=False,
             send_phone_number_to_provider=False,
             is_flexible=False,
-        )
-        await call.message.edit_text(
-            text=(
-                "💳 *Купить токены звёздами*\n\n"
-                f"🧾 Вы выбрали: {tokens_int} токенов — {stars_int} ⭐\n\n"
-                "Нажми кнопку выше, чтобы оплатить."
-            ),
-            reply_markup=payments_back_keyboard(),
         )
     except Exception as e:
         await call.message.edit_text(
