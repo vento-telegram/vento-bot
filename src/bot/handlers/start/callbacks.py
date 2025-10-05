@@ -1,7 +1,8 @@
-from aiogram import F, Router
+from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery,
+    LabeledPrice,
     Message,
     PreCheckoutQuery,
 )
@@ -17,6 +18,7 @@ from bot.keyboards.change_ai import gpt_image_size_keyboard, mode_keyboard
 from bot.keyboards.payments import (
     card_bundles_keyboard,
     pay_link_keyboard,
+    payments_back_keyboard,
     payments_keyboard,
     ru_bundles_back_keyboard,
     ru_bundles_keyboard,
@@ -658,6 +660,69 @@ async def pay_stars(
             "Выберите пакет токенов:"),
         reply_markup=await stars_bundles_keyboard(settings),
     )
+
+
+@router.callback_query(F.data.startswith("pay:stars:"))
+@inject
+async def pay_stars_bundle_selected(
+    call: CallbackQuery,
+):
+    await call.answer()
+    parts = (call.data or "").split(":", maxsplit=3)
+    total_tokens = parts[-2] if len(parts) >= 4 else ""
+    stars = parts[-1] if len(parts) >= 4 else ""
+    try:
+        tokens_int = int(total_tokens)
+        stars_int = int(stars)
+    except Exception:
+        await call.message.edit_text(
+            text="Некорректные данные пакета.",
+            reply_markup=payments_back_keyboard(),
+        )
+        return
+    if tokens_int <= 0 or stars_int <= 0:
+        await call.message.edit_text(
+            text="Некорректные данные пакета.",
+            reply_markup=payments_back_keyboard(),
+        )
+        return
+
+    # Create invoice payload for processing in successful_payment handler
+    payload = f"stars:{tokens_int}:{stars_int}"
+
+    try:
+        await call.bot.send_invoice(
+            chat_id=call.from_user.id,
+            title=f"Покупка {tokens_int} токенов",
+            description=f"Зачисление {tokens_int} токенов на баланс бота.",
+            payload=payload,
+            provider_token="",  # Not needed for stars
+            currency="XTR",
+            prices=[LabeledPrice(label=f"{tokens_int} Токенов", amount=stars_int)],
+            max_tip_amount=None,
+            suggested_tip_amounts=None,
+            protect_content=False,
+            need_email=False,
+            need_name=False,
+            need_phone_number=False,
+            need_shipping_address=False,
+            send_email_to_provider=False,
+            send_phone_number_to_provider=False,
+            is_flexible=False,
+        )
+        await call.message.edit_text(
+            text=(
+                "💳 *Купить токены звёздами*\n\n"
+                f"🧾 Вы выбрали: {tokens_int} токенов — {stars_int} ⭐\n\n"
+                "Нажми кнопку выше, чтобы оплатить."
+            ),
+            reply_markup=payments_back_keyboard(),
+        )
+    except Exception as e:
+        await call.message.edit_text(
+            text=f"Ошибка при создании платежа: {str(e)}",
+            reply_markup=payments_back_keyboard(),
+        )
 
 @router.pre_checkout_query()
 @inject
