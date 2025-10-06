@@ -120,5 +120,3 @@ def split_for_telegram(text: str, limit: int = 4096) -> List[str]:
 
 def prepare_telegram_messages_from_markdown(text: str, limit: int = 4096) -> List[str]:
     return split_for_telegram(convert_markdown_to_telegram(text), limit)
-
-
