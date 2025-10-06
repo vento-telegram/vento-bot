@@ -19,6 +19,20 @@ services:
     ports:
       - "127.0.0.1:5432:5432"
 
+  redis:
+    image: redis:7-alpine
+    restart: always
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    ports:
+      - "8202:6379"
+    volumes:
+      - redis_data:/data
+    networks: [internal]
+
   bot:
     build:
       context: .
@@ -28,6 +42,8 @@ services:
     command: sh -c "alembic upgrade head && python cli.py"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
     expose:
