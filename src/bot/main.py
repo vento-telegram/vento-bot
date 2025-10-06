@@ -30,13 +30,11 @@ async def _run(
     dp: Dispatcher = Provide[Container.dispatcher],
     payments: AbcPaymentsService = Provide[Container.payments_service],
     user_service: AbcUserService = Provide[Container.user_service],
-    settings_service: AbcSettingsService = Provide[Container.settings_service],
 ) -> None:
     dp.include_router(router)
 
     app = web.Application()
 
-    # Build a single sub-app for all webhooks
     webhooks_app = web.Application()
 
     async def yookassa_handle(request: web.Request):

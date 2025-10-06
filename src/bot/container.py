@@ -4,9 +4,11 @@ from typing import AsyncIterator
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.storage.base import DefaultKeyBuilder
+from aiogram.fsm.storage.redis import RedisStorage
 from dependency_injector import containers, providers
 from openai import AsyncOpenAI
+from redis.asyncio import Redis
 
 from bot.database.connection import AlchemyDatabase
 from bot.database.uow import Uow
@@ -27,7 +29,18 @@ class Container(containers.DeclarativeContainer):
         token=settings.MAIN_TOKEN,
         default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN),
     )
-    storage = providers.Singleton(MemoryStorage)
+    redis_client=providers.Singleton(
+        Redis,
+        host=settings.REDIS.HOST,
+        port=settings.REDIS.PORT,
+        password=settings.REDIS.PASSWORD,
+        decode_responses=True
+    )
+    storage = providers.Singleton(
+        RedisStorage,
+        redis=redis_client,
+        key_builder=DefaultKeyBuilder(with_bot_id=True)
+    )
     dispatcher = providers.Singleton(Dispatcher, storage=storage)
     settings_service = providers.Factory(SettingsService, uow=uow)
     user_service = providers.Factory(UserService, uow=uow, settings_service=settings_service)

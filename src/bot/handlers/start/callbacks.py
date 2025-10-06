@@ -203,8 +203,9 @@ async def veo_back_to_main(
             await call.message.edit_reply_markup(reply_markup=veo_main_settings_keyboard(aspect, q, std, imp))
         except Exception:
             pass
+
+
 @router.callback_query(F.data.startswith("suno:style:"))
-@inject
 async def suno_select_style(
     call: CallbackQuery,
     state: FSMContext,
@@ -248,7 +249,6 @@ async def suno_select_style(
         await call.message.edit_reply_markup(reply_markup=suno_main_settings_keyboard(label, data.get('suno_instrumental'), data.get('suno_custom_mode')))
 
 @router.callback_query(F.data == "suno:change_style")
-@inject
 async def suno_change_style(
     call: CallbackQuery,
     state: FSMContext,
@@ -261,7 +261,6 @@ async def suno_change_style(
 
 
 @router.callback_query(F.data == "suno:open:style")
-@inject
 async def suno_open_style(
     call: CallbackQuery,
     state: FSMContext,
@@ -277,7 +276,6 @@ async def suno_open_style(
 
 
 @router.callback_query(F.data == "suno:open:vocals")
-@inject
 async def suno_open_vocals(
     call: CallbackQuery,
     state: FSMContext,
@@ -293,7 +291,6 @@ async def suno_open_vocals(
 
 
 @router.callback_query(F.data == "suno:open:input")
-@inject
 async def suno_open_input(
     call: CallbackQuery,
     state: FSMContext,
@@ -309,7 +306,6 @@ async def suno_open_input(
 
 
 @router.callback_query(F.data == "suno:main")
-@inject
 async def suno_back_to_main(
     call: CallbackQuery,
     state: FSMContext,
@@ -338,7 +334,6 @@ async def suno_back_to_main(
 
 
 @router.callback_query(F.data.startswith("suno:vocals:"))
-@inject
 async def suno_set_vocals(
     call: CallbackQuery,
     state: FSMContext,
@@ -371,7 +366,6 @@ async def suno_set_vocals(
 
 
 @router.callback_query(F.data.startswith("suno:im:"))
-@inject
 async def suno_input_mode_selected(
     call: CallbackQuery,
     state: FSMContext,
@@ -397,7 +391,6 @@ async def suno_input_mode_selected(
 
 
 @router.callback_query(F.data == "set_mode:gpt")
-@inject
 async def set_mode_chatgpt(
     call: CallbackQuery,
     state: FSMContext,
@@ -416,7 +409,6 @@ async def set_mode_chatgpt(
     )
 
 @router.callback_query(F.data == "set_mode:gpt_mini")
-@inject
 async def set_mode_chatgpt_mini(
     call: CallbackQuery,
     state: FSMContext,
@@ -433,7 +425,6 @@ async def set_mode_chatgpt_mini(
     )
 
 @router.callback_query(F.data == "set_mode:gpt_image")
-@inject
 async def set_mode_gpt_image(
     call: CallbackQuery,
     state: FSMContext,
@@ -456,7 +447,6 @@ async def set_mode_gpt_image(
     )
 
 @router.callback_query(F.data == "set_mode:nano_banana")
-@inject
 async def set_mode_nano_banana(
     call: CallbackQuery,
     state: FSMContext,
@@ -474,7 +464,6 @@ async def set_mode_nano_banana(
     )
 
 @router.callback_query(F.data == "set_mode:suno_music")
-@inject
 async def set_mode_suno_music(
     call: CallbackQuery,
     state: FSMContext,
@@ -493,7 +482,6 @@ async def set_mode_suno_music(
     await call.message.answer(text, reply_markup=suno_main_settings_keyboard(None, None, None))
 
 @router.callback_query(F.data.startswith("gpt_image:size:"))
-@inject
 async def set_gpt_image_size(
     call: CallbackQuery,
     state: FSMContext,
@@ -522,7 +510,6 @@ async def set_gpt_image_size(
 
  
 @router.callback_query(F.data == "goto:replenish")
-@inject
 async def goto_replenish(
     call: CallbackQuery,
 ):
@@ -663,7 +650,6 @@ async def pay_stars(
 
 
 @router.callback_query(F.data.startswith("pay:stars:"))
-@inject
 async def pay_stars_bundle_selected(
     call: CallbackQuery,
 ):
@@ -716,7 +702,6 @@ async def pay_stars_bundle_selected(
         )
 
 @router.pre_checkout_query()
-@inject
 async def stars_pre_checkout(
     query: PreCheckoutQuery,
 ):

@@ -63,6 +63,16 @@ class NexusSettings(BaseSettings):
     BASE_URL: str = "https://nexusapi.dev"
 
 
+class RedisSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="REDIS__",
+        env_file=".env",
+    )
+
+    HOST: str
+    PORT: int
+    PASSWORD: str = ""
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -74,6 +84,7 @@ class Settings(BaseSettings):
     BEPAID: BepaidSettings = BepaidSettings()
     KIE: KIESettings = KIESettings()
     NEXUS: NexusSettings = NexusSettings()
+    REDIS: RedisSettings = RedisSettings()
     WEB_PORT: int = 8080
 
 
