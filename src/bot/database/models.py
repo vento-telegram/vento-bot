@@ -46,8 +46,8 @@ class SettingsOrm(Base, TimeMixin):
     value: Mapped[str] = mapped_column(nullable=False, server_default="0")
 
 
-class LedgerOrm(Base, TimeMixin):
-    __tablename__ = 'ledger'
+class TokensHistoryOrm(Base, TimeMixin):
+    __tablename__ = 'tokens_history'
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(nullable=False)

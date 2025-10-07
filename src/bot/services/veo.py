@@ -215,7 +215,7 @@ class VeoService(AbcVeoService):
         logger.info("veo_request_charged", extra={"user_id": user_id, "task_id": task_id, "price": price})
 
     def _build_callback_url(self, telegram_id: int) -> str:
-        base = settings.KIE.CALLBACK_BASE
+        base = settings.WEBHOOKS.BASE_URL
         if not base:
             return f"/webhooks/veo?user_id={telegram_id}"
         return f"{base}/webhooks/veo?user_id={telegram_id}"

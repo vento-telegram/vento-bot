@@ -84,7 +84,7 @@ class SunoService(AbcSunoService):
             )
 
     def _build_callback_url(self, telegram_id: int) -> str:
-        base = settings.KIE.CALLBACK_BASE
+        base = settings.WEBHOOKS.BASE_URL
         if not base:
             return f"/webhooks/suno?user_id={telegram_id}"
         return f"{base}/webhooks/suno?user_id={telegram_id}"

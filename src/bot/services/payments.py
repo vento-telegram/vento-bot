@@ -82,7 +82,7 @@ class PaymentsService(AbcPaymentsService):
                     "first_name": str(user_id),
                 },
                 "settings": {
-                    "notification_url": "https://bukhavets.com/webhooks/bepaid",
+                    "notification_url": f"{settings.WEBHOOKS.BASE_URL}/webhooks/bepaid",
                     "success_url": "https://t.me/vento_toolbot",
                     "decline_url": "https://t.me/vento_toolbot",
                     "fail_url": "https://t.me/vento_toolbot",

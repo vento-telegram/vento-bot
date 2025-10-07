@@ -325,14 +325,14 @@ class OpenAIService(AbcOpenAIService):
         )
 
     def _build_callback_url(self, telegram_id: int) -> str:
-        base = settings.KIE.CALLBACK_BASE
+        base = settings.WEBHOOKS.BASE_URL
         if not base:
             # Fallback to our known web base under /webhooks
             return f"/webhooks/kie-image?user_id={telegram_id}"
         return f"{base}/webhooks/kie-image?user_id={telegram_id}"
 
     def _build_callback_url_nb(self, telegram_id: int) -> str:
-        base = settings.KIE.CALLBACK_BASE
+        base = settings.WEBHOOKS.BASE_URL
         if not base:
             return f"/webhooks/kie-nano?user_id={telegram_id}"
         return f"{base}/webhooks/kie-nano?user_id={telegram_id}"

@@ -38,19 +38,18 @@ class BepaidSettings(BaseSettings):
         env_file=".env",
         extra="ignore",
     )
-    SHOP_ID: str | None = None
-    TOKEN: str | None = None
+    SHOP_ID: str
+    TOKEN: str
 
 
-class KIESettings(BaseSettings):
+class KieSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="KIE__",
         env_file=".env",
         extra="ignore",
     )
     API_KEY: str
-    BASE_URL: str = "https://api.kie.ai"
-    CALLBACK_BASE: str = "https://bukhavets.com"
+    BASE_URL: str
 
 
 class NexusSettings(BaseSettings):
@@ -59,8 +58,8 @@ class NexusSettings(BaseSettings):
         env_file=".env",
         extra="ignore",
     )
-    API_KEY: str | None = None
-    BASE_URL: str = "https://nexusapi.dev"
+    API_KEY: str
+    BASE_URL: str
 
 
 class RedisSettings(BaseSettings):
@@ -79,6 +78,7 @@ class WebhooksSettings(BaseSettings):
         env_prefix="WEBHOOKS__",
         env_file=".env",
     )
+    BASE_URL: str
     PORT: int = 8080
 
 class Settings(BaseSettings):
@@ -90,7 +90,7 @@ class Settings(BaseSettings):
     OPENAI: OpenAISettings = OpenAISettings()
     YOOKASSA: YookassaSettings = YookassaSettings()
     BEPAID: BepaidSettings = BepaidSettings()
-    KIE: KIESettings = KIESettings()
+    KIE: KieSettings = KieSettings()
     NEXUS: NexusSettings = NexusSettings()
     REDIS: RedisSettings = RedisSettings()
     WEBHOOKS: WebhooksSettings = WebhooksSettings()
