@@ -73,6 +73,14 @@ class RedisSettings(BaseSettings):
     PORT: int
     PASSWORD: str = ""
 
+
+class WebhooksSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="WEBHOOKS__",
+        env_file=".env",
+    )
+    PORT: int = 8080
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -85,7 +93,7 @@ class Settings(BaseSettings):
     KIE: KIESettings = KIESettings()
     NEXUS: NexusSettings = NexusSettings()
     REDIS: RedisSettings = RedisSettings()
-    WEB_PORT: int = 8080
+    WEBHOOKS: WebhooksSettings = WebhooksSettings()
 
 
 settings = Settings()
