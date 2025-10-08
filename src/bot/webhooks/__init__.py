@@ -2,7 +2,7 @@ from aiohttp import web
 
 from bot.webhooks.bepaid import bepaid_handle
 from bot.webhooks.gpt_image import gpt_image_handle
-from bot.webhooks.nano_banana import kie_nano_handle
+from bot.webhooks.nano_banana import nano_banana_handle
 from bot.webhooks.suno import suno_handle
 from bot.webhooks.veo import veo_handle
 from bot.webhooks.yookassa import yookassa_handle
@@ -16,7 +16,7 @@ async def init_api_webhooks():
     webhooks_app.router.add_post("/yookassa", yookassa_handle)
     webhooks_app.router.add_post("/bepaid", bepaid_handle)
     webhooks_app.router.add_post("/kie-image", gpt_image_handle)
-    webhooks_app.router.add_post("/kie-nano", kie_nano_handle)
+    webhooks_app.router.add_post("/kie-nano", nano_banana_handle)
     webhooks_app.router.add_post("/suno", suno_handle)
     webhooks_app.router.add_post("/veo", veo_handle)
 

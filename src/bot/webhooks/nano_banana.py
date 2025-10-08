@@ -9,28 +9,21 @@ from bot.container import Container
 logger = logging.getLogger(__name__)
 
 @inject
-async def kie_nano_handle(
+async def nano_banana_handle(
     request: web.Request,
     bot: Bot = Provide[Container.bot],
 ):
-    logger.info(f"JSON FOR DEBUGGING: \n\n\n{await request.json()}\n\n\n")
     user_id = request.query.get("user_id")
-    try:
-        body = await request.json()
-    except Exception:
-        return web.json_response({"status": "bad json"}, status=400)
+    body = await request.json()
 
     code = body.get("code")
-    data = body.get("data") or {}
+    data = body.get("data")
+
     state = data.get("state")
     result_json = data.get("resultJson")
-    result_urls: list[str] = []
-    try:
-        if result_json:
-            parsed = json.loads(result_json)
-            result_urls = parsed.get("resultUrls") or []
-    except Exception:
-        result_urls = []
+
+    parsed = json.loads(result_json)
+    result_urls = parsed.get("resultUrls")
 
     if not user_id:
         return web.json_response({"ok": False, "error": "no user_id"}, status=400)
