@@ -19,6 +19,7 @@ class TransactionReasonEnum(StrEnum):
     nano_banana_request = auto()
     suno_request = auto()
     purchase_stars = auto()
+    purchase_bepaid = auto()
     veo_request = auto()
     daily_bonus = auto()
     admin_adjustment = auto()
