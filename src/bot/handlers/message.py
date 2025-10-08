@@ -312,7 +312,8 @@ async def common_message_handler(
         watermark = None
         # Send immediate status message before translation and API call
         status_msg = await message.answer(
-            "🎬 Начал генерацию видео. Пришлю результат, как только он будет готов. Это может занять несколько минут."
+            "🎬 *Работаю над видео...*\n\n"
+            "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
         )
         try:
             await veo_service.submit_veo_request(

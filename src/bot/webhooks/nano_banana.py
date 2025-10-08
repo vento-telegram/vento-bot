@@ -30,7 +30,7 @@ async def nano_banana_handle(
 
     try:
         if code == 200 and state == "success" and result_urls:
-            caption = "Твоё изображение готово!\n\n✨ Cоздано с помощью [Vento](https://t.me/vento_toolbot)"
+            caption = "🏞️ Твоё изображение готово!\n\n✨ Cоздано с помощью [Vento](https://t.me/vento_toolbot)"
             await bot.send_photo(user_id, result_urls[0], caption=caption)
             for extra_url in result_urls[1:]:
                 await bot.send_photo(user_id, extra_url, caption=caption)
