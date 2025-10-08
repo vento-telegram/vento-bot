@@ -17,6 +17,7 @@ async def suno_handle(
     bot: Bot = Provide[Container.bot],
     dp: Dispatcher = Provide[Container.dispatcher],
 ):
+    logger.info(f"JSON FOR DEBUGGING: \n\n\n{request.json()}\n\n\n")
     user_id = request.query.get("user_id")
     try:
         body = await request.json()

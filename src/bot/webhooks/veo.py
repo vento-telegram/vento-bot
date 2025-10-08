@@ -14,6 +14,7 @@ async def veo_handle(
     request: web.Request,
     bot: Bot = Provide[Container.bot],
 ):
+    logger.info(f"JSON FOR DEBUGGING: \n\n\n{request.json()}\n\n\n")
     user_id = request.query.get("user_id")
     try:
         body = await request.json()

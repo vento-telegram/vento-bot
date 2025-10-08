@@ -19,6 +19,7 @@ async def yookassa_handle(
     user_service: AbcUserService = Provide[Container.user_service],
     payments: AbcPaymentsService = Provide[Container.payments_service],
 ):
+    logger.info(f"JSON FOR DEBUGGING: \n\n\n{request.json()}\n\n\n")
     try:
         body = await request.json()
     except Exception:
