@@ -66,7 +66,8 @@ class SunoService(AbcSunoService):
 
         await self._charge(user.id, request_price, task_id, style if custom_mode else None, prompt, instrumental, custom_mode)
         await message.answer(
-            "🎶 Начал генерацию композиции. Пришлю трек, как только он будет готов. Это займёт несколько минут."
+            "🎶 *Работаю над композицией...*\n\n"
+            "Я пришлю трек, как только он будет готов. Это может занять несколько минут."
         )
 
     async def _charge(self, user_id: int, price: int, task_id: str | None, style: str | None, prompt: str, instrumental: bool, custom_mode: bool) -> None:
