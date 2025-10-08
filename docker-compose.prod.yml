@@ -66,6 +66,7 @@ volumes:
   vento_db:
   caddy_data:
   caddy_config:
+  redis_data:
 
 networks:
   internal:
