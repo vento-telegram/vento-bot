@@ -10,22 +10,20 @@ logger = logging.getLogger(__name__)
 
 
 @inject
-async def kie_image_handle(
+async def gpt_image_handle(
     request: web.Request,
     bot: Bot = Provide[Container.bot],
 ):
-    logger.info(f"JSON FOR DEBUGGING: \n\n\n{await request.json()}\n\n\n")
+    body = await request.json()
     user_id = request.query.get("user_id")
-    try:
-        body = await request.json()
-    except Exception:
-        return web.json_response({"status": "bad json"}, status=400)
 
     code = body.get("code")
-    data = body.get("data") or {}
+    data = body.get("data")
+
     task_id = data.get("taskId")
-    info = data.get("info") or {}
-    result_urls = info.get("result_urls") or []
+    info = data.get("info")
+
+    result_urls = info.get("result_urls")
 
     if not user_id:
         return web.json_response({"ok": False, "error": "no user_id"}, status=400)
