@@ -40,7 +40,7 @@ async def veo_handle(
 
     try:
         if code == 200 and result_urls:
-            caption = "🎬 Вот твоё видео!\n\n✨ Cоздано с помощью [Vento](https://t.me/vento_toolbot)"
+            caption = "🎬 Твоё видео готово!\n\n✨ Cоздано с помощью [Vento](https://t.me/vento_toolbot)"
             # Send first video as document/video; Telegram supports video by URL
             url0 = result_urls[0]
             try:

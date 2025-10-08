@@ -193,7 +193,7 @@ class VeoService(AbcVeoService):
                 except Exception:
                     pass
 
-            caption = "🎬 Вот твоё видео!\n\n✨ Создано с помощью [Vento](https://t.me/vento_toolbot)"
+            caption = "🎬 Твоё видео готово!\n\n✨ Создано с помощью [Vento](https://t.me/vento_toolbot)"
             try:
                 await message.answer_video(video_url, caption=caption)
             except Exception:
