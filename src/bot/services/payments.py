@@ -71,7 +71,6 @@ class PaymentsService(AbcPaymentsService):
         payload: dict[str, Any] = {
             "checkout": {
                 "transaction_type": "payment",
-                "test": True,
                 "order": {
                     "amount": int(price_rub) * 100,
                     "currency": "RUB",
