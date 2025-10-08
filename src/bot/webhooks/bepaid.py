@@ -18,7 +18,7 @@ async def bepaid_handle(
     bot: Bot = Provide[Container.bot],
     user_service: AbcUserService = Provide[Container.user_service],
 ):
-    logger.info(f"JSON FOR DEBUGGING: \n\n\n{request.json()}\n\n\n")
+    logger.info(f"JSON FOR DEBUGGING: \n\n\n{await request.json()}\n\n\n")
     try:
         body = await request.json()
     except Exception:
