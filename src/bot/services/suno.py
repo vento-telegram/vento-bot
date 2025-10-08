@@ -7,9 +7,9 @@ from aiogram.types import Message
 from aiohttp import ClientSession
 
 from bot.constants import settings_models_mapper
-from bot.entities.ledger import LedgerEntity
+from bot.entities.transaction import TransactionEntity
 from bot.entities.user import UserEntity
-from bot.enums import BotModeEnum, LedgerReasonEnum
+from bot.enums import BotModeEnum, TransactionReasonEnum
 from bot.errors import InsufficientBalanceError
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.interfaces.services.suno import AbcSunoService
@@ -79,8 +79,8 @@ class SunoService(AbcSunoService):
                 "instrumental": instrumental,
                 "customMode": custom_mode,
             }, ensure_ascii=False)
-            await self._uow.ledger.add(
-                LedgerEntity(user_id=user_id, delta=-price, reason=LedgerReasonEnum.suno_request, meta=meta)
+            await self._uow.transaction.add(
+                TransactionEntity(user_id=user_id, delta=-price, reason=TransactionReasonEnum.suno_request, meta=meta)
             )
 
     def _build_callback_url(self, telegram_id: int) -> str:

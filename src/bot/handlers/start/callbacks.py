@@ -10,7 +10,7 @@ from dependency_injector.wiring import Provide, inject
 
 from bot.constants import settings_models_mapper
 from bot.container import Container
-from bot.enums import BotModeEnum, LedgerReasonEnum
+from bot.enums import BotModeEnum, TransactionReasonEnum
 from bot.interfaces.services.payments import AbcPaymentsService
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.interfaces.services.user import AbcUserService
@@ -733,7 +733,7 @@ async def stars_successful_payment(
         updated_user = await user_service.add_tokens_by_telegram_id(
             telegram_id=message.from_user.id,
             amount=tokens,
-            reason=LedgerReasonEnum.purchase_stars,
+            reason=TransactionReasonEnum.purchase_stars,
         )
         balance = updated_user.balance if updated_user else None
         balance_text = f"*{balance}*" if balance is not None else "обновлён"

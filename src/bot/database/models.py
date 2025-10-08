@@ -46,8 +46,8 @@ class SettingsOrm(Base, TimeMixin):
     value: Mapped[str] = mapped_column(nullable=False, server_default="0")
 
 
-class TokensHistoryOrm(Base, TimeMixin):
-    __tablename__ = 'tokens_history'
+class TransactionOrm(Base, TimeMixin):
+    __tablename__ = 'transaction'
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(nullable=False)

@@ -1,17 +1,17 @@
 from abc import abstractmethod
 
-from bot.entities.ledger import LedgerEntity
+from bot.entities.transaction import TransactionEntity
 from bot.interfaces.repos.base import AbcRepo
 from bot.schemas import RequestsCounts, UserTotals
 
 
-class AbcLedgerRepo(AbcRepo[LedgerEntity]):
+class AbcTransactionRepo(AbcRepo[TransactionEntity]):
     @abstractmethod
-    async def add(self, entry: LedgerEntity) -> LedgerEntity:
+    async def add(self, entry: TransactionEntity) -> TransactionEntity:
         ...
 
     @abstractmethod
-    async def update_meta_by_id(self, ledger_id: int, meta: str) -> LedgerEntity | None:
+    async def update_meta_by_id(self, transaction_id: int, meta: str) -> TransactionEntity | None:
         ...
 
     # Aggregations

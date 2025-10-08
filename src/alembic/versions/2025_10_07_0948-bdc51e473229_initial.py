@@ -79,7 +79,7 @@ def upgrade() -> None:
         ), {'key': key, 'value': value, 'created_at': now, 'updated_at': now})
 
     op.create_table(
-        'tokens_history',
+        'transaction',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('user_id', sa.Integer(), nullable=False),
         sa.Column('delta', sa.Integer(), nullable=False),
@@ -92,6 +92,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_table('tokens_history')
+    op.drop_table('transaction')
     op.drop_table('settings')
     op.drop_table('user')

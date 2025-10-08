@@ -16,9 +16,9 @@ from openai.types.chat import (
 )
 
 from bot.constants import settings_models_mapper
-from bot.entities.ledger import LedgerEntity
+from bot.entities.transaction import TransactionEntity
 from bot.entities.user import UserEntity
-from bot.enums import BotModeEnum, LedgerReasonEnum
+from bot.enums import BotModeEnum, TransactionReasonEnum
 from bot.errors import InsufficientBalanceError
 from bot.interfaces.services.gpt import AbcOpenAIService
 from bot.interfaces.services.settings import AbcSettingsService
@@ -60,8 +60,8 @@ class OpenAIService(AbcOpenAIService):
             updated_user = await self._uow.user.try_debit(user.id, request_price)
             if not updated_user:
                 raise InsufficientBalanceError
-            await self._uow.ledger.add(
-                LedgerEntity(user_id=user.id, delta=-request_price, reason=LedgerReasonEnum.gpt_request, meta=meta_preview)
+            await self._uow.transaction.add(
+                TransactionEntity(user_id=user.id, delta=-request_price, reason=TransactionReasonEnum.gpt_request, meta=meta_preview)
             )
 
         gpt_response = await self._get_gpt_response(history, mode)
@@ -140,7 +140,7 @@ class OpenAIService(AbcOpenAIService):
         await self._process_tokens_transaction(
             user_id=user.id,
             amount=request_price,
-            reason=LedgerReasonEnum.gpt_image_request,
+            reason=TransactionReasonEnum.gpt_image_request,
             meta=json.dumps({
                 "task_id": task_id,
                 "size": image_size,
@@ -315,7 +315,7 @@ class OpenAIService(AbcOpenAIService):
         await self._process_tokens_transaction(
             user_id=user.id,
             amount=int(await self._settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana])),
-            reason=LedgerReasonEnum.nano_banana_request,
+            reason=TransactionReasonEnum.nano_banana_request,
             meta=json.dumps({
                 "task_id": task_id,
                 "action": "edit" if image_urls else "create",
@@ -350,11 +350,11 @@ class OpenAIService(AbcOpenAIService):
     async def _process_tokens_transaction(self, user_id: int, amount: int, reason: str, meta: str | None):
         async with self._uow:
             updated_user = await self._uow.user.update_balance_by_user_id(user_id, -amount)
-            created_ledger = await self._uow.ledger.add(
-                LedgerEntity(user_id=user_id, delta=-amount, reason=reason, meta=meta)
+            created_transaction = await self._uow.transaction.add(
+                TransactionEntity(user_id=user_id, delta=-amount, reason=reason, meta=meta)
             )
             user = updated_user if updated_user else await self._uow.user.get_by_id(user_id)
-        return user, created_ledger
+        return user, created_transaction
 
     @staticmethod
     def _make_meta(request: ChatCompletionUserMessageParam, response: ChatCompletionAssistantMessageParam) -> str:

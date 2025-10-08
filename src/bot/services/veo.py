@@ -8,9 +8,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from aiohttp import ClientError, ClientSession, ClientTimeout
 
-from bot.entities.ledger import LedgerEntity
+from bot.entities.transaction import TransactionEntity
 from bot.entities.user import UserEntity
-from bot.enums import LedgerReasonEnum
+from bot.enums import TransactionReasonEnum
 from bot.errors import InsufficientBalanceError
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.interfaces.services.veo import AbcVeoService
@@ -209,8 +209,8 @@ class VeoService(AbcVeoService):
                 "quality": quality,
                 "imageUrls": image_urls or [],
             }, ensure_ascii=False)
-            await self._uow.ledger.add(
-                LedgerEntity(user_id=user_id, delta=-price, reason=LedgerReasonEnum.veo_request, meta=meta)
+            await self._uow.transaction.add(
+                TransactionEntity(user_id=user_id, delta=-price, reason=TransactionReasonEnum.veo_request, meta=meta)
             )
         logger.info("veo_request_charged", extra={"user_id": user_id, "task_id": task_id, "price": price})
 

@@ -9,7 +9,7 @@ from aiogram.types import Message
 from dependency_injector.wiring import Provide, inject
 
 from bot.container import Container
-from bot.enums import LedgerReasonEnum
+from bot.enums import TransactionReasonEnum
 from bot.interfaces.services.user import AbcUserService
 
 logger = logging.getLogger(__name__)
@@ -81,7 +81,7 @@ async def admin_add_tokens_command(
         updated = await user_service.add_tokens_by_username(
             username=username,
             amount=amount,
-            reason=LedgerReasonEnum.admin_adjustment,
+            reason=TransactionReasonEnum.admin_adjustment,
         )
         if not updated:
             await message.answer(f"Пользователь @{username} не найден")
@@ -191,7 +191,7 @@ async def admin_add_tokens_handle(
         )
         return
 
-    updated = await user_service.add_tokens_by_username(username=username, amount=amount, reason=LedgerReasonEnum.admin_adjustment)
+    updated = await user_service.add_tokens_by_username(username=username, amount=amount, reason=TransactionReasonEnum.admin_adjustment)
     if not updated:
         await message.answer(f"Пользователь @{username} не найден")
         return

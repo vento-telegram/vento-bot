@@ -6,8 +6,8 @@ from typing import Any
 import aiohttp
 from yookassa import Configuration, Payment
 
-from bot.entities.ledger import LedgerEntity
-from bot.enums import LedgerReasonEnum
+from bot.entities.transaction import TransactionEntity
+from bot.enums import TransactionReasonEnum
 from bot.interfaces.services.payments import AbcPaymentsService
 from bot.interfaces.uow import AbcUnitOfWork
 from bot.settings import settings
@@ -59,8 +59,8 @@ class PaymentsService(AbcPaymentsService):
                 return False
             updated = await self._uow.user.update_balance_by_user_id(user.id, tokens)
             if updated:
-                await self._uow.ledger.add(
-                    LedgerEntity(user_id=user.id, delta=tokens, reason=LedgerReasonEnum.purchase_stars)
+                await self._uow.transaction.add(
+                    TransactionEntity(user_id=user.id, delta=tokens, reason=TransactionReasonEnum.purchase_stars)
                 )
         return True
 

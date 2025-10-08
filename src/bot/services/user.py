@@ -3,9 +3,9 @@ from typing import Tuple
 
 from aiogram.types import User as TelegramUser
 
-from bot.entities.ledger import LedgerEntity
+from bot.entities.transaction import TransactionEntity
 from bot.entities.user import UserDTO, UserEntity
-from bot.enums import LedgerReasonEnum
+from bot.enums import TransactionReasonEnum
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.uow import AbcUnitOfWork
@@ -25,19 +25,19 @@ class UserService(AbcUserService):
 
             if is_new:
                 logger.info(f"New user registered: {user.telegram_id}")
-                updated = await self._update_balance(user.id, int(start_bonus), LedgerReasonEnum.welcome_bonus)
+                updated = await self._update_balance(user.id, int(start_bonus), TransactionReasonEnum.welcome_bonus)
                 user = updated if updated else user
 
         return user, is_new
 
-    async def _update_balance(self, user_id: int, delta: int, reason: LedgerReasonEnum) -> UserEntity | None:
+    async def _update_balance(self, user_id: int, delta: int, reason: TransactionReasonEnum) -> UserEntity | None:
         updated = await self._uow.user.update_balance_by_user_id(user_id, delta)
         if updated:
-            await self._uow.ledger.add(LedgerEntity(user_id=user_id,
-                    delta=delta,
-                    reason=reason,
-                ),
-            )
+            await self._uow.transaction.add(TransactionEntity(user_id=user_id,
+                                                         delta=delta,
+                                                         reason=reason,
+                                                         ),
+                                       )
         return updated
 
 
@@ -46,14 +46,14 @@ class UserService(AbcUserService):
             user = await self._uow.user.get_by_telegram_id(telegram_id)
         return user
 
-    async def add_tokens_by_username(self, username: str, amount: int, reason: LedgerReasonEnum) -> UserEntity | None:
+    async def add_tokens_by_username(self, username: str, amount: int, reason: TransactionReasonEnum) -> UserEntity | None:
         async with self._uow:
             user = await self._uow.user.get_by_username(username)
             if not user:
                 return None
             return await self._update_balance(user.id, amount, reason)
 
-    async def add_tokens_by_telegram_id(self, telegram_id: int, amount: int, reason: LedgerReasonEnum) -> UserEntity | None:
+    async def add_tokens_by_telegram_id(self, telegram_id: int, amount: int, reason: TransactionReasonEnum) -> UserEntity | None:
         async with self._uow:
             user = await self._uow.user.get_by_telegram_id(telegram_id)
             if not user:
@@ -76,7 +76,7 @@ class UserService(AbcUserService):
                 delta = int(min_balance) - int(u.balance)
                 if delta <= 0:
                     continue
-                updated = await self._update_balance(u.id, delta, LedgerReasonEnum.daily_bonus)
+                updated = await self._update_balance(u.id, delta, TransactionReasonEnum.daily_bonus)
                 if updated:
                     updated_count += 1
         return updated_count

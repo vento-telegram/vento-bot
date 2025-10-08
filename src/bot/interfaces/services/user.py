@@ -4,7 +4,7 @@ from typing import Tuple
 from aiogram.types import User as TelegramUser
 
 from bot.entities.user import UserEntity
-from bot.enums import LedgerReasonEnum
+from bot.enums import TransactionReasonEnum
 
 
 class AbcUserService(ABC):
@@ -17,12 +17,12 @@ class AbcUserService(ABC):
         ...
 
     @abstractmethod
-    async def add_tokens_by_username(self, username: str, amount: int, reason: LedgerReasonEnum) -> UserEntity | None:
-        """Increase user's balance by username and write a ledger entry."""
+    async def add_tokens_by_username(self, username: str, amount: int, reason: TransactionReasonEnum) -> UserEntity | None:
+        """Increase user's balance by username and write a transaction entry."""
 
     @abstractmethod
-    async def add_tokens_by_telegram_id(self, telegram_id: int, amount: int, reason: LedgerReasonEnum) -> UserEntity | None:
-        """Increase user's balance by telegram_id and write a ledger entry."""
+    async def add_tokens_by_telegram_id(self, telegram_id: int, amount: int, reason: TransactionReasonEnum) -> UserEntity | None:
+        """Increase user's balance by telegram_id and write a transaction entry."""
 
     @abstractmethod
     async def block_user_by_username(self, username: str) -> UserEntity | None:

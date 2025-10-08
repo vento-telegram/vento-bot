@@ -6,7 +6,7 @@ import logging
 from dependency_injector.wiring import inject, Provide
 
 from bot.container import Container
-from bot.enums import LedgerReasonEnum, BotModeEnum
+from bot.enums import TransactionReasonEnum, BotModeEnum
 from bot.interfaces.services import AbcUserService
 from bot.keyboards import start_keyboard
 
@@ -103,7 +103,7 @@ async def bepaid_handle(
         await user_service.add_tokens_by_telegram_id(
             telegram_id=telegram_id,
             amount=int(tokens),
-            reason=LedgerReasonEnum.purchase_stars,
+            reason=TransactionReasonEnum.purchase_stars,
         )
     except Exception:
         logger.exception(

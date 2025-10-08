@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from pydantic import BaseModel, Field
 
 
-class LedgerDTO(BaseModel):
+class TransactionDTO(BaseModel):
     id: int | None = None
     user_id: int
     delta: int
@@ -13,5 +13,5 @@ class LedgerDTO(BaseModel):
     updated_at: datetime | None = None
 
 
-class LedgerEntity(LedgerDTO):
+class TransactionEntity(TransactionDTO):
     pass

@@ -11,7 +11,7 @@ class BotModeEnum(StrEnum):
     veo_video = "Veo 3"
 
 
-class LedgerReasonEnum(StrEnum):
+class TransactionReasonEnum(StrEnum):
     welcome_bonus = auto()
     gpt_request = auto()
     gpt_mini_request = auto()
