@@ -50,7 +50,7 @@ async def sora2_message_handler(
             image_urls = []
         _cap = (message.caption or "").strip()
         if not _cap:
-            await message.answer("Добавьте описание к изображению (подпись)")
+            await message.answer("Добавь описание к изображению (подпись)")
             return
         prompt = _cap
     elif message.document and (message.document.mime_type or "").lower().startswith("image/"):
@@ -61,23 +61,23 @@ async def sora2_message_handler(
             image_urls = []
         _cap = (message.caption or "").strip()
         if not _cap:
-            await message.answer("Добавьте описание к изображению (подпись)")
+            await message.answer("Добавь описание к изображению")
             return
         prompt = _cap
     else:
         text = (message.text or "").strip()
         if not text:
-            await message.answer("Пришлите текст или картинку с описанием")
+            await message.answer("Пришли текст или картинку с описанием")
             return
         prompt = text
 
     if not aspect:
-        await message.answer("Сначала выберите формат: 16:9 или 9:16")
+        await message.answer("Сначала выбери формат: 16:9 или 9:16")
         return
 
     status_msg = await message.answer(
-        "🎬 Генерирую видео...\n\n"
-        "Я пришлю ссылку, когда результат будет готов."
+        "🎬 *Работаю над видео...*\n\n"
+        "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
     )
     try:
         await sora2_service.submit_sora2_request(
@@ -91,14 +91,14 @@ async def sora2_message_handler(
     except InsufficientBalanceError:
         try:
             await status_msg.edit_text(
-                "*Упс, не хватает токенов*\n\nПополните баланс или переключитесь на другой режим.",
+                "*☹️ Недостаточно токенов*\n\nПополни баланс или выбери другую модель.",
                 reply_markup=InlineKeyboardMarkup(
                     inline_keyboard=[[InlineKeyboardButton(text="💳 Пополнить баланс", callback_data="goto:replenish"), InlineKeyboardButton(text="🔀 Сменить режим", callback_data="goto:switch")]],
                 ),
             )
         except Exception:
             await message.answer(
-                "*Упс, не хватает токенов*\n\nПополните баланс или переключитесь на другой режим.",
+                "*☹️ Недостаточно токенов*\n\nПополни баланс или выбери другую модель.",
                 reply_markup=InlineKeyboardMarkup(
                     inline_keyboard=[[InlineKeyboardButton(text="💳 Пополнить баланс", callback_data="goto:replenish"), InlineKeyboardButton(text="🔀 Сменить режим", callback_data="goto:switch")]],
                 ),
@@ -107,10 +107,10 @@ async def sora2_message_handler(
     except Exception:
         logger.exception("Unexpected error in Sora2 handler")
         try:
-            await status_msg.edit_text("Не удалось отправить запрос в Sora 2. Попробуйте позже.")
+            await status_msg.edit_text("Не удалось отправить запрос в Sora 2. Попробуй позже.")
         except Exception:
             try:
-                await message.answer("Не удалось отправить запрос в Sora 2. Попробуйте позже.")
+                await message.answer("Не удалось отправить запрос в Sora 2. Попробуй позже.")
             except Exception:
                 pass
 

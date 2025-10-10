@@ -713,7 +713,7 @@ async def pay_stars(
     await call.message.edit_text(
         text=(
             "⭐ *Оплата звёздами*\n\n"
-            "Выберите пакет токенов:"),
+            "Выбери пакет токенов:"),
         reply_markup=await stars_bundles_keyboard(settings),
     )
 
@@ -879,7 +879,8 @@ async def goto_switch(
     image_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt_image])
     nano_price = await settings.get_value(settings_models_mapper[BotModeEnum.nano_banana])
     suno_price = await settings.get_value(settings_models_mapper[BotModeEnum.suno_music])
-    veo_standard = await settings.get_value('veo_standard_price')
+    veo_standard = await settings.get_value(settings_models_mapper[BotModeEnum.veo_video])
+    sora_price = await settings.get_value(settings_models_mapper[BotModeEnum.sora2_video])
 
     text = (
         "👾 *Выбор ИИ*\n\n"
@@ -895,6 +896,8 @@ async def goto_switch(
         "Генерация музыки по стилю, описанию/тексту.\n\n"
         f"🎬 *Veo 3* (от {veo_standard} токенов/запрос)\n"
         "Генерация видео по тексту или картинке.\n\n"
+        f"📹 *Sora 2* ({sora_price} токенов/запрос)\n"
+        "Новая модель генерации видео от OpenAI.\n\n"
         "👇 Выбери нужный ИИ:"
     )
 

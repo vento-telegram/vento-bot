@@ -187,7 +187,7 @@ async def common_message_handler(
             await openai_service.submit_nano_banana_request(message, state, user)
         except InsufficientBalanceError:
             await message.answer(
-                "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите другую модель.",
+                "*☹️ Недостаточно токенов*\n\nПополните баланс или выбери другую модель.",
                 reply_markup=InlineKeyboardMarkup(
                     inline_keyboard=[
                         [
@@ -258,7 +258,7 @@ async def common_message_handler(
             )
         except InsufficientBalanceError:
             await message.answer(
-                "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите другую модель.",
+                "*☹️ Недостаточно токенов*\n\nПополните баланс или выбери другую модель.",
                 reply_markup=InlineKeyboardMarkup(
                     inline_keyboard=[
                         [
@@ -344,7 +344,7 @@ async def common_message_handler(
         except InsufficientBalanceError:
             try:
                 await status_msg.edit_text(
-                    "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите стандартное качество.",
+                    "*☹️ Недостаточно токенов*\n\nПополни баланс или выбери стандартное качество.",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
                             [
@@ -356,7 +356,7 @@ async def common_message_handler(
                 )
             except Exception:
                 await message.answer(
-                    "*☹️ Недостаточно токенов*\n\nПополните баланс или выберите стандартное качество.",
+                    "*☹️ Недостаточно токенов*\n\nПополни баланс или выбери стандартное качество.",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
                             [

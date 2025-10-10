@@ -75,8 +75,8 @@ class Sora2Service(AbcSora2Service):
         await self._charge(user.id, request_price, task_id, prompt, aspect_ratio, image_urls or [])
 
         await message.answer(
-            "🎬 Генерирую видео...\n\n"
-            "Я пришлю ссылку, когда результат будет готов."
+            "🎬 *Работаю над видео...*\n\n"
+            "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
         )
 
     async def _charge(self, user_id: int, price: int, task_id: str | None, prompt: str, aspect_ratio: str, image_urls: list[str]) -> None:
