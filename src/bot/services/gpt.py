@@ -28,11 +28,20 @@ from bot.settings import settings
 
 logger = logging.getLogger(__name__)
 
+# Global per-process lock map to coordinate concurrent album items across
+# multiple service instances/handlers.
+NB_GROUP_LOCKS: dict[str, asyncio.Lock] = {}
+# In-process buffer for building up media-group state between messages
+NB_MEDIA_GROUPS: dict[str, dict] = {}
+
 class OpenAIService(AbcOpenAIService):
     def __init__(self, uow: AbcUnitOfWork, client: OpenAIClient, settings_service: AbcSettingsService):
         self._uow = uow
         self._client = client
         self._settings_service = settings_service
+        # Instance-local buffers (kept for potential future use). Global locks are used instead.
+        self._nb_group_locks: dict[str, asyncio.Lock] = {}
+        self._nb_groups: dict[str, dict] = {}
 
     async def process_gpt_request(
         self,
@@ -160,45 +169,73 @@ class OpenAIService(AbcOpenAIService):
         state: FSMContext,
         user: UserEntity,
     ) -> None:
+        logger.info("START")
         request_price = int(await self._settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana]))
         if user.balance < request_price:
             raise InsufficientBalanceError
 
         has_image = bool(message.photo) or (message.document and (message.document.mime_type or "").lower().startswith("image/"))
+        logger.info(f"has image: {has_image}")
 
-        media_group_id = message.media_group_id
+        # Normalize media group id to string and handle concurrency
+        media_group_id_raw = message.media_group_id
+        media_group_id = str(media_group_id_raw) if media_group_id_raw is not None else None
         if media_group_id:
+            logger.info("media_group found")
             if not has_image:
                 return
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             now = loop.time()
             quiet_seconds = 0.5
+            logger.info(f"Got loop time {now}")
 
+            # Extract file id from photo or image document
             if message.photo:
                 file_id = message.photo[-1].file_id
-            else:
+            elif message.document and (message.document.mime_type or "").lower().startswith("image/"):
                 file_id = message.document.file_id
+            else:
+                return
+            logger.info(f"file id: {file_id}")
 
-            data = await state.get_data()
-            groups = data.get("nb_media_groups") or {}
-            group = groups.get(media_group_id) or {}
+            # Ensure per-group atomicity across service instances
+            lock_key = f"{message.chat.id}:{media_group_id}"
+            lock = NB_GROUP_LOCKS.setdefault(lock_key, asyncio.Lock())
+            async with lock:
+                data = await state.get_data()
+                logger.info(f"data: {data}")
+                groups = dict(data.get("nb_media_groups") or {})
+                logger.info(f"groups: {groups}")
+                group = dict(groups.get(media_group_id) or NB_MEDIA_GROUPS.get(lock_key) or {})
+                logger.info(f"group: {group}")
 
-            file_ids = list(group.get("file_ids") or [])
-            file_ids.append(file_id)
-            caption = group.get("caption") or (message.caption or "").strip() or None
-            expires_at = now + quiet_seconds
+                file_ids = list(group.get("file_ids") or [])
+                logger.info(f"file_ids initial: {file_ids}")
+                file_ids.append(file_id)
+                logger.info(f"file_ids appended: {file_ids}")
 
-            group.update({
-                "file_ids": file_ids,
-                "caption": caption,
-                "expires_at": expires_at,
-                "finalized": False,
-            })
-            groups[media_group_id] = group
-            await state.update_data(nb_media_groups=groups)
+                # Preserve the first non-empty caption in the group
+                existing_caption = (group.get("caption") or "").strip() or None
+                incoming_caption = (message.caption or "").strip() or None
+                caption = existing_caption or incoming_caption
+                logger.info(f"caption: {caption}")
+
+                expires_at = now + quiet_seconds
+                logger.info(f"expires at: {expires_at}")
+
+                group.update({
+                    "file_ids": file_ids,
+                    "caption": caption,
+                    "expires_at": expires_at,
+                    "finalized": False,
+                })
+                logger.info(f"group updated: {group}")
+                NB_MEDIA_GROUPS[lock_key] = group
+                groups[media_group_id] = group
+                logger.debug(f"groups updated: {groups}")
+                await state.update_data(nb_media_groups=groups)
+
+            logger.info("Creating task")
 
             asyncio.create_task(
                 self._finalize_nano_media_group_after_quiet_period(
@@ -247,51 +284,68 @@ class OpenAIService(AbcOpenAIService):
         user: UserEntity,
     ) -> None:
         try:
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             now = loop.time()
+            logger.info(f"now: {now}")
             delay = max(0.0, scheduled_expires_at - now)
+            logger.info(f"delay: {delay}")
             if delay:
+                logger.info("going to sleep")
                 await asyncio.sleep(delay)
 
+            lock_key = f"{message.chat.id}:{media_group_id}"
             data = await state.get_data()
+            logger.info(f"data: {data}")
             groups = dict(data.get("nb_media_groups") or {})
-            group = groups.get(media_group_id)
+            logger.info(f"groups: {groups}")
+            group = groups.get(media_group_id) or NB_MEDIA_GROUPS.get(lock_key)
+            logger.info(f"group: {group}")
             if not group:
+                logger.info("1")
                 return
             if group.get("finalized"):
+                logger.info("2")
                 return
             if float(group.get("expires_at") or 0.0) != float(scheduled_expires_at):
+                logger.info("3")
                 return
 
             file_ids = list(group.get("file_ids") or [])
+            logger.info(f"file_ids initial: {file_ids}")
             caption = (group.get("caption") or "").strip()
+            logger.info(f"caption: {caption}")
             image_urls: list[str] = []
+            prompt_text = (message.caption or "").strip()
             for fid in file_ids:
                 try:
                     url = await self._get_telegram_file_url(message.bot, fid)
+                    logger.info(f"url: {url}")
                     if url:
                         image_urls.append(url)
                 except Exception:
                     logger.exception("Failed to get file URL for media group item")
 
             if not caption:
+                logger.info("no caption")
                 try:
                     await message.answer("📜 Добавь подпись к фото с инструкцией для редактирования.")
                 finally:
                     groups.pop(media_group_id, None)
+                    NB_MEDIA_GROUPS.pop(lock_key, None)
+                    logger.info(groups)
                     await state.update_data(nb_media_groups=groups)
                 return
 
             try:
+                logger.info("submit")
                 await self._submit_nano_task(user=user, image_urls=image_urls, prompt_text=caption)
             except InsufficientBalanceError:
                 try:
                     await message.answer("*Недостаточно токенов для запроса Nano Banana.*")
                 finally:
                     groups.pop(media_group_id, None)
+                    NB_MEDIA_GROUPS.pop(lock_key, None)
+                    logger.info(groups)
                     await state.update_data(nb_media_groups=groups)
                 return
             except Exception:
@@ -300,16 +354,19 @@ class OpenAIService(AbcOpenAIService):
                     await message.answer("Произошла ошибка при отправке в Nano Banana. Попробуйте ещё раз.")
                 finally:
                     groups.pop(media_group_id, None)
+                    NB_MEDIA_GROUPS.pop(lock_key, None)
                     await state.update_data(nb_media_groups=groups)
                 return
 
             try:
+                logger.info("submit2")
                 await message.answer(
                     "🧑‍🎨 *Работаю над изображением...*\n\n"
                     "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
                 )
             finally:
                 groups.pop(media_group_id, None)
+                NB_MEDIA_GROUPS.pop(lock_key, None)
                 await state.update_data(nb_media_groups=groups)
         except Exception:
             logger.exception("Unexpected error in media group finalizer")
