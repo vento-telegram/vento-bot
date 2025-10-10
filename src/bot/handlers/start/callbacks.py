@@ -127,13 +127,10 @@ async def sora2_back_to_main(call: CallbackQuery, state: FSMContext):
         "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием, можешь прикрепить картинку.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
-    try:
-        await call.message.edit_text(
-            text,
-            reply_markup=sora2_main_settings_keyboard(data.get("sora_aspect")),
-        )
-    except Exception:
-        await call.message.edit_reply_markup(reply_markup=sora2_main_settings_keyboard(data.get("sora_aspect")))
+    await call.message.edit_text(
+        text,
+        reply_markup=sora2_main_settings_keyboard(data.get("sora_aspect")),
+    )
 @router.callback_query(F.data.startswith("veo:quality:"))
 @inject
 async def veo_set_quality(
