@@ -9,6 +9,7 @@ class BotModeEnum(StrEnum):
     nano_banana = "Nano Banana"
     suno_music = "Suno"
     veo_video = "Veo 3"
+    sora2_video = "Sora 2"
 
 
 class TransactionReasonEnum(StrEnum):
@@ -23,3 +24,4 @@ class TransactionReasonEnum(StrEnum):
     veo_request = auto()
     daily_bonus = auto()
     admin_adjustment = auto()
+    sora2_request = auto()

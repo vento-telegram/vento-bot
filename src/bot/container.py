@@ -18,6 +18,7 @@ from bot.services.settings import SettingsService
 from bot.services.suno import SunoService
 from bot.services.user import UserService
 from bot.services.veo import VeoService
+from bot.services.sora2 import Sora2Service
 from bot.settings import settings
 
 
@@ -49,6 +50,7 @@ class Container(containers.DeclarativeContainer):
     openai_service = providers.Factory(OpenAIService, uow=uow, client=openai_client, settings_service=settings_service)
     suno_service = providers.Factory(SunoService, uow=uow, settings_service=settings_service)
     veo_service = providers.Factory(VeoService, uow=uow, settings_service=settings_service)
+    sora2_service = providers.Factory(Sora2Service, uow=uow, settings_service=settings_service)
 
 
 @asynccontextmanager

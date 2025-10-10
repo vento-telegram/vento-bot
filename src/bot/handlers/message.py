@@ -11,6 +11,7 @@ from bot.enums import BotModeEnum
 from bot.errors import InsufficientBalanceError, OpenAIBadRequestError
 from bot.interfaces.services.gpt import AbcOpenAIService
 from bot.interfaces.services.suno import AbcSunoService
+from bot.interfaces.services.sora2 import AbcSora2Service
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.veo import AbcVeoService
 from bot.keyboards.change_ai import mode_keyboard
@@ -37,6 +38,7 @@ async def common_message_handler(
     openai_service: AbcOpenAIService = Provide[Container.openai_service],
     suno_service: AbcSunoService = Provide[Container.suno_service],
     veo_service: AbcVeoService = Provide[Container.veo_service],
+    sora2_service: AbcSora2Service = Provide[Container.sora2_service],
     user_service: AbcUserService = Provide[Container.user_service],
 ):
     # Ignore slash-commands to avoid conflicts with command routers

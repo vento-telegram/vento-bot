@@ -39,6 +39,10 @@ from bot.keyboards.veo import (
     veo_main_settings_keyboard,
     veo_quality_keyboard,
 )
+from bot.keyboards.sora2 import (
+    sora2_aspect_keyboard,
+    sora2_main_settings_keyboard,
+)
 
 router = Router()
 @router.callback_query(F.data == "set_mode:veo_video")
@@ -62,6 +66,66 @@ async def set_mode_veo_video(
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
     await call.message.answer(text, reply_markup=veo_main_settings_keyboard(None, None, std, imp))
+
+@router.callback_query(F.data == "set_mode:sora2_video")
+@inject
+async def set_mode_sora2_video(
+    call: CallbackQuery,
+    state: FSMContext,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+):
+    await state.update_data(mode=BotModeEnum.sora2_video, sora_aspect=None)
+    await call.answer("Режим Sora 2 активирован")
+    try:
+        await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.sora2_video))
+    except Exception:
+        pass
+    text = (
+        "🎬 Режим Sora 2.\n\n"
+        "Сначала выберите формат (16:9 или 9:16), затем отправьте текст или картинку с текстом."
+    )
+    await call.message.answer(text, reply_markup=sora2_main_settings_keyboard(None))
+
+@router.callback_query(F.data.startswith("sora2:aspect:"))
+@inject
+async def sora2_set_aspect(
+    call: CallbackQuery,
+    state: FSMContext,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+):
+    raw = call.data or ""
+    prefix = "sora2:aspect:"
+    aspect = raw[len(prefix):] if raw.startswith(prefix) else raw.split(":", maxsplit=2)[-1]
+    if aspect not in {"16:9", "9:16"}:
+        await call.answer("Некорректное значение формата", show_alert=True)
+        return
+    await state.update_data(sora_aspect=aspect)
+    await call.answer("Формат выбран")
+    try:
+        await call.message.edit_reply_markup(reply_markup=sora2_main_settings_keyboard(aspect))
+    except Exception:
+        pass
+
+@router.callback_query(F.data == "sora2:open:aspect")
+async def sora2_open_aspect(call: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    await call.answer()
+    try:
+        await call.message.edit_text("Выберите формат:", reply_markup=sora2_aspect_keyboard(data.get("sora_aspect")))
+    except Exception:
+        await call.message.edit_reply_markup(reply_markup=sora2_aspect_keyboard(data.get("sora_aspect")))
+
+@router.callback_query(F.data == "sora2:main")
+async def sora2_back_to_main(call: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    await call.answer()
+    try:
+        await call.message.edit_text(
+            "Настройки Sora 2:",
+            reply_markup=sora2_main_settings_keyboard(data.get("sora_aspect")),
+        )
+    except Exception:
+        await call.message.edit_reply_markup(reply_markup=sora2_main_settings_keyboard(data.get("sora_aspect")))
 @router.callback_query(F.data.startswith("veo:quality:"))
 @inject
 async def veo_set_quality(

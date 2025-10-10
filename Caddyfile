@@ -26,5 +26,9 @@ bukhavets.com {
         reverse_proxy bot:8080
     }
 
+    handle /webhooks/sora2* {
+        reverse_proxy bot:8080
+    }
+
     respond 404
 }
