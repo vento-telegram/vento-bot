@@ -32,11 +32,7 @@ class Sora2Service(AbcSora2Service):
         image_urls: list[str] | None,
         aspect_ratio: str,
     ) -> None:
-        # Determine price (fallback to veo_improved_price if sora2_price missing)
-        price_key = "sora2_price"
-        price_str = await self._settings_service.get_value(price_key)
-        if not price_str:
-            price_str = await self._settings_service.get_value("veo_improved_price")
+        price_str = await self._settings_service.get_value("sora2_video_price")
         request_price = int(price_str or 0)
         if user.balance < request_price:
             raise InsufficientBalanceError
