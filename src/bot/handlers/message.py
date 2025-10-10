@@ -176,6 +176,10 @@ async def common_message_handler(
                 ),
             )
 
+        except Exception:
+            logger.exception("Unexpected error in GPT image handler")
+            await message.answer("Не удалось отправить задачу на генерацию изображения. Попробуйте ещё раз позже.")
+
     elif mode == BotModeEnum.nano_banana:
         try:
             await openai_service.submit_nano_banana_request(message, state, user)
@@ -191,6 +195,10 @@ async def common_message_handler(
                     ]
                 ),
             )
+
+        except Exception:
+            logger.exception("Unexpected error in Nano Banana handler")
+            await message.answer("Не удалось отправить запрос. Попробуйте ещё раз позже.")
 
     elif mode == BotModeEnum.suno_music:
         text = (message.text or "").strip()
@@ -259,6 +267,10 @@ async def common_message_handler(
                 ),
             )
             return
+
+        except Exception:
+            logger.exception("Unexpected error in Suno handler")
+            await message.answer("Не удалось отправить запрос в Suno. Попробуйте ещё раз позже.")
 
     elif mode == BotModeEnum.veo_video:
         state_data = await state.get_data()
@@ -354,6 +366,16 @@ async def common_message_handler(
                 )
             return
 
+
+        except Exception:
+            logger.exception("Unexpected error in VEO handler")
+            try:
+                await status_msg.edit_text("Не удалось отправить запрос на генерацию видео. Попробуйте ещё раз позже.")
+            except Exception:
+                try:
+                    await message.answer("Не удалось отправить запрос на генерацию видео. Попробуйте ещё раз позже.")
+                except Exception:
+                    pass
 
     elif mode == BotModeEnum.passive or not mode:
         await message.answer(
