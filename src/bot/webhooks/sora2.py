@@ -37,7 +37,7 @@ async def sora2_handle(
 
     try:
         if code == 200 and state == "success" and result_urls:
-            caption = "🎉 Готово!\n\nCделано в [Vento](https://t.me/vento_toolbot)"
+            caption = "🎬 Твоё видео готово!\n\n✨ Создано с помощью [Vento](https://t.me/vento_toolbot)"
             try:
                 await bot.send_video(user_id, result_urls[0], caption=caption)
             except Exception:
