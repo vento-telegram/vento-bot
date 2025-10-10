@@ -107,11 +107,7 @@ async def sora2_set_aspect(
         "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием, можешь прикрепить картинку.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
-    await call.message.edit_text(text=text)
-    try:
-        await call.message.edit_reply_markup(reply_markup=sora2_main_settings_keyboard(aspect))
-    except Exception:
-        pass
+    await call.message.edit_text(text=text, reply_markup=sora2_main_settings_keyboard(aspect))
 
 @router.callback_query(F.data == "sora2:open:aspect")
 async def sora2_open_aspect(call: CallbackQuery, state: FSMContext):
@@ -126,9 +122,14 @@ async def sora2_open_aspect(call: CallbackQuery, state: FSMContext):
 async def sora2_back_to_main(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     await call.answer()
+    text = (
+        "🎬 Выбери формат генерируемого видео\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием, можешь прикрепить картинку.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+    )
     try:
         await call.message.edit_text(
-            "Настройки Sora 2:",
+            text,
             reply_markup=sora2_main_settings_keyboard(data.get("sora_aspect")),
         )
     except Exception:

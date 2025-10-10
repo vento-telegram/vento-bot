@@ -5,7 +5,7 @@ def sora2_aspect_keyboard(selected: str | None = None) -> InlineKeyboardMarkup:
     options = ["16:9", "9:16"]
     buttons: list[InlineKeyboardButton] = []
     for opt in options:
-        label = f"✔ {opt}" if opt == selected else opt
+        label = f"✅ {opt}" if opt == selected else opt
         buttons.append(InlineKeyboardButton(text=label, callback_data=f"sora2:aspect:{opt}"))
     return InlineKeyboardMarkup(inline_keyboard=[buttons, [InlineKeyboardButton(text="🔙 Назад", callback_data="sora2:main")]])
 
