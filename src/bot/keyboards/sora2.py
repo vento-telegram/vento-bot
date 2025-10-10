@@ -12,7 +12,7 @@ def sora2_aspect_keyboard(selected: str | None = None) -> InlineKeyboardMarkup:
 
 def sora2_main_settings_keyboard(aspect: str | None) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
-    aspect_text = aspect or "не выбран"
+    aspect_text = aspect or "—"
     rows.append([InlineKeyboardButton(text=f"Формат: {aspect_text}", callback_data="sora2:open:aspect")])
     rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:start")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
