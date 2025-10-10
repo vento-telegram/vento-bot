@@ -62,7 +62,7 @@ async def set_mode_veo_video(
     imp = int(await settings.get_value('veo_improved_price'))
     text = (
         "🎬 Выбери настройки генерируемого видео (формат и качество).\n\n"
-        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием.\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием, можешь прикрепить картинку.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
     await call.message.answer(text, reply_markup=veo_main_settings_keyboard(None, None, std, imp))
@@ -81,8 +81,9 @@ async def set_mode_sora2_video(
     except Exception:
         pass
     text = (
-        "🎬 Режим Sora 2.\n\n"
-        "Сначала выберите формат (16:9 или 9:16), затем отправьте текст или картинку с текстом."
+        "🎬 Выбери формат генерируемого видео\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием, можешь прикрепить картинку.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
     await call.message.answer(text, reply_markup=sora2_main_settings_keyboard(None))
 
@@ -101,6 +102,12 @@ async def sora2_set_aspect(
         return
     await state.update_data(sora_aspect=aspect)
     await call.answer("Формат выбран")
+    text = (
+        "🎬 Выбери формат генерируемого видео\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием, можешь прикрепить картинку.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+    )
+    await call.message.edit_text(text=text)
     try:
         await call.message.edit_reply_markup(reply_markup=sora2_main_settings_keyboard(aspect))
     except Exception:
@@ -111,7 +118,7 @@ async def sora2_open_aspect(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     await call.answer()
     try:
-        await call.message.edit_text("Выберите формат:", reply_markup=sora2_aspect_keyboard(data.get("sora_aspect")))
+        await call.message.edit_text("📐 Выбери соотношение сторон видеоролика.", reply_markup=sora2_aspect_keyboard(data.get("sora_aspect")))
     except Exception:
         await call.message.edit_reply_markup(reply_markup=sora2_aspect_keyboard(data.get("sora_aspect")))
 
@@ -145,7 +152,7 @@ async def veo_set_quality(
     aspect = data.get('veo_aspect', None)
     main_text = (
         "🎬 Выбери настройки генерируемого видео (формат и качество).\n\n"
-        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием.\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием, можешь прикрепить картинку.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
     try:
@@ -179,7 +186,7 @@ async def veo_set_aspect(
     q = data.get('veo_quality')
     main_text = (
         "🎬 Выбери настройки генерируемого видео (формат и качество).\n\n"
-        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием.\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием, можешь прикрепить картинку.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
     try:
@@ -257,7 +264,7 @@ async def veo_back_to_main(
     await call.answer()
     text = (
         "🎬 Выбери настройки генерируемого видео (формат и качество).\n\n"
-        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием.\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием, можешь прикрепить картинку.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
     try:
