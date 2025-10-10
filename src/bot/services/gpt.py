@@ -160,72 +160,57 @@ class OpenAIService(AbcOpenAIService):
         state: FSMContext,
         user: UserEntity,
     ) -> None:
-        # Price check
         request_price = int(await self._settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana]))
         if user.balance < request_price:
             raise InsufficientBalanceError
 
-        # Auto-infer action: edit if image provided, else create
         has_image = bool(message.photo) or (message.document and (message.document.mime_type or "").lower().startswith("image/"))
 
-        # Media group aggregation for multiple images
-        media_group_id = getattr(message, "media_group_id", None)
-        if has_image and media_group_id:
-            group_key = str(media_group_id)
-            state_data = await state.get_data()
-            groups: dict = state_data.get("nb_groups", {}) or {}
-            record = groups.get(group_key, {"images": [], "prompt": None, "submitted": False})
+        media_group_id = message.media_group_id
+        if media_group_id:
+            if not has_image:
+                return
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = asyncio.get_event_loop()
+            now = loop.time()
+            quiet_seconds = 0.5
 
-            # Add image URL
             if message.photo:
-                url = await self._get_telegram_file_url(message.bot, message.photo[-1].file_id)
+                file_id = message.photo[-1].file_id
             else:
-                url = await self._get_telegram_file_url(message.bot, message.document.file_id)
-            if url not in record["images"]:
-                record["images"].append(url)
+                file_id = message.document.file_id
 
-            # Update prompt if provided in this message
-            caption = (message.caption or "").strip()
-            if caption:
-                record["prompt"] = caption
+            data = await state.get_data()
+            groups = data.get("nb_media_groups") or {}
+            group = groups.get(media_group_id) or {}
 
-            groups[group_key] = record
-            await state.update_data(nb_groups=groups)
+            file_ids = list(group.get("file_ids") or [])
+            file_ids.append(file_id)
+            caption = group.get("caption") or (message.caption or "").strip() or None
+            expires_at = now + quiet_seconds
 
-            # Debounce to collect rest of the album
-            await asyncio.sleep(1.2)
+            group.update({
+                "file_ids": file_ids,
+                "caption": caption,
+                "expires_at": expires_at,
+                "finalized": False,
+            })
+            groups[media_group_id] = group
+            await state.update_data(nb_media_groups=groups)
 
-            # Re-read and submit if not submitted yet
-            state_data = await state.get_data()
-            groups = state_data.get("nb_groups", {}) or {}
-            record = groups.get(group_key)
-            if not record or record.get("submitted"):
-                return
-            images: list[str] = record.get("images") or []
-            prompt_text: str | None = record.get("prompt")
-            if not images or not prompt_text:
-                # Not enough data to submit yet
-                return
-
-            await self._submit_nano_task(
-                user=user,
-                image_urls=images,
-                prompt_text=prompt_text,
-            )
-
-            # Mark as submitted
-            record["submitted"] = True
-            groups[group_key] = record
-            await state.update_data(nb_groups=groups)
-            await message.answer(
-                "🧑‍🎨 *Работаю над изображением...*\n\n"
-                "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
+            asyncio.create_task(
+                self._finalize_nano_media_group_after_quiet_period(
+                    media_group_id=media_group_id,
+                    scheduled_expires_at=expires_at,
+                    message=message,
+                    state=state,
+                    user=user,
+                )
             )
             return
 
-        # Prepare single input
-        prompt_text: str = ""
-        image_urls: list[str] = []
         if has_image:
             if message.photo:
                 url = await self._get_telegram_file_url(message.bot, message.photo[-1].file_id)
@@ -234,9 +219,10 @@ class OpenAIService(AbcOpenAIService):
             image_urls = [url]
             prompt_text = (message.caption or "").strip()
             if not prompt_text:
-                await message.answer("Добавь подпись к фото с инструкцией для редактирования.")
+                await message.answer("📜 Добавь подпись к фото с инструкцией для редактирования.")
                 return
         else:
+            image_urls = []
             prompt_text = (message.text or "").strip()
             if not prompt_text:
                 await message.answer("✍️ Напиши промпт для генерации изображения.")
@@ -252,32 +238,81 @@ class OpenAIService(AbcOpenAIService):
             "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
         )
 
-    async def translate_for_veo(self, text: str) -> str:
+    async def _finalize_nano_media_group_after_quiet_period(
+        self,
+        media_group_id: str,
+        scheduled_expires_at: float,
+        message: Message,
+        state: FSMContext,
+        user: UserEntity,
+    ) -> None:
         try:
-            system = (
-                "You are a precise translator for a video generation prompt. "
-                "Translate the user's prompt to natural English if needed. "
-                "STRICT RULES:\n"
-                "- Preserve any quoted dialogue exactly as-is: text inside double quotes (\"...\"), single quotes ('...'), or Russian quotes («...»).\n"
-                "- Do not alter URLs, timestamps, emoji, or markup.\n"
-                "- Do not add instructions, explanations, brackets, or metadata.\n"
-                "- If the prompt is already suitable English, return it unchanged.\n"
-                "OUTPUT: Return only the final prompt text."
-            )
-            messages: list[ChatCompletionMessageParam] = [
-                {"role": "system", "content": system},
-                {"role": "user", "content": text},
-            ]
-            response = await self._client.chat.completions.create(
-                model="gpt-5-mini",
-                messages=messages,
-            )
-            out = (response.choices[0].message.content or "").strip()
-            # Fallback to original if model returns empty
-            return out or text
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = asyncio.get_event_loop()
+            now = loop.time()
+            delay = max(0.0, scheduled_expires_at - now)
+            if delay:
+                await asyncio.sleep(delay)
+
+            data = await state.get_data()
+            groups = dict(data.get("nb_media_groups") or {})
+            group = groups.get(media_group_id)
+            if not group:
+                return
+            if group.get("finalized"):
+                return
+            if float(group.get("expires_at") or 0.0) != float(scheduled_expires_at):
+                return
+
+            file_ids = list(group.get("file_ids") or [])
+            caption = (group.get("caption") or "").strip()
+            image_urls: list[str] = []
+            for fid in file_ids:
+                try:
+                    url = await self._get_telegram_file_url(message.bot, fid)
+                    if url:
+                        image_urls.append(url)
+                except Exception:
+                    logger.exception("Failed to get file URL for media group item")
+
+            if not caption:
+                try:
+                    await message.answer("📜 Добавь подпись к фото с инструкцией для редактирования.")
+                finally:
+                    groups.pop(media_group_id, None)
+                    await state.update_data(nb_media_groups=groups)
+                return
+
+            try:
+                await self._submit_nano_task(user=user, image_urls=image_urls, prompt_text=caption)
+            except InsufficientBalanceError:
+                try:
+                    await message.answer("*Недостаточно токенов для запроса Nano Banana.*")
+                finally:
+                    groups.pop(media_group_id, None)
+                    await state.update_data(nb_media_groups=groups)
+                return
+            except Exception:
+                logger.exception("Failed to submit Nano Banana task for media group")
+                try:
+                    await message.answer("Произошла ошибка при отправке в Nano Banana. Попробуйте ещё раз.")
+                finally:
+                    groups.pop(media_group_id, None)
+                    await state.update_data(nb_media_groups=groups)
+                return
+
+            try:
+                await message.answer(
+                    "🧑‍🎨 *Работаю над изображением...*\n\n"
+                    "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
+                )
+            finally:
+                groups.pop(media_group_id, None)
+                await state.update_data(nb_media_groups=groups)
         except Exception:
-            logger.exception("translate_for_veo failed; returning original text")
-            return text
+            logger.exception("Unexpected error in media group finalizer")
 
     async def _submit_nano_task(self, user: UserEntity, image_urls: list[str], prompt_text: str) -> None:
         model_name = "google/nano-banana-edit" if image_urls else "google/nano-banana"
