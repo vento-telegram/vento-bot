@@ -5,6 +5,7 @@ from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from dependency_injector.wiring import Provide, inject
+from urllib.parse import parse_qs
 
 from bot.constants import settings_models_mapper
 from bot.container import Container
@@ -26,7 +27,22 @@ async def start_handler(
     settings_service: AbcSettingsService = Provide[Container.settings_service],
 ):
     state_data = await state.get_data()
-    user, is_new = await user_service.is_user_new(message.from_user)
+
+    ref_from: str | None = None
+    try:
+        raw_text = (message.text or "").strip()
+        parts = raw_text.split(maxsplit=1)
+        if len(parts) > 1:
+            payload = parts[1].lstrip('?')  # support accidental leading '?'
+            params = parse_qs(payload, keep_blank_values=True)
+            values = params.get('from') or params.get('ref') or None
+            if values:
+                # Take the first value only
+                ref_from = values[0] or None
+    except Exception:
+        ref_from = None
+
+    user, is_new = await user_service.is_user_new(message.from_user, ref_from=ref_from)
     if is_new:
         await state.update_data(history=[], mode=BotModeEnum.passive)
         start_bonus = await settings_service.get_value("start_bonus")

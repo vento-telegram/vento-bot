@@ -30,6 +30,7 @@ class UserOrm(Base, TimeMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
     username: Mapped[str | None] = mapped_column(nullable=True)
+    from_: Mapped[str | None] = mapped_column('from', nullable=True)
     balance: Mapped[int] = mapped_column(nullable=False, server_default="0")
     is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     is_blocked: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")

@@ -9,7 +9,7 @@ from bot.enums import TransactionReasonEnum
 
 class AbcUserService(ABC):
     @abstractmethod
-    async def is_user_new(self, telegram_user: TelegramUser) -> Tuple[UserEntity, bool]:
+    async def is_user_new(self, telegram_user: TelegramUser, ref_from: str | None = None) -> Tuple[UserEntity, bool]:
         ...
 
     @abstractmethod

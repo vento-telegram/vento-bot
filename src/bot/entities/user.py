@@ -7,6 +7,7 @@ class UserDTO(BaseModel):
     id: int | None = None
     telegram_id: int | None = None
     username: str | None = None
+    from_: str | None = None
     balance: int | None = None
     is_admin: bool | None = None
     is_blocked: bool | None = None

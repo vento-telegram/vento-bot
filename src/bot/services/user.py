@@ -17,8 +17,8 @@ class UserService(AbcUserService):
         self._uow = uow
         self._settings_service = settings_service
 
-    async def is_user_new(self, telegram_user: TelegramUser) -> Tuple[UserEntity, bool]:
-        user_data = UserDTO(telegram_id=telegram_user.id, username=telegram_user.username)
+    async def is_user_new(self, telegram_user: TelegramUser, ref_from: str | None = None) -> Tuple[UserEntity, bool]:
+        user_data = UserDTO(telegram_id=telegram_user.id, username=telegram_user.username, from_=ref_from)
         start_bonus = await self._settings_service.get_value("start_bonus")
         async with self._uow:
             user, is_new = await self._uow.user.get_or_create(user_data)
