@@ -65,7 +65,9 @@ async def start_handler(
             )
         )
         try:
-            admins = await user_service.list_admins()
+            notify_val = await settings_service.get_value("notify_new_users_admins")
+            enabled = (str(notify_val).strip() == "1") if notify_val is not None else False
+            admins = await user_service.list_admins() if enabled else []
             admin_text = (
                 "🆕 Новый пользователь:\n\n"
                 f"ID: {message.from_user.id} (@{message.from_user.username if message.from_user.username else "нет"})\nРеферал: {ref_from if ref_from else '-'}"
