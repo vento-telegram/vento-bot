@@ -71,6 +71,7 @@ async def start_handler(
                 "🆕 *Новый пользователь:*\n\n"
                 f"ID: {message.from_user.id} (@{message.from_user.username})\nРеферал: {ref_from if ref_from else '-'}"
             )
+            logger.info(f"admin text: {admin_text}")
             for admin in admins:
                 try:
                     await admin_bot.send_message(admin.telegram_id, admin_text)
