@@ -69,7 +69,7 @@ async def start_handler(
             logger.info(f"Notify ADMINS: {admins}")
             admin_text = (
                 "🆕 *Новый пользователь:*\n\n"
-                f"ID: {message.from_user.id} (@{message.from_user.username})\nРеферал: {ref_from if ref_from else "-"}"
+                f"ID: {message.from_user.id} (@{message.from_user.username})\nРеферал: {ref_from if ref_from else '-'}"
             )
             for admin in admins:
                 try:
