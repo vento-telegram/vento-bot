@@ -79,6 +79,22 @@ class OpenAIService(AbcOpenAIService):
 
         telegram_response = GPTMessageResponse(text=gpt_response.get("content"))
 
+        # Refund tokens if the model failed (detected by support marker in content)
+        try:
+            content = (telegram_response.text or "").strip()
+            if content:
+                marker = "Произошла ошибка при взамодействии с моделью"
+                if marker in content:
+                    refund_reason = TransactionReasonEnum.gpt_refund if mode == BotModeEnum.gpt else TransactionReasonEnum.gpt_mini_refund
+                    refund_meta = self._make_meta(gpt_request, gpt_response)
+                    async with self._uow:
+                        await self._uow.user.update_balance_by_user_id(user.id, +request_price)
+                        await self._uow.transaction.add(
+                            TransactionEntity(user_id=user.id, delta=+request_price, reason=refund_reason, meta=refund_meta)
+                        )
+        except Exception:
+            logger.exception("Failed to process refund after GPT error")
+
         if not telegram_response.text:
             telegram_response.text = "🤖 (пустой ответ от ИИ)"
 

@@ -129,6 +129,10 @@ class VeoService(AbcVeoService):
                             err = task_json.get('error') or 'Неизвестная ошибка'
                             await message.answer(f"☹️ Генерация не удалась: {err}")
                             logger.warning("veo_request_failed_status", extra={"user_id": user.id, "task_id": task_id, "error": err})
+                            try:
+                                await self._refund(user.id, request_price, task_id, prompt, aspect_ratio, quality, image_urls)
+                            except Exception:
+                                logger.exception("veo_request_refund_failed", extra={"user_id": user.id, "task_id": task_id})
                             return
                 except (ClientError, asyncio.TimeoutError):
                     # transient error, keep polling until deadline
@@ -138,6 +142,10 @@ class VeoService(AbcVeoService):
             if not video_url:
                 await message.answer("⏳ Время ожидания генерации истекло. Попробуй ещё раз позже.")
                 logger.warning("veo_request_poll_timeout", extra={"user_id": user.id, "task_id": task_id})
+                try:
+                    await self._refund(user.id, request_price, task_id, prompt, aspect_ratio, quality, image_urls)
+                except Exception:
+                    logger.exception("veo_request_refund_failed", extra={"user_id": user.id, "task_id": task_id})
                 return
 
             total_poll_time = time.monotonic() - poll_started
@@ -213,6 +221,22 @@ class VeoService(AbcVeoService):
                 TransactionEntity(user_id=user_id, delta=-price, reason=TransactionReasonEnum.veo_request, meta=meta)
             )
         logger.info("veo_request_charged", extra={"user_id": user_id, "task_id": task_id, "price": price})
+
+    async def _refund(self, user_id: int, amount: int, task_id: str | None, prompt: str, aspect_ratio: str, quality: str, image_urls: list[str] | None) -> None:
+        async with self._uow:
+            await self._uow.user.update_balance_by_user_id(user_id, +amount)
+            meta = json.dumps({
+                "task_id": task_id,
+                "prompt": prompt,
+                "aspectRatio": aspect_ratio,
+                "quality": quality,
+                "imageUrls": image_urls or [],
+                "refund": True,
+            }, ensure_ascii=False)
+            await self._uow.transaction.add(
+                TransactionEntity(user_id=user_id, delta=+amount, reason=TransactionReasonEnum.veo_refund, meta=meta)
+            )
+        logger.info("veo_request_refunded", extra={"user_id": user_id, "task_id": task_id, "amount": amount})
 
     def _build_callback_url(self, telegram_id: int) -> str:
         base = settings.WEBHOOKS.BASE_URL

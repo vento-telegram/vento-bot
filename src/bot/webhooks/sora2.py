@@ -7,6 +7,10 @@ from dependency_injector.wiring import Provide, inject
 
 from bot.container import Container
 from bot.settings import settings
+from bot.constants import settings_models_mapper
+from bot.enums import BotModeEnum, TransactionReasonEnum
+from bot.interfaces.services.settings import AbcSettingsService
+from bot.interfaces.services.user import AbcUserService
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +19,8 @@ logger = logging.getLogger(__name__)
 async def sora2_handle(
     request: web.Request,
     bot: Bot = Provide[Container.bot],
+    settings_service: AbcSettingsService = Provide[Container.settings_service],
+    user_service: AbcUserService = Provide[Container.user_service],
 ):
     try:
         body = await request.json()
@@ -74,8 +80,18 @@ async def sora2_handle(
                     "После правки просто пришли запрос ещё раз."
                 )
                 await bot.send_message(user_id, text, parse_mode=None)
+                try:
+                    amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.sora2_video]))
+                    await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
+                except Exception:
+                    logger.exception("Failed to refund tokens for Sora2 photorealistic error user=%s", user_id)
             else:
                 await bot.send_message(user_id, support_text, parse_mode=None)
+                try:
+                    amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.sora2_video]))
+                    await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
+                except Exception:
+                    logger.exception("Failed to refund tokens for Sora2 error user=%s", user_id)
     except Exception:
         logger.exception("Error sending Sora2 webhook result to user %s", user_id)
         try:
