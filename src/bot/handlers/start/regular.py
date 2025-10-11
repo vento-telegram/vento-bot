@@ -64,15 +64,12 @@ async def start_handler(
                 "Для возвращения в меню всегда поможет команда /start."
             )
         )
-        # Notify admins about new user
         try:
             admins = await user_service.list_admins()
             logger.info(f"Notify ADMINS: {admins}")
             admin_text = (
-                "Новый пользователь:\n"
-                f"ID: {message.from_user.id}"
-                + (f" (@{message.from_user.username})" if getattr(message.from_user, 'username', None) else "")
-                + (f"\nРеферал: {ref_from}" if ref_from else "")
+                "🆕 *Новый пользователь:*\n\n"
+                f"ID: {message.from_user.id} (@{message.from_user.username})\nРеферал: {ref_from if ref_from else "-"}"
             )
             for admin in admins:
                 try:
