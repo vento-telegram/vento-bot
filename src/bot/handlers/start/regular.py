@@ -67,6 +67,7 @@ async def start_handler(
         # Notify admins about new user
         try:
             admins = await user_service.list_admins()
+            logger.info(f"Notify ADMINS: {admins}")
             admin_text = (
                 "Новый пользователь:\n"
                 f"ID: {message.from_user.id}"
@@ -76,9 +77,11 @@ async def start_handler(
             for admin in admins:
                 try:
                     await admin_bot.send_message(admin.telegram_id, admin_text)
-                except Exception:
+                except Exception as e:
+                    logger.info(f"Exception while sending message to {admin.telegram_id}. {e}")
                     pass
-        except Exception:
+        except Exception as e:
+            logger.info(f"Exception while sending message. {e}")
             pass
 
     current_mode = state_data.get('mode', BotModeEnum.passive)

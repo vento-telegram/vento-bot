@@ -785,6 +785,7 @@ async def stars_pre_checkout(
 async def stars_successful_payment(
     message: Message,
     user_service: AbcUserService = Provide[Container.user_service],
+    admin_bot: Bot = Provide[Container.admin_bot],
 ):
     sp = message.successful_payment
     if not sp or (sp.currency or "").upper() != "XTR":
@@ -796,6 +797,11 @@ async def stars_successful_payment(
         tokens = int(parts[1]) if len(parts) >= 2 else 0
     except Exception:
         tokens = 0
+    # Parse stars spent value if present
+    try:
+        stars_used = int(parts[2]) if len(parts) >= 3 else None
+    except Exception:
+        stars_used = None
     if tokens <= 0:
         return
     try:
@@ -814,6 +820,24 @@ async def stars_successful_payment(
             ),
             reply_markup=start_keyboard(BotModeEnum.passive),
         )
+        # Notify admins via admin bot
+        try:
+            admins = await user_service.list_admins()
+            admin_text = (
+                "Успешная оплата (Stars):\n"
+                f"Пользователь: {message.from_user.id}"
+                + (f" (@{message.from_user.username})" if getattr(message.from_user, 'username', None) else "")
+                + f"\nТокены: +{tokens}"
+                + (f"\nЗвезды: {stars_used}" if stars_used else "")
+                + (f"\nБаланс: {balance}" if balance is not None else "")
+            )
+            for admin in admins:
+                try:
+                    await admin_bot.send_message(admin.telegram_id, admin_text)
+                except Exception:
+                    pass
+        except Exception:
+            pass
     except Exception:
         # Even if crediting failed, avoid raising in handler
         await message.answer(
