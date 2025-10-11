@@ -1,6 +1,6 @@
 import logging
 
-from aiogram import Router
+from aiogram import Router, Bot
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
@@ -23,6 +23,7 @@ router = Router()
 async def start_handler(
     message: Message,
     state: FSMContext,
+    admin_bot: Bot = Provide[Container.admin_bot],
     user_service: AbcUserService = Provide[Container.user_service],
     settings_service: AbcSettingsService = Provide[Container.settings_service],
 ):
@@ -63,6 +64,23 @@ async def start_handler(
                 "Для возвращения в меню всегда поможет команда /start."
             )
         )
+        # Notify admins about new user
+        try:
+            admins = await user_service.list_admins()
+            admin_text = (
+                "Новый пользователь:\n"
+                f"ID: {message.from_user.id}"
+                + (f" (@{message.from_user.username})" if getattr(message.from_user, 'username', None) else "")
+                + (f"\nРеферал: {ref_from}" if ref_from else "")
+            )
+            for admin in admins:
+                try:
+                    await admin_bot.send_message(admin.telegram_id, admin_text)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
     current_mode = state_data.get('mode', BotModeEnum.passive)
     daily_bonus = await settings_service.get_value("daily_bonus")
 

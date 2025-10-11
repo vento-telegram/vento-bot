@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 async def yookassa_handle(
     request: web.Request,
     bot: Bot = Provide[Container.bot],
+    admin_bot: Bot = Provide[Container.admin_bot],
     user_service: AbcUserService = Provide[Container.user_service],
     payments: AbcPaymentsService = Provide[Container.payments_service],
 ):
@@ -57,6 +58,22 @@ async def yookassa_handle(
                                 text,
                                 reply_markup=start_keyboard(BotModeEnum.passive),
                             )
+                            # Notify admins via admin bot
+                            try:
+                                admins = await user_service.list_admins()
+                                admin_text = (
+                                    "Успешная оплата (YooKassa):\n"
+                                    f"Пользователь: {telegram_id}"
+                                    + (f" (@{user.username})" if getattr(user, 'username', None) else "")
+                                    + f"\nТокены: +{tokens}\nБаланс: {user.balance}"
+                                )
+                                for admin in admins:
+                                    try:
+                                        await admin_bot.send_message(admin.telegram_id, admin_text)
+                                    except Exception:
+                                        pass
+                            except Exception:
+                                pass
                 except Exception:
                     pass
                 return web.json_response({"ok": credited})

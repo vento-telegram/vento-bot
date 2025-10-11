@@ -81,3 +81,9 @@ class UserRepo(AbcUserRepo, BaseRepo):
         result = await self.session.execute(stmt)
         user = result.scalar_one_or_none()
         return self.map_model_to_entity(user) if user else None
+
+    async def list_admins(self) -> list[UserEntity]:
+        stmt = select(UserOrm).where(UserOrm.is_admin.is_(True))
+        res = await self.session.scalars(stmt)
+        models = list(res.all())
+        return [self.map_model_to_entity(m) for m in models]

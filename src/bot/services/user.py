@@ -80,3 +80,7 @@ class UserService(AbcUserService):
                 if updated:
                     updated_count += 1
         return updated_count
+
+    async def list_admins(self) -> list[UserEntity]:
+        async with self._uow:
+            return await self._uow.user.list_admins()

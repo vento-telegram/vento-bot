@@ -30,6 +30,11 @@ class Container(containers.DeclarativeContainer):
         token=settings.MAIN_TOKEN,
         default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN),
     )
+    admin_bot = providers.Singleton(
+        Bot,
+        token=settings.ADMIN_TOKEN,
+        default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN),
+    )
     redis_client=providers.Singleton(
         Redis,
         host=settings.REDIS.HOST,

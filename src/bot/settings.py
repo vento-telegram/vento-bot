@@ -86,6 +86,7 @@ class Settings(BaseSettings):
         env_file=".env",
     )
     MAIN_TOKEN: str
+    ADMIN_TOKEN: str
     SUPPORT_USERNAME: str
     POSTGRES: PostgresSettings = PostgresSettings()
     OPENAI: OpenAISettings = OpenAISettings()

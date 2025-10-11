@@ -36,3 +36,7 @@ class AbcUserRepo(AbcRepo[UserEntity]):
     @abstractmethod
     async def try_debit(self, user_id: int, amount: int) -> UserEntity | None:
         """Atomically subtract amount if balance is sufficient; return updated entity, else None."""
+
+    @abstractmethod
+    async def list_admins(self) -> list[UserEntity]:
+        """Return all users with is_admin flag enabled."""
