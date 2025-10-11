@@ -154,6 +154,22 @@ class OpenAIService(AbcOpenAIService):
         async with ClientSession() as session:
             async with session.post(url, json=payload, headers=headers) as resp:
                 result = await resp.json()
+                # Handle policy-flagged content with a clear message
+                try:
+                    if resp.status != 200 or (result.get("code") not in (200, None)):
+                        _msg = (result.get("msg") or "").strip().lower()
+                        if ("flagged" in _msg and "polic" in _msg) or ("violate" in _msg and "polic" in _msg):
+                            await message.answer(
+                                (
+                                    "🚫 Контент не прошёл проверку политики OpenAI.\n\n"
+                                    "Попробуй переформулировать запрос без тем: насилие, эротика/нагота, несовершеннолетние, опасные или незаконные действия, личные данные, дискриминация и т.п.\n\n"
+                                    "Сделай описание нейтральнее и отправь снова."
+                                ),
+                                parse_mode=None,
+                            )
+                            return
+                except Exception:
+                    pass
                 if resp.status != 200 or result.get("code") != 200:
                     msg = result.get("msg") or "Ошибка генерации"
                     await message.answer(f"☹️ Не удалось отправить задачу генерации: {msg}")

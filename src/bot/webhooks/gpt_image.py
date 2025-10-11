@@ -55,7 +55,23 @@ async def gpt_image_handle(
                 code,
                 task_id,
             )
-            await bot.send_message(user_id, support_text, parse_mode=None)
+            msg = (
+                (body.get("msg") if isinstance(body, dict) else None)
+                or (info.get("msg") if isinstance(info, dict) else None)
+                or (info.get("error") if isinstance(info, dict) else None)
+                or (info.get("message") if isinstance(info, dict) else None)
+                or ""
+            )
+            low = (msg or "").strip().lower()
+            if ("flagged" in low and "polic" in low) or ("violate" in low and "polic" in low):
+                text = (
+                    "🚫 Контент не прошёл проверку политики OpenAI.\n\n"
+                    "Попробуй переформулировать запрос без тем: насилие, эротика/нагота, несовершеннолетние, опасные или незаконные действия, личные данные, дискриминация и т.п.\n\n"
+                    "Сделай описание нейтральнее и отправь снова."
+                )
+                await bot.send_message(user_id, text, parse_mode=None)
+            else:
+                await bot.send_message(user_id, support_text, parse_mode=None)
             try:
                 amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.gpt_image]))
                 await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.gpt_image_refund)
