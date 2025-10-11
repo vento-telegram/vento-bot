@@ -63,13 +63,12 @@ async def sora2_handle(
             msg = data.get("failMsg") or body.get("msg")
             if msg:
                 logger.warning("Sora2 webhook reported error: %s", msg)
-            await bot.send_message(user_id, support_text)
+            await bot.send_message(user_id, support_text, parse_mode=None)
     except Exception:
         logger.exception("Error sending Sora2 webhook result to user %s", user_id)
         try:
-            await bot.send_message(user_id, support_text)
+            await bot.send_message(user_id, support_text, parse_mode=None)
         except Exception:
             pass
 
     return web.json_response({"ok": True})
-

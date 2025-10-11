@@ -75,13 +75,12 @@ async def suno_handle(
                 code,
                 callback_type,
             )
-            await bot.send_message(user_id, support_text)
+            await bot.send_message(user_id, support_text, parse_mode=None)
     except Exception:
         logger.exception("Error sending Suno result to user %s", user_id)
         try:
-            await bot.send_message(user_id, support_text)
+            await bot.send_message(user_id, support_text, parse_mode=None)
         except Exception:
             pass
 
     return web.json_response({"ok": True})
-

@@ -49,15 +49,14 @@ async def gpt_image_handle(
                 code,
                 task_id,
             )
-            await bot.send_message(user_id, support_text)
+            await bot.send_message(user_id, support_text, parse_mode=None)
     except Exception:
         logger.exception(
             "Error sending KIE image to user %s (task %s)", user_id, task_id
         )
         try:
-            await bot.send_message(user_id, support_text)
+            await bot.send_message(user_id, support_text, parse_mode=None)
         except Exception:
             pass
 
     return web.json_response({"ok": True})
-

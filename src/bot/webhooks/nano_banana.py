@@ -59,13 +59,12 @@ async def nano_banana_handle(
                 code,
                 state,
             )
-            await bot.send_message(user_id, support_text)
+            await bot.send_message(user_id, support_text, parse_mode=None)
     except Exception:
         logger.exception("Error sending Nano Banana result to user %s", user_id)
         try:
-            await bot.send_message(user_id, support_text)
+            await bot.send_message(user_id, support_text, parse_mode=None)
         except Exception:
             pass
 
     return web.json_response({"ok": True})
-
