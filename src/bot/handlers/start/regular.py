@@ -68,7 +68,7 @@ async def start_handler(
             admins = await user_service.list_admins()
             admin_text = (
                 "🆕 Новый пользователь:\n\n"
-                f"ID: {message.from_user.id} (@{message.from_user.username})\nРеферал: {ref_from if ref_from else '-'}"
+                f"ID: {message.from_user.id} (@{message.from_user.username if message.from_user.username else "нет"})\nРеферал: {ref_from if ref_from else '-'}"
             )
             for admin in admins:
                 try:

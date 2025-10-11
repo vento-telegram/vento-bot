@@ -43,6 +43,7 @@ from bot.keyboards.sora2 import (
     sora2_aspect_keyboard,
     sora2_main_settings_keyboard,
 )
+from bot.settings import settings
 
 router = Router()
 @router.callback_query(F.data == "set_mode:veo_video")
@@ -824,25 +825,24 @@ async def stars_successful_payment(
         try:
             admins = await user_service.list_admins()
             admin_text = (
-                "Успешная оплата (Stars):\n"
-                f"Пользователь: {message.from_user.id}"
-                + (f" (@{message.from_user.username})" if getattr(message.from_user, 'username', None) else "")
-                + f"\nТокены: +{tokens}"
-                + (f"\nЗвезды: {stars_used}" if stars_used else "")
-                + (f"\nБаланс: {balance}" if balance is not None else "")
+                "Успешная оплата (Stars):\n\n"
+                f"Пользователь: {message.from_user.id}(@{message.from_user.username if message.from_user.username else 'нет'})\n"
+                f"Токены: +{tokens}\n"
+                f"Звезды: {stars_used}" if stars_used else ""
+                f"\nБаланс: {balance}" if balance is not None else ""
             )
             for admin in admins:
                 try:
-                    await admin_bot.send_message(admin.telegram_id, admin_text)
+                    await admin_bot.send_message(admin.telegram_id, admin_text, parse_mode=None)
                 except Exception:
                     pass
         except Exception:
             pass
     except Exception:
-        # Even if crediting failed, avoid raising in handler
         await message.answer(
             text=(
-                "✅ Оплата прошла. Начисление будет обработано автоматически в ближайшее время."),
+                f"⚠️ Оплата прошла, но есть проблемы с начислением. Обратитесь в @{settings.SUPPORT_USERNAME}."
+            ),
             reply_markup=start_keyboard(BotModeEnum.passive),
         )
 

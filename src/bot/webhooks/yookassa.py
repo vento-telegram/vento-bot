@@ -69,7 +69,7 @@ async def yookassa_handle(
                                 )
                                 for admin in admins:
                                     try:
-                                        await admin_bot.send_message(admin.telegram_id, admin_text)
+                                        await admin_bot.send_message(admin.telegram_id, admin_text, parse_mode=None)
                                     except Exception:
                                         pass
                             except Exception:
