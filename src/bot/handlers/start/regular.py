@@ -27,10 +27,10 @@ async def start_handler(
     settings_service: AbcSettingsService = Provide[Container.settings_service],
 ):
     state_data = await state.get_data()
-    try:
-        ref_from = message.text
-    except Exception:
-        ref_from = None
+
+    raw_text = (message.text or "").strip()
+    parts = raw_text.split(maxsplit=1)
+    ref_from = parts[1].lstrip('?')
 
     user, is_new = await user_service.is_user_new(message.from_user, ref_from=ref_from)
     if is_new:
