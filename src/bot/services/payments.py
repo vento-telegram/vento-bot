@@ -60,7 +60,7 @@ class PaymentsService(AbcPaymentsService):
             updated = await self._uow.user.update_balance_by_user_id(user.id, tokens)
             if updated:
                 await self._uow.transaction.add(
-                    TransactionEntity(user_id=user.id, delta=tokens, reason=TransactionReasonEnum.purchase_stars)
+                    TransactionEntity(user_id=user.id, delta=tokens, reason=TransactionReasonEnum.purchase_yookassa)
                 )
         return True
 

@@ -81,6 +81,39 @@ class Sora2Service(AbcSora2Service):
                             ),
                             parse_mode=None,
                         )
+                    elif ("violate" in low and "polic" in low) or ("content may violate openai" in low):
+                        await message.answer(
+                            (
+                                "🚫 Контент не прошёл проверку политики OpenAI.\n\n"
+                                "Попробуй переформулировать запрос без тем: насилие, эротика/нагота, несовершеннолетние, опасные или незаконные действия, личные данные, дискриминация и т.п.\n\n"
+                                "Сделай описание нейтральнее и отправь снова."
+                            ),
+                            parse_mode=None,
+                        )
+                    elif ("third-party" in low and "likeness" in low) or ("third party" in low and "likeness" in low) or ("likeness" in low and "guardrails" in low):
+                        await message.answer(
+                            (
+                                "🚫 Запрос затрагивает сходство реальных людей (third‑party likeness).\n\n"
+                                "Что можно сделать:\n"
+                                "• не упоминать имена, бренды, знаменитостей, частных лиц;\n"
+                                "• убрать или заменить фото реального человека; использовать вымышленных персонажей;\n"
+                                "• добавить: ‘без узнаваемых лиц’, ‘без известных личностей’;\n"
+                                "• описать образ обобщённо: ‘молодой мужчина’ вместо имени."
+                            ),
+                            parse_mode=None,
+                        )
+                    elif ("nudity" in low) or ("sexuality" in low) or ("erotic" in low):
+                        await message.answer(
+                            (
+                                "🚫 Запрос содержит наготу или сексуальный/эротический контент.\n\n"
+                                "Что можно сделать:\n"
+                                "• избегать обнажённых частей тела и сексуальных действий;\n"
+                                "• описать одежду/стили: ‘пляжная одежда’, ‘повседневная одежда’;\n"
+                                "• добавить: ‘без эротического контента’, ‘без наготы’, ‘PG‑13’;\n"
+                                "• строго исключить несовершеннолетних."
+                            ),
+                            parse_mode=None,
+                        )
                     else:
                         await message.answer(f"Упс, не удалось создать задачу Sora 2: {msg}", parse_mode=None)
                     return
@@ -107,4 +140,6 @@ class Sora2Service(AbcSora2Service):
         if not base:
             return f"/webhooks/sora2?user_id={telegram_id}"
         return f"{base}/webhooks/sora2?user_id={telegram_id}"
+
+
 

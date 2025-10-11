@@ -26,6 +26,7 @@ class TransactionReasonEnum(StrEnum):
     suno_refund = auto()
     purchase_stars = auto()
     purchase_bepaid = auto()
+    purchase_yookassa = auto()
     veo_request = auto()
     veo_refund = auto()
     daily_bonus = auto()

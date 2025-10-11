@@ -85,6 +85,48 @@ async def sora2_handle(
                     await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
                 except Exception:
                     logger.exception("Failed to refund tokens for Sora2 photorealistic error user=%s", user_id)
+            elif ("violate" in low and "polic" in low) or ("content may violate openai" in low):
+                text = (
+                    "🚫 Контент не прошёл проверку политики OpenAI.\n\n"
+                    "Попробуй переформулировать запрос без тем: насилие, эротика/нагота, несовершеннолетние, опасные или незаконные действия, личные данные, дискриминация и т.п.\n\n"
+                    "Сделай описание нейтральнее и отправь снова."
+                )
+                await bot.send_message(user_id, text, parse_mode=None)
+                try:
+                    amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.sora2_video]))
+                    await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
+                except Exception:
+                    logger.exception("Failed to refund tokens for Sora2 policy error user=%s", user_id)
+            elif ("third-party" in low and "likeness" in low) or ("third party" in low and "likeness" in low) or ("likeness" in low and "guardrails" in low):
+                text = (
+                    "🚫 Запрос затрагивает сходство реальных людей (third‑party likeness).\n\n"
+                    "Что можно сделать:\n"
+                    "• не упоминать имена, бренды, знаменитостей, частных лиц;\n"
+                    "• убрать или заменить фото реального человека; использовать вымышленных персонажей;\n"
+                    "• добавить: ‘без узнаваемых лиц’, ‘без известных личностей’;\n"
+                    "• описать образ обобщённо: ‘молодой мужчина’ вместо имени."
+                )
+                await bot.send_message(user_id, text, parse_mode=None)
+                try:
+                    amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.sora2_video]))
+                    await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
+                except Exception:
+                    logger.exception("Failed to refund tokens for Sora2 likeness error user=%s", user_id)
+            elif ("nudity" in low) or ("sexuality" in low) or ("erotic" in low):
+                text = (
+                    "🚫 Запрос содержит наготу или сексуальный/эротический контент.\n\n"
+                    "Что можно сделать:\n"
+                    "• избегать обнажённых частей тела и сексуальных действий;\n"
+                    "• описать одежду/стили: ‘пляжная одежда’, ‘повседневная одежда’;\n"
+                    "• добавить: ‘без эротического контента’, ‘без наготы’, ‘PG‑13’;\n"
+                    "• строго исключить несовершеннолетних."
+                )
+                await bot.send_message(user_id, text, parse_mode=None)
+                try:
+                    amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.sora2_video]))
+                    await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
+                except Exception:
+                    logger.exception("Failed to refund tokens for Sora2 NSFW error user=%s", user_id)
             else:
                 await bot.send_message(user_id, support_text, parse_mode=None)
                 try:
