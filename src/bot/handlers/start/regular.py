@@ -27,18 +27,8 @@ async def start_handler(
     settings_service: AbcSettingsService = Provide[Container.settings_service],
 ):
     state_data = await state.get_data()
-
-    ref_from: str | None = None
     try:
-        raw_text = (message.text or "").strip()
-        parts = raw_text.split(maxsplit=1)
-        if len(parts) > 1:
-            payload = parts[1].lstrip('?')  # support accidental leading '?'
-            params = parse_qs(payload, keep_blank_values=True)
-            values = params.get('from') or params.get('ref') or None
-            if values:
-                # Take the first value only
-                ref_from = values[0] or None
+        ref_from = message.text
     except Exception:
         ref_from = None
 
