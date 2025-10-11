@@ -60,10 +60,22 @@ async def sora2_handle(
         elif code == 200 and state in {"waiting"}:
             await bot.send_message(user_id, "Задача Sora 2 выполняется... Ещё немного и всё будет готово.")
         else:
-            msg = data.get("failMsg") or body.get("msg")
+            msg = (data.get("failMsg") or body.get("msg") or "").strip()
             if msg:
                 logger.warning("Sora2 webhook reported error: %s", msg)
-            await bot.send_message(user_id, support_text, parse_mode=None)
+            low = msg.lower()
+            if "photorealistic" in low and "people" in low:
+                text = (
+                    "🚫 Sora 2 не принимает изображения с фотореалистичными людьми.\n\n"
+                    "Что можно сделать:\n"
+                    "• убрать людей/лица с фото или размыть/замазать их;\n"
+                    "• использовать рисунок/иллюстрацию вместо фотографии;\n"
+                    "• отправить только текстовое описание без изображения.\n\n"
+                    "После правки просто пришли запрос ещё раз."
+                )
+                await bot.send_message(user_id, text, parse_mode=None)
+            else:
+                await bot.send_message(user_id, support_text, parse_mode=None)
     except Exception:
         logger.exception("Error sending Sora2 webhook result to user %s", user_id)
         try:

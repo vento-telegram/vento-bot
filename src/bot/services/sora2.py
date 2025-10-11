@@ -66,8 +66,23 @@ class Sora2Service(AbcSora2Service):
             async with session.post(url, json=payload, headers=headers) as resp:
                 result = await resp.json()
                 if resp.status != 200 or result.get("code") != 200:
-                    msg = result.get("msg") or "Произошла ошибка при создании задачи"
-                    await message.answer(f"Упс, не удалось создать задачу Sora 2: {msg}")
+                    msg = (result.get("msg") or "Произошла ошибка при создании задачи").strip()
+                    low = msg.lower()
+                    if "photorealistic" in low and "people" in low:
+                        # Sora policy error on photorealistic people in uploads
+                        await message.answer(
+                            (
+                                "🚫 Sora 2 не принимает изображения с фотореалистичными людьми.\n\n"
+                                "Что можно сделать:\n"
+                                "• убрать людей/лица с фото или размыть/замазать их;\n"
+                                "• использовать рисунок/иллюстрацию вместо фотографии;\n"
+                                "• отправить только текстовое описание без изображения.\n\n"
+                                "После правки просто пришли запрос ещё раз."
+                            ),
+                            parse_mode=None,
+                        )
+                    else:
+                        await message.answer(f"Упс, не удалось создать задачу Sora 2: {msg}", parse_mode=None)
                     return
                 data = (result or {}).get("data") or {}
                 task_id = data.get("taskId")
