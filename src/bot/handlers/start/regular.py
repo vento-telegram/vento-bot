@@ -66,15 +66,13 @@ async def start_handler(
         )
         try:
             admins = await user_service.list_admins()
-            logger.info(f"Notify ADMINS: {admins}")
             admin_text = (
-                "🆕 *Новый пользователь:*\n\n"
+                "🆕 Новый пользователь:\n\n"
                 f"ID: {message.from_user.id} (@{message.from_user.username})\nРеферал: {ref_from if ref_from else '-'}"
             )
-            logger.info(f"admin text: {admin_text}")
             for admin in admins:
                 try:
-                    await admin_bot.send_message(admin.telegram_id, admin_text)
+                    await admin_bot.send_message(admin.telegram_id, admin_text, parse_mode=None)
                 except Exception as e:
                     logger.info(f"Exception while sending message to {admin.telegram_id}. {e}")
                     pass
