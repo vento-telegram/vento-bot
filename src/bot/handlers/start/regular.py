@@ -27,10 +27,23 @@ async def start_handler(
     settings_service: AbcSettingsService = Provide[Container.settings_service],
 ):
     state_data = await state.get_data()
-
-    raw_text = (message.text or "").strip()
-    parts = raw_text.split(maxsplit=1)
-    ref_from = parts[1].lstrip('?')
+    ref_from: str | None = None
+    try:
+        raw_text = (message.text or "").strip()
+        parts = raw_text.split(maxsplit=1)
+        if len(parts) > 1:
+            payload = parts[1].lstrip('?')
+            if payload.lower().startswith('start='):
+                ref_from = payload.split('=', 1)[1] or None
+            else:
+                params = parse_qs(payload, keep_blank_values=True)
+                if 'start' in params and params['start']:
+                    ref_from = params['start'][0] or None
+                else:
+                    # Treat bare token as the ref value
+                    ref_from = payload or None
+    except Exception:
+        ref_from = None
 
     user, is_new = await user_service.is_user_new(message.from_user, ref_from=ref_from)
     if is_new:
