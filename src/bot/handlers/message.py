@@ -15,6 +15,7 @@ from bot.interfaces.services.sora2 import AbcSora2Service
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.veo import AbcVeoService
 from bot.keyboards.change_ai import mode_keyboard
+from bot.keyboards.sora2 import sora2_aspect_keyboard
 from bot.keyboards.suno import (
     suno_main_settings_keyboard,
     suno_prompt_keyboard,
@@ -435,7 +436,7 @@ async def common_message_handler(
             prompt = text
 
         if not aspect:
-            await message.answer("Сначала выбери формат: 16:9 или 9:16")
+            await message.answer("✋ Сначала выбери формат: 16:9 или 9:16", reply_markup=sora2_aspect_keyboard(aspect))
             return
 
         status_msg = await message.answer(
