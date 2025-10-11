@@ -20,6 +20,7 @@ from bot.keyboards.suno import (
     suno_prompt_keyboard,
 )
 from bot.utils.telegram_format import prepare_telegram_messages_from_markdown
+from bot.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,12 @@ router = Router()
 async def _get_telegram_file_url(bot, file_id: str) -> str:
     file = await bot.get_file(file_id)
     return f"https://api.telegram.org/file/bot{bot.token}/{file.file_path}"
+
+# Unified user-facing error message for model interaction failures
+SUPPORT_ERROR_TEXT = (
+    f"🚨 Произошла ошибка при взамодействии с моделью.\n\n"
+    f"Свяжись с нашей поддержкой, чтобы получить помощь @{settings.SUPPORT_USERNAME}"
+)
 
 @router.message()
 @inject
@@ -89,6 +96,18 @@ async def common_message_handler(
                 )
             )
             return
+
+        # Special-case unsupported image formats (e.g., HEIC/HEIF sent as a file)
+        if message.document and doc_mime.startswith("image/"):
+            allowed_mimes = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+            file_name = (message.document.file_name or "").lower()
+            ext = file_name.rsplit(".", 1)[-1] if "." in file_name else ""
+            if (doc_mime not in allowed_mimes) or (ext and ext not in {"jpg", "jpeg", "png", "webp", "gif"}):
+                if "heic" in doc_mime or "heif" in doc_mime or ext in {"heic", "heif"}:
+                    await message.answer("Этот формат изображения (HEIC/HEIF) не поддерживается моделью.\n\nПожалуйста, пришлите его как фото (не как файл) — Telegram автоматически конвертирует в JPEG.\nЛибо заранее конвертируйте в JPEG/PNG/WebP.")
+                else:
+                    await message.answer("Этот формат изображения не поддерживается моделью.\n\nОтправьте файл как фото (не как документ) — Telegram преобразует в совместимый JPEG, или конвертируйте изображение в JPEG/PNG/WebP.")
+                return
 
         # Size checks for photo/document
         if message.photo:

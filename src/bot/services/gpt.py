@@ -612,8 +612,16 @@ class OpenAIService(AbcOpenAIService):
 
         messages = [{"role": "system", "content": system_content}, *history]
 
-        response = await self._client.chat.completions.create(
-            model="gpt-5" if mode == BotModeEnum.gpt else "gpt-5-mini",
-            messages=messages,
-        )
-        return ChatCompletionAssistantMessageParam(role="assistant", content=response.choices[0].message.content)
+        try:
+            response = await self._client.chat.completions.create(
+                model="gpt-5" if mode == BotModeEnum.gpt else "gpt-5-mini",
+                messages=messages,
+            )
+            return ChatCompletionAssistantMessageParam(role="assistant", content=response.choices[0].message.content)
+        except Exception:
+            logger.exception("OpenAI chat.completions error")
+            support_text = (
+                f"🚨 Произошла ошибка при взамодействии с моделью.\n\n"
+                f"Свяжись с нашей поддержкой, чтобы получить помощь @{settings.SUPPORT_USERNAME}"
+            )
+            return ChatCompletionAssistantMessageParam(role="assistant", content=support_text)
