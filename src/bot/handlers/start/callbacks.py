@@ -853,7 +853,6 @@ async def goto_switch(
     mini_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt_mini])
     nano_price = await settings.get_value(settings_models_mapper[BotModeEnum.nano_banana])
     suno_price = await settings.get_value(settings_models_mapper[BotModeEnum.suno_music])
-    veo_standard = await settings.get_value(settings_models_mapper[BotModeEnum.veo_video])
     sora_price = await settings.get_value(settings_models_mapper[BotModeEnum.sora2_video])
 
     text = (
@@ -862,14 +861,12 @@ async def goto_switch(
         "Самый продвинутый ИИ-чат.\n\n"
         f"⚡ *GPT‑5 Mini* ({mini_price} токенов/запрос)\n"
         "Быстрые и экономные ответы.\n\n"
-        f"🍌 *Nano Banana* ({nano_price} токенов/запрос)\n"
+        f"🏞️ *Nano Banana* ({nano_price} токенов/запрос)\n"
         "Создание и редактирование изображений.\n\n"
         f"🎵 *Suno* ({suno_price} токенов/запрос)\n"
         "Генерация музыки по стилю, описанию/тексту.\n\n"
-        f"🎬 *Veo 3* (от {veo_standard} токенов/запрос)\n"
+        f"📹 *Veo 3* и *Sora 2* (от {sora_price} токенов/запрос)\n"
         "Генерация видео по тексту или картинке.\n\n"
-        f"📹 *Sora 2* ({sora_price} токенов/запрос)\n"
-        "Новая модель генерации видео от OpenAI.\n\n"
         "👇 Выбери нужный ИИ:"
     )
 
