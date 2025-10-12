@@ -25,7 +25,7 @@ async def bepaid_handle(
 
     transaction = body.get("transaction")
     status = transaction.get("status")  # "successful"
-    tracking_id = transaction.get("tracking_id")  # "302893773:700"
+    tracking_id = transaction.get("tracking_id")  # "302893773:3000"
 
     parts = tracking_id.split(":", maxsplit=1)
     telegram_id = int(parts[0])

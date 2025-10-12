@@ -18,21 +18,19 @@ def payments_back_keyboard() -> InlineKeyboardMarkup:
 
 def ru_bundles_keyboard(bundles: list[tuple[int, int]]) -> InlineKeyboardMarkup:
     icons_map: dict[int, str] = {
-        700: "🐣",
-        1600: "🎯",
-        4500: "👑",
-        11000: "💎",
-        28000: "🚀",
+        3000: "🎯",
+        11000: "🚀",
+        24000: "💎",
+        38000: "👑",
     }
     bonus_map: dict[int, int] = {
-        700: 0,
-        1600: 200,
-        4500: 900,
-        11000: 2100,
-        28000: 8000,
+        3000: 0,
+        11000: 0,
+        24000: 0,
+        38000: 0,
     }
     tag_map: dict[int, str] = {
-        4500: " 🔥",
+        38000: " 🔥",
     }
     rows: list[list[InlineKeyboardButton]] = []
     for tokens, price in bundles:
@@ -53,21 +51,19 @@ def ru_bundles_back_keyboard() -> InlineKeyboardMarkup:
 
 def card_bundles_keyboard(bundles: list[tuple[int, int]]) -> InlineKeyboardMarkup:
     icons_map: dict[int, str] = {
-        700: "🐣",
-        1600: "🎯",
-        4500: "👑",
-        11000: "💎",
-        28000: "🚀",
+        3000: "🎯",
+        11000: "🚀",
+        24000: "💎",
+        38000: "👑",
     }
     bonus_map: dict[int, int] = {
-        700: 0,
-        1600: 200,
-        4500: 900,
-        11000: 2100,
-        28000: 8000,
+        3000: 0,
+        11000: 0,
+        24000: 0,
+        38000: 0,
     }
     tag_map: dict[int, str] = {
-        4500: " 🔥",
+        11000: " 🔥",
     }
     rows: list[list[InlineKeyboardButton]] = []
     for tokens, price in bundles:
@@ -89,25 +85,23 @@ def pay_link_keyboard(url: str) -> InlineKeyboardMarkup:
 
 async def stars_bundles_keyboard(settings_service) -> InlineKeyboardMarkup:
     icons_map: dict[int, str] = {
-        700: "🐣",
-        1600: "🎯",
-        4500: "👑",
-        11000: "💎",
-        28000: "🚀",
+        3000: "🎯",
+        11000: "🚀",
+        24000: "💎",
+        38000: "👑",
     }
     bonus_map: dict[int, int] = {
-        700: 0,
-        1600: 200,
-        4500: 900,
-        11000: 2100,
-        28000: 8000,
+        3000: 0,
+        11000: 0,
+        24000: 0,
+        38000: 0,
     }
     tag_map: dict[int, str] = {
-        4500: " 🔥",
+        38000: " 🔥",
     }
     
     # Get star prices from settings
-    base_tokens_list = [700, 1600, 4500, 11000, 28000]
+    base_tokens_list = [3000, 11000, 24000, 38000]
     rows: list[list[InlineKeyboardButton]] = []
     
     for base_tokens in base_tokens_list:

@@ -551,7 +551,7 @@ async def pay_ru(
     settings: AbcSettingsService = Provide[Container.settings_service],
 ):
     await call.answer()
-    bundle_token_amounts = [700, 1600, 4500, 11000, 28000]
+    bundle_token_amounts = [3000, 11000, 24000, 38000]
     bundles: list[tuple[int, int]] = []
     for amount in bundle_token_amounts:
         price_value = await settings.get_value(f"{amount}_bundle_price")
@@ -607,7 +607,7 @@ async def pay_card(
     settings: AbcSettingsService = Provide[Container.settings_service],
 ):
     await call.answer()
-    bundle_token_amounts = [700, 1600, 4500, 11000, 28000]
+    bundle_token_amounts = [3000, 11000, 24000, 38000]
     bundles: list[tuple[int, int]] = []
     for amount in bundle_token_amounts:
         price_value = await settings.get_value(f"{amount}_bundle_price")
