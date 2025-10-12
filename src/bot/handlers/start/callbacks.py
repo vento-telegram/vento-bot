@@ -14,7 +14,7 @@ from bot.enums import BotModeEnum, TransactionReasonEnum
 from bot.interfaces.services.payments import AbcPaymentsService
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.interfaces.services.user import AbcUserService
-from bot.keyboards.change_ai import gpt_image_size_keyboard, mode_keyboard
+from bot.keyboards.change_ai import mode_keyboard
 from bot.keyboards.payments import (
     card_bundles_keyboard,
     pay_link_keyboard,
@@ -494,28 +494,6 @@ async def set_mode_chatgpt_mini(
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
 
-@router.callback_query(F.data == "set_mode:gpt_image")
-async def set_mode_gpt_image(
-    call: CallbackQuery,
-    state: FSMContext,
-):
-    await state.update_data(mode=BotModeEnum.gpt_image, gpt_image_size="1:1", history=[])
-    await call.answer("Режим GPT Image активирован")
-    try:
-        await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.gpt_image))
-    except Exception:
-        pass
-    text = (
-        "🖊️ Отправь текст, чтобы создать изображение.\n\n"
-        "🖼️ Отправь фото с подписью, чтобы отредактировать изображение.\n\n"
-        "📐 Текущий размер: 1:1. Его можно сменить кнопками под сообщением.\n\n"
-        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
-    )
-    await call.message.answer(
-        text,
-        reply_markup=gpt_image_size_keyboard("1:1"),
-    )
-
 @router.callback_query(F.data == "set_mode:nano_banana")
 async def set_mode_nano_banana(
     call: CallbackQuery,
@@ -550,33 +528,6 @@ async def set_mode_suno_music(
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
     await call.message.answer(text, reply_markup=suno_main_settings_keyboard(None, None, None))
-
-@router.callback_query(F.data.startswith("gpt_image:size:"))
-async def set_gpt_image_size(
-    call: CallbackQuery,
-    state: FSMContext,
-):
-    raw = call.data or ""
-    prefix = "gpt_image:size:"
-    size = raw[len(prefix):] if raw.startswith(prefix) else raw.split(":", maxsplit=2)[-1]
-    if size not in {"1:1", "3:2", "2:3"}:
-        await call.answer("Неверный размер", show_alert=True)
-        return
-    await state.update_data(gpt_image_size=size)
-    await call.answer(f"Размер изображения: {size}")
-    # Update the last message text (if possible) or just update buttons
-    try:
-        await call.message.edit_text(
-            text=(
-                "🖊️ Отправь текст, чтобы создать изображение.\n\n"
-                "🖼️ Отправь фото с подписью, чтобы отредактировать изображение.\n\n"
-                f"📐 Текущий размер: {size}. Его можно сменить кнопками под сообщением.\n\n"
-                "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
-            ),
-            reply_markup=gpt_image_size_keyboard(size),
-        )
-    except Exception:
-        await call.message.edit_reply_markup(reply_markup=gpt_image_size_keyboard(size))
 
  
 @router.callback_query(F.data == "goto:replenish")
@@ -900,7 +851,6 @@ async def goto_switch(
 
     gpt_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt])
     mini_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt_mini])
-    image_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt_image])
     nano_price = await settings.get_value(settings_models_mapper[BotModeEnum.nano_banana])
     suno_price = await settings.get_value(settings_models_mapper[BotModeEnum.suno_music])
     veo_standard = await settings.get_value(settings_models_mapper[BotModeEnum.veo_video])
@@ -912,8 +862,6 @@ async def goto_switch(
         "Самый продвинутый ИИ-чат.\n\n"
         f"⚡ *GPT‑5 Mini* ({mini_price} токенов/запрос)\n"
         "Быстрые и экономные ответы.\n\n"
-        f"🖼️ *GPT Image* ({image_price} токенов/запрос)\n"
-        "Генерация картинок по описанию.\n\n"
         f"🍌 *Nano Banana* ({nano_price} токенов/запрос)\n"
         "Создание и редактирование изображений.\n\n"
         f"🎵 *Suno* ({suno_price} токенов/запрос)\n"

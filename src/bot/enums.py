@@ -5,7 +5,6 @@ class BotModeEnum(StrEnum):
     passive = "Не выбран"
     gpt = "GPT-5"
     gpt_mini = "GPT-5 Mini"
-    gpt_image = "GPT Image"
     nano_banana = "Nano Banana"
     suno_music = "Suno"
     veo_video = "Veo 3"
@@ -16,10 +15,8 @@ class TransactionReasonEnum(StrEnum):
     welcome_bonus = auto()
     gpt_request = auto()
     gpt_mini_request = auto()
-    gpt_image_request = auto()
     gpt_refund = auto()
     gpt_mini_refund = auto()
-    gpt_image_refund = auto()
     nano_banana_request = auto()
     nano_banana_refund = auto()
     suno_request = auto()

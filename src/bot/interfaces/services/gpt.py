@@ -18,15 +18,6 @@ class AbcOpenAIService(ABC):
         ...
 
     @abstractmethod
-    async def submit_gpt_image_request(
-        self,
-        message: Message,
-        state: FSMContext,
-        user: UserEntity,
-    ) -> None:
-        ...
-
-    @abstractmethod
     async def submit_nano_banana_request(
         self,
         message: Message,

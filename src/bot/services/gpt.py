@@ -100,101 +100,6 @@ class OpenAIService(AbcOpenAIService):
 
         return telegram_response
 
-    async def submit_gpt_image_request(
-        self,
-        message: Message,
-        state: FSMContext,
-        user: UserEntity,
-    ) -> None:
-        # Price check
-        request_price = int(await self._settings_service.get_value(settings_models_mapper[BotModeEnum.gpt_image]))
-        if user.balance < request_price:
-            raise InsufficientBalanceError
-
-        # Read size from state, default 1:1
-        state_data = await state.get_data()
-        image_size = state_data.get("gpt_image_size") or "1:1"
-
-        # Determine if this is text-to-image or image edit/variant
-        image_urls: list[str] = []
-        prompt_text: str = ""
-        if message.photo:
-            # Largest available size
-            url = await self._get_telegram_file_url(message.bot, message.photo[-1].file_id)
-            image_urls = [url]
-            prompt_text = (message.caption or "").strip()
-        elif message.document and (message.document.mime_type or "").lower().startswith("image/"):
-            url = await self._get_telegram_file_url(message.bot, message.document.file_id)
-            image_urls = [url]
-            prompt_text = (message.caption or "").strip()
-        else:
-            prompt_text = (message.text or "").strip()
-
-        if not image_urls and not prompt_text:
-            await message.answer("✍️ Напиши промпт для генерации изображения или пришли фото с комментарием.")
-            return
-
-        payload: dict[str, Any] = {
-            "size": image_size,
-            "nVariants": 1,
-            "callBackUrl": self._build_callback_url(user.telegram_id),
-            "enableFallback": True,
-        }
-        if prompt_text:
-            payload["prompt"] = prompt_text
-        if image_urls:
-            payload["filesUrl"] = image_urls
-
-        headers = {
-            "Authorization": f"Bearer {settings.KIE.API_KEY}",
-            "Content-Type": "application/json",
-        }
-        url = f"{settings.KIE.BASE_URL}/api/v1/gpt4o-image/generate"
-
-        async with ClientSession() as session:
-            async with session.post(url, json=payload, headers=headers) as resp:
-                result = await resp.json()
-                # Handle policy-flagged content with a clear message
-                try:
-                    if resp.status != 200 or (result.get("code") not in (200, None)):
-                        _msg = (result.get("msg") or "").strip().lower()
-                        if ("flagged" in _msg and "polic" in _msg) or ("violate" in _msg and "polic" in _msg):
-                            await message.answer(
-                                (
-                                    "🚫 Контент не прошёл проверку политики OpenAI.\n\n"
-                                    "Попробуй переформулировать запрос без тем: насилие, эротика/нагота, несовершеннолетние, опасные или незаконные действия, личные данные, дискриминация и т.п.\n\n"
-                                    "Сделай описание нейтральнее и отправь снова."
-                                ),
-                                parse_mode=None,
-                            )
-                            return
-                except Exception:
-                    pass
-                if resp.status != 200 or result.get("code") != 200:
-                    msg = result.get("msg") or "Ошибка генерации"
-                    await message.answer(f"☹️ Не удалось отправить задачу генерации: {msg}")
-                    return
-                data = (result or {}).get("data") or {}
-                task_id = data.get("taskId")
-
-        # Charge tokens immediately upon task creation
-        await self._process_tokens_transaction(
-            user_id=user.id,
-            amount=request_price,
-            reason=TransactionReasonEnum.gpt_image_request,
-            meta=json.dumps({
-                "task_id": task_id,
-                "size": image_size,
-                "prompt": prompt_text or None,
-                "filesUrl": image_urls or None,
-            }, ensure_ascii=False),
-        )
-
-        await message.answer(
-            "🧑‍🎨 *Работаю над изображением...*\n\n"
-            "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
-        )
-
     async def submit_nano_banana_request(
         self,
         message: Message,
@@ -448,13 +353,6 @@ class OpenAIService(AbcOpenAIService):
             }, ensure_ascii=False),
         )
 
-    def _build_callback_url(self, telegram_id: int) -> str:
-        base = settings.WEBHOOKS.BASE_URL
-        if not base:
-            # Fallback to our known web base under /webhooks
-            return f"/webhooks/kie-image?user_id={telegram_id}"
-        return f"{base}/webhooks/kie-image?user_id={telegram_id}"
-
     def _build_callback_url_nb(self, telegram_id: int) -> str:
         base = settings.WEBHOOKS.BASE_URL
         if not base:
@@ -637,7 +535,7 @@ class OpenAIService(AbcOpenAIService):
                 "\n\n"
                 "Если пользователь просит CОЗДАТЬ или СГЕНЕРИРОВАТЬ медиа (картинку/изображение/логотип/обложку/постер, видео/клип/трейлер/анимацию, музыку/песню/аудио), "
                 "не выполняй это в GPT-режиме. Вежливо сообщи, что для медиа в Vento нужно выбрать другой ИИ, и предложи варианты: "
-                "изображения — 'GPT Image' или 'Nano Banana'; музыка — 'Suno'; видео — 'Veo 3' или 'Sora 2'. "
+                "изображения — 'Nano Banana'; музыка — 'Suno'; видео — 'Veo 3' или 'Sora 2'. "
                 "Подскажи, как переключиться: нажми «👾 Сменить ИИ» или /start → выбери режим. "
                 "Не рисуй ASCII‑арт и не подменяй результат описанием. Если пользователь подтвердил желание переключиться, можно коротко уточнить сюжет/стиль/формат и ждать смены режима. "
                 "Запросы на АНАЛИЗ изображений (описать/проанализировать фото) разрешены."
@@ -650,7 +548,7 @@ class OpenAIService(AbcOpenAIService):
                 "\n\n"
                 "Если пользователь просит CОЗДАТЬ или СГЕНЕРИРОВАТЬ медиа (картинку/изображение/логотип/обложку/постер, видео/клип/трейлер/анимацию, музыку/песню/аудио), "
                 "не выполняй это в GPT-режиме. Вежливо сообщи, что для медиа в Vento нужно выбрать другой ИИ, и предложи варианты: "
-                "изображения — 'GPT Image' или 'Nano Banana'; музыка — 'Suno'; видео — 'Veo 3' или 'Sora 2'. "
+                "изображения — 'Nano Banana'; музыка — 'Suno'; видео — 'Veo 3' или 'Sora 2'. "
                 "Подскажи, как переключиться: нажми «👾 Сменить ИИ» или /start → выбери режим. "
                 "Не рисуй ASCII‑арт и не подменяй результат описанием. Если пользователь подтвердил желание переключиться, можно коротко уточнить сюжет/стиль/формат и ждать смены режима. "
                 "Запросы на АНАЛИЗ изображений (описать/проанализировать фото) разрешены."

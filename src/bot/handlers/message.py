@@ -182,26 +182,6 @@ async def common_message_handler(
         except OpenAIBadRequestError:
             await status_msg.edit_text("*☹️ OpenAI отклонил твой запрос*\n\nПожалуйста, попробуй изменить его.")
 
-    elif mode == BotModeEnum.gpt_image:
-        try:
-            await openai_service.submit_gpt_image_request(message, state, user)
-        except InsufficientBalanceError:
-            await message.answer(
-                "*☹️ Недостаточно токенов*\n\nДля генерации изображения пополни баланс или выбери другую модель.",
-                reply_markup=InlineKeyboardMarkup(
-                    inline_keyboard=[
-                        [
-                            InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
-                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
-                        ]
-                    ]
-                ),
-            )
-
-        except Exception:
-            logger.exception("Unexpected error in GPT image handler")
-            await message.answer("Не удалось отправить задачу на генерацию изображения. Попробуйте ещё раз позже.")
-
     elif mode == BotModeEnum.nano_banana:
         try:
             await openai_service.submit_nano_banana_request(message, state, user)

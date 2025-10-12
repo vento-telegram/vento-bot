@@ -7,8 +7,7 @@ def mode_keyboard(active_mode: str | None = None) -> InlineKeyboardMarkup:
     emoji_mapper = {
         BotModeEnum.gpt: "🤖",
         BotModeEnum.gpt_mini: "⚡",
-        BotModeEnum.gpt_image: "🖼️",
-        BotModeEnum.nano_banana: "🍌",
+        BotModeEnum.nano_banana: "🖼️",
         BotModeEnum.suno_music: "🎵",
         BotModeEnum.veo_video: "🎬",
         BotModeEnum.sora2_video: "🎥",
@@ -25,14 +24,12 @@ def mode_keyboard(active_mode: str | None = None) -> InlineKeyboardMarkup:
             mode_button("GPT-5 Mini", "set_mode:gpt_mini", BotModeEnum.gpt_mini),
         ],
         [
-            mode_button("GPT Image", "set_mode:gpt_image", BotModeEnum.gpt_image),
             mode_button("Nano Banana", "set_mode:nano_banana", BotModeEnum.nano_banana),
-        ],
-        [
             mode_button("Suno", "set_mode:suno_music", BotModeEnum.suno_music),
-            mode_button("Veo 3", "set_mode:veo_video", BotModeEnum.veo_video),
         ],
         [
+
+            mode_button("Veo 3", "set_mode:veo_video", BotModeEnum.veo_video),
             mode_button("Sora 2", "set_mode:sora2_video", BotModeEnum.sora2_video),
         ],
         [
@@ -41,12 +38,3 @@ def mode_keyboard(active_mode: str | None = None) -> InlineKeyboardMarkup:
     ]
 
     return InlineKeyboardMarkup(inline_keyboard=rows)
-
-
-def gpt_image_size_keyboard(selected_size: str) -> InlineKeyboardMarkup:
-    sizes = ["1:1", "3:2", "2:3"]
-    buttons: list[InlineKeyboardButton] = []
-    for s in sizes:
-        label = f"✅ {s}" if s == selected_size else s
-        buttons.append(InlineKeyboardButton(text=label, callback_data=f"gpt_image:size:{s}"))
-    return InlineKeyboardMarkup(inline_keyboard=[buttons])

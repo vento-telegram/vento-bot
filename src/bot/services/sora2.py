@@ -62,6 +62,28 @@ class Sora2Service(AbcSora2Service):
         }
         url = f"{settings.KIE.BASE_URL}/api/v1/jobs/createTask"
 
+        # Pre-charge with atomic debit to prevent negative balances on concurrent requests
+        preview_meta = json.dumps(
+            {
+                "prompt": prompt,
+                "aspectRatio": aspect_ratio,
+                "imageUrls": image_urls or [],
+            },
+            ensure_ascii=False,
+        )
+        async with self._uow:
+            updated_user = await self._uow.user.try_debit(user.id, request_price)
+            if not updated_user:
+                raise InsufficientBalanceError
+            await self._uow.transaction.add(
+                TransactionEntity(
+                    user_id=user.id,
+                    delta=-request_price,
+                    reason=TransactionReasonEnum.sora2_request,
+                    meta=preview_meta,
+                )
+            )
+
         async with ClientSession() as session:
             async with session.post(url, json=payload, headers=headers) as resp:
                 result = await resp.json()
@@ -116,11 +138,12 @@ class Sora2Service(AbcSora2Service):
                         )
                     else:
                         await message.answer(f"Упс, не удалось создать задачу Sora 2: {msg}", parse_mode=None)
+                    await self._refund(user.id, request_price, prompt, aspect_ratio, image_urls or [])
                     return
                 data = (result or {}).get("data") or {}
                 task_id = data.get("taskId")
 
-        await self._charge(user.id, request_price, task_id, prompt, aspect_ratio, image_urls or [])
+        # Success: already charged above; nothing else to do
 
     async def _charge(self, user_id: int, price: int, task_id: str | None, prompt: str, aspect_ratio: str, image_urls: list[str]) -> None:
         async with self._uow:
@@ -133,6 +156,21 @@ class Sora2Service(AbcSora2Service):
             }, ensure_ascii=False)
             await self._uow.transaction.add(
                 TransactionEntity(user_id=user_id, delta=-price, reason=TransactionReasonEnum.sora2_request, meta=meta)
+            )
+
+    async def _refund(self, user_id: int, price: int, prompt: str, aspect_ratio: str, image_urls: list[str]) -> None:
+        meta = json.dumps(
+            {
+                "prompt": prompt,
+                "aspectRatio": aspect_ratio,
+                "imageUrls": image_urls or [],
+            },
+            ensure_ascii=False,
+        )
+        async with self._uow:
+            await self._uow.user.update_balance_by_user_id(user_id, +price)
+            await self._uow.transaction.add(
+                TransactionEntity(user_id=user_id, delta=+price, reason=TransactionReasonEnum.sora2_refund, meta=meta)
             )
 
     def _build_callback_url(self, telegram_id: int) -> str:
