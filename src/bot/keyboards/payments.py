@@ -22,15 +22,17 @@ def ru_bundles_keyboard(bundles: list[tuple[int, int]]) -> InlineKeyboardMarkup:
         11000: "🚀",
         24000: "💎",
         38000: "👑",
+        70000: "🛸",
     }
     bonus_map: dict[int, int] = {
         3000: 0,
         11000: 0,
         24000: 0,
         38000: 0,
+        70000: 0,
     }
     tag_map: dict[int, str] = {
-        38000: " 🔥",
+        24000: " 🔥",
     }
     rows: list[list[InlineKeyboardButton]] = []
     for tokens, price in bundles:
@@ -55,15 +57,17 @@ def card_bundles_keyboard(bundles: list[tuple[int, int]]) -> InlineKeyboardMarku
         11000: "🚀",
         24000: "💎",
         38000: "👑",
+        70000: "🛸",
     }
     bonus_map: dict[int, int] = {
         3000: 0,
         11000: 0,
         24000: 0,
         38000: 0,
+        70000: 0,
     }
     tag_map: dict[int, str] = {
-        11000: " 🔥",
+        24000: " 🔥",
     }
     rows: list[list[InlineKeyboardButton]] = []
     for tokens, price in bundles:
@@ -89,15 +93,17 @@ async def stars_bundles_keyboard(settings_service) -> InlineKeyboardMarkup:
         11000: "🚀",
         24000: "💎",
         38000: "👑",
+        70000: "🛸",
     }
     bonus_map: dict[int, int] = {
         3000: 0,
         11000: 0,
         24000: 0,
         38000: 0,
+        70000: 0,
     }
     tag_map: dict[int, str] = {
-        38000: " 🔥",
+        24000: " 🔥",
     }
     
     # Get star prices from settings

@@ -58,6 +58,7 @@ def upgrade() -> None:
         ('11000_bundle_price', '999'),
         ('24000_bundle_price', '1999'),
         ('38000_bundle_price', '2999'),
+        ('70000_bundle_price', '4999'),
         ('nano_banana_price', '50'),
         ('suno_music_price', '180'),
         ('3000_stars_price', '399'),
