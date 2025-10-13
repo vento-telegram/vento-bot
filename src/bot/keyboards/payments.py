@@ -18,18 +18,18 @@ def payments_back_keyboard() -> InlineKeyboardMarkup:
 
 def ru_bundles_keyboard(bundles: list[tuple[int, int]]) -> InlineKeyboardMarkup:
     icons_map: dict[int, str] = {
-        3000: "🎯",
-        11000: "🚀",
-        24000: "💎",
-        38000: "👑",
-        70000: "🛸",
+        300: "🎯",
+        1100: "🚀",
+        2400: "💎",
+        3800: "👑",
+        7000: "🛸",
     }
     bonus_map: dict[int, int] = {
-        3000: 0,
-        11000: 0,
-        24000: 0,
-        38000: 0,
-        70000: 0,
+        300: 0,
+        1100: 0,
+        2400: 0,
+        3800: 0,
+        7000: 0,
     }
     tag_map: dict[int, str] = {
         24000: " 🔥",
@@ -53,18 +53,18 @@ def ru_bundles_back_keyboard() -> InlineKeyboardMarkup:
 
 def card_bundles_keyboard(bundles: list[tuple[int, int]]) -> InlineKeyboardMarkup:
     icons_map: dict[int, str] = {
-        3000: "🎯",
-        11000: "🚀",
-        24000: "💎",
-        38000: "👑",
-        70000: "🛸",
+        300: "🎯",
+        1100: "🚀",
+        2400: "💎",
+        3800: "👑",
+        7000: "🛸",
     }
     bonus_map: dict[int, int] = {
-        3000: 0,
-        11000: 0,
-        24000: 0,
-        38000: 0,
-        70000: 0,
+        300: 0,
+        1100: 0,
+        2400: 0,
+        3800: 0,
+        7000: 0,
     }
     tag_map: dict[int, str] = {
         24000: " 🔥",
@@ -89,21 +89,21 @@ def pay_link_keyboard(url: str) -> InlineKeyboardMarkup:
 
 async def stars_bundles_keyboard(settings_service) -> InlineKeyboardMarkup:
     icons_map: dict[int, str] = {
-        3000: "🎯",
-        11000: "🚀",
-        24000: "💎",
-        38000: "👑",
-        70000: "🛸",
+        300: "🎯",
+        1100: "🚀",
+        2400: "💎",
+        3800: "👑",
+        7000: "🛸",
     }
     bonus_map: dict[int, int] = {
-        3000: 0,
-        11000: 0,
-        24000: 0,
-        38000: 0,
-        70000: 0,
+        300: 0,
+        1100: 0,
+        2400: 0,
+        3800: 0,
+        7000: 0,
     }
     tag_map: dict[int, str] = {
-        24000: " 🔥",
+        2400: " 🔥",
     }
     
     # Get star prices from settings
