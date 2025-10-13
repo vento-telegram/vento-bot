@@ -820,7 +820,7 @@ async def goto_start(
         user_balance_int = int(user.balance)
     except Exception:
         user_balance_int = 0
-    if user_balance_int <= 50:
+    if user_balance_int <= int(daily_bonus):
         text += f"⚡ Ежедневно: до *{daily_bonus}* токенов\n\n"
     else:
         text += "\n"
