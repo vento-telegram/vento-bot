@@ -107,7 +107,7 @@ async def stars_bundles_keyboard(settings_service) -> InlineKeyboardMarkup:
     }
     
     # Get star prices from settings
-    base_tokens_list = [3000, 11000, 24000, 38000]
+    base_tokens_list = [300, 1100, 2400, 3800, 7000]
     rows: list[list[InlineKeyboardButton]] = []
     
     for base_tokens in base_tokens_list:
