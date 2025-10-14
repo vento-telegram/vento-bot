@@ -151,20 +151,20 @@ async def common_message_handler(
             logger.debug("Telegram parts: count=%d lens=%s", len(parts), [len(p) for p in parts])
             if parts:
                 try:
-                    await status_msg.edit_text(parts[0])
-                except TelegramBadRequest as e:
-                    logger.exception("edit_text markdown error on part=0 len=%d: %s", len(parts[0]), str(e))
+                    await status_msg.delete()
+                except TelegramBadRequest:
+                    # Message might already be gone (e.g., user deleted it) – ignore
+                    pass
+                except Exception:
+                    logger.exception("Failed to delete GPT status message before sending reply")
+
+                for idx, part in enumerate(parts):
                     try:
-                        await status_msg.edit_text(parts[0], parse_mode=None)
-                    except Exception:
-                        logger.exception("edit_text fallback failed")
-                for idx, extra in enumerate(parts[1:], start=1):
-                    try:
-                        await message.answer(extra)
+                        await message.answer(part)
                     except TelegramBadRequest as e:
-                        logger.exception("answer markdown error on part=%d len=%d: %s", idx, len(extra), str(e))
+                        logger.exception("answer markdown error on part=%d len=%d: %s", idx, len(part), str(e))
                         try:
-                            await message.answer(extra, parse_mode=None)
+                            await message.answer(part, parse_mode=None)
                         except Exception:
                             logger.exception("answer fallback failed for part=%d", idx)
         except InsufficientBalanceError:
