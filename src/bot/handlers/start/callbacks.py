@@ -776,7 +776,7 @@ async def stars_successful_payment(
         try:
             admins = await user_service.list_admins()
             admin_text = (
-                "Успешная оплата (Stars):\n\n"
+                "🫦 Успешная оплата (Stars):\n\n"
                 f"Пользователь: {message.from_user.id}(@{message.from_user.username if message.from_user.username else 'нет'})\n"
                 f"Токены: +{tokens}\n"
                 f"Звезды: {stars_used}" if stars_used else ""
