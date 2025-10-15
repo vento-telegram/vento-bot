@@ -39,6 +39,14 @@ async def nano_banana_handle(
 
     state = data.get("state")
     result_json = data.get("resultJson")
+    raw_error_message = (
+        body.get("message")
+        or data.get("message")
+        or data.get("errorMessage")
+        or data.get("error")
+    )
+    error_message = raw_error_message if isinstance(raw_error_message, str) else ""
+    normalized_error_message = error_message.lower()
 
     result_urls = None
     try:
@@ -63,11 +71,28 @@ async def nano_banana_handle(
             await bot.send_message(user_id, "Задача создаётся... Ещё немного.")
         else:
             logger.warning(
-                "Nano Banana webhook: non-success or missing results: code=%s state=%s",
+                "Nano Banana webhook: non-success or missing results: code=%s state=%s error=%r",
                 code,
                 state,
+                raw_error_message,
             )
-            await bot.send_message(user_id, support_text, parse_mode=None)
+            if code == 422 or "no image content found in response" in normalized_error_message:
+                if "flagged as sensitive" in normalized_error_message:
+                    await bot.send_message(
+                        user_id,
+                        "🤐 Nano Banana отклонила запрос, потому что распознала чувствительное содержимое (цензура).\n\n"
+                        "Пожалуйста, измените описание: избегайте запрещённых тем и используйте более нейтральные формулировки.",
+                        parse_mode=None,
+                    )
+                elif "no image content found in response" in normalized_error_message:
+                    await bot.send_message(
+                        user_id,
+                        "🤐 Nano Banana не поняла запрос и не смогла создать изображение.\n\n"
+                        "Пожалуйста, измените формулировку: опишите сцену подробнее, уточните стиль или добавьте контекст.",
+                        parse_mode=None,
+                    )
+            else:
+                await bot.send_message(user_id, support_text, parse_mode=None)
             try:
                 amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana]))
                 await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.nano_banana_refund)

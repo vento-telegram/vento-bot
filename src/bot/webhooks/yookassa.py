@@ -62,7 +62,7 @@ async def yookassa_handle(
                             try:
                                 admins = await user_service.list_admins()
                                 admin_text = (
-                                    "Успешная оплата (YooKassa):\n"
+                                    "🫦 Успешная оплата (YooKassa):\n"
                                     f"Пользователь: {telegram_id}"
                                     + (f" (@{user.username})" if getattr(user, 'username', None) else "")
                                     + f"\nТокены: +{tokens}\nБаланс: {user.balance}"
