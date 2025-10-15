@@ -36,7 +36,7 @@ async def nano_banana_handle(
 
     code = body.get("code")
     data = body.get("data") or {}
-    fail_code = int(data.get("failCode"))
+    fail_code = data.get("failCode")
 
     state = data.get("state")
     result_json = data.get("resultJson")
@@ -91,7 +91,7 @@ async def nano_banana_handle(
                     parse_mode=None,
                 )
                 handled_error = True
-            elif fail_code == 422:
+            elif fail_code == '422':
                 await bot.send_message(user_id, support_text, parse_mode=None)
                 handled_error = True
             if not handled_error:
