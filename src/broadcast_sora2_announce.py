@@ -6,6 +6,7 @@ from typing import Iterable
 from aiogram import Bot
 from aiogram.enums import ParseMode
 from aiogram.exceptions import (
+    TelegramAPIError,
     TelegramBadRequest,
     TelegramForbiddenError,
     TelegramRetryAfter,
@@ -81,6 +82,9 @@ async def _send_text(bot: Bot, chat_id: int, kb: InlineKeyboardMarkup) -> bool:
     except (TelegramForbiddenError, TelegramBadRequest) as e:
         logger.info("Skip %s due to Telegram error: %s", chat_id, e.__class__.__name__)
         return False
+    except TelegramAPIError as e:
+        logger.info("Skip %s due to Telegram API error: %s", chat_id, e)
+        return False
     except Exception as e:
         logger.exception("Unexpected error sending to %s: %s", chat_id, repr(e))
         return False
@@ -101,16 +105,28 @@ async def _send_video(bot: Bot, chat_id: int, kb: InlineKeyboardMarkup, video: s
         delay = getattr(e, "retry_after", 3)
         logger.warning("Flood control (video) for %s, sleeping %.1fs", chat_id, delay)
         await asyncio.sleep(float(delay))
-        await bot.send_video(
-            chat_id=chat_id,
-            video=video,
-            caption=MESSAGE_TEXT,
-            reply_markup=kb,
-            supports_streaming=True,
-            parse_mode=ParseMode.MARKDOWN_V2,
-        )
-        return True
-
+        try:
+            await bot.send_video(
+                chat_id=chat_id,
+                video=video,
+                caption=MESSAGE_TEXT,
+                reply_markup=kb,
+                supports_streaming=True,
+                parse_mode=ParseMode.MARKDOWN_V2,
+            )
+            return True
+        except Exception as e2:
+            logger.error("Video retry failed for %s: %s", chat_id, repr(e2))
+            return False
+    except (TelegramForbiddenError, TelegramBadRequest) as e:
+        logger.info("Skip %s due to Telegram error (video): %s", chat_id, e.__class__.__name__)
+        return False
+    except TelegramAPIError as e:
+        logger.info("Skip %s due to Telegram API error (video): %s", chat_id, e)
+        return False
+    except Exception as e:
+        logger.exception("Unexpected error sending video to %s: %s", chat_id, repr(e))
+        return False
 
 
 async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
@@ -153,35 +169,39 @@ async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
             except Exception:
                 break
     else:
-        logger.warning("Video file %s not found — sending text only.", video_path)
+        logger.warning("Video file %s not found - sending text only.", video_path)
 
     async def worker(cid: int) -> None:
         nonlocal success, total, sent_with_media
-        async with sem:
-            if cid == primed_chat:
-                total += 1
-                success += 1
-                return
+        try:
+            async with sem:
+                if cid == primed_chat:
+                    total += 1
+                    success += 1
+                    return
 
-            if file_id:
-                ok = await _send_video(bot, cid, kb, file_id)
-                if ok:
-                    sent_with_media += 1
+                if file_id:
+                    ok = await _send_video(bot, cid, kb, file_id)
+                    if ok:
+                        sent_with_media += 1
+                    else:
+                        ok = await _send_text(bot, cid, kb)
+                elif has_video_file:
+                    ok = await _send_video(bot, cid, kb, FSInputFile(video_path.as_posix()))
+                    if ok:
+                        sent_with_media += 1
+                    else:
+                        ok = await _send_text(bot, cid, kb)
                 else:
                     ok = await _send_text(bot, cid, kb)
-            elif has_video_file:
-                ok = await _send_video(bot, cid, kb, FSInputFile(video_path.as_posix()))
-                if ok:
-                    sent_with_media += 1
-                else:
-                    ok = await _send_text(bot, cid, kb)
-            else:
-                ok = await _send_text(bot, cid, kb)
-            success += int(ok)
+                success += int(ok)
+                total += 1
+        except Exception as e:
+            logger.info("Skip %s due to unexpected error in worker: %s", cid, repr(e))
             total += 1
 
     tasks = [asyncio.create_task(worker(cid)) for cid in chat_ids]
-    await asyncio.gather(*tasks)
+    await asyncio.gather(*tasks, return_exceptions=True)
     logger.info(
         "Broadcast finished: %d/%d delivered (media for at least %d)",
         success,
