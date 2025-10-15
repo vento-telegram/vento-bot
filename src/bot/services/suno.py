@@ -59,8 +59,24 @@ class SunoService(AbcSunoService):
             async with session.post(url, json=payload, headers=headers) as resp:
                 result = await resp.json()
                 if resp.status != 200 or result.get("code") != 200:
-                    msg = result.get("msg") or "Ошибка генерации"
-                    await message.answer(f"☹️ Не удалось отправить задачу генерации: {msg}")
+                    raw_msg = (result.get("msg") or result.get("message") or "").strip()
+                    if raw_msg and "Tags contained artist name" in raw_msg:
+                        artist_name = raw_msg.split(":", 1)[-1].strip() or "указанного артиста"
+                        user_text = (
+                            "🤐 Suno отклонил запрос, так как в тегах найдено имя артиста: "
+                            f"{artist_name}.\n\n"
+                            f"Удалите реальные артистические имена из описания и попробуйте снова."
+                        )
+                    else:
+                        details = raw_msg or "неизвестная ошибка"
+                        user_text = f"Не удалось отправить запрос в Suno. Ответ сервиса: {details}"
+                    logger.warning(
+                        "Suno request failed: status=%s code=%s message=%s",
+                        resp.status,
+                        result.get("code"),
+                        raw_msg,
+                    )
+                    await message.answer(user_text)
                     return
                 task_id = ((result or {}).get("data") or {}).get("taskId")
 
