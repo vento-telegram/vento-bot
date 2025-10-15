@@ -15,18 +15,6 @@ from bot.interfaces.services.user import AbcUserService
 logger = logging.getLogger(__name__)
 
 
-def _as_int(value):
-    if isinstance(value, int):
-        return value
-    if isinstance(value, str):
-        stripped = value.strip()
-        if stripped.startswith("-") and stripped[1:].isdigit():
-            return int(stripped)
-        if stripped.isdigit():
-            return int(stripped)
-    return None
-
-
 @inject
 async def nano_banana_handle(
     request: web.Request,
@@ -46,23 +34,13 @@ async def nano_banana_handle(
     if not user_id:
         return web.json_response({"ok": False, "error": "no user_id"}, status=400)
 
-    code = _as_int(body.get("code"))
+    code = body.get("code")
     data = body.get("data") or {}
-    fail_code = _as_int(data.get("failCode") or body.get("failCode"))
+    fail_code = int(data.get("failCode"))
 
     state = data.get("state")
     result_json = data.get("resultJson")
-    raw_error_message = (
-        body.get("message")
-        or data.get("message")
-        or data.get("errorMessage")
-        or data.get("error")
-        or body.get("msg")
-        or data.get("failMsg")
-        or data.get("failReason")
-        or body.get("failMsg")
-        or body.get("failReason")
-    )
+    raw_error_message = body.get("failMsg")
     error_message = raw_error_message if isinstance(raw_error_message, str) else ""
     normalized_error_message = error_message.lower()
 
@@ -95,8 +73,8 @@ async def nano_banana_handle(
                 state,
                 raw_error_message,
             )
-            error_codes = tuple(c for c in (code, fail_code) if isinstance(c, int))
             handled_error = False
+            logger.info(normalized_error_message)
             if "flagged as sensitive" in normalized_error_message:
                 await bot.send_message(
                     user_id,
@@ -113,7 +91,7 @@ async def nano_banana_handle(
                     parse_mode=None,
                 )
                 handled_error = True
-            elif 422 in error_codes:
+            elif fail_code == 422:
                 await bot.send_message(user_id, support_text, parse_mode=None)
                 handled_error = True
             if not handled_error:
