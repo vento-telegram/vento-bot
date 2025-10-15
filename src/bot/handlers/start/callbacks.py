@@ -88,6 +88,22 @@ async def set_mode_sora2_video(
     )
     await call.message.answer(text, reply_markup=sora2_main_settings_keyboard(None))
 
+@router.callback_query(F.data == "sora2:open")
+@inject
+async def open_sora2_noedit(
+    call: CallbackQuery,
+    state: FSMContext,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+):
+    await state.update_data(mode=BotModeEnum.sora2_video, sora_aspect=None)
+    await call.answer("Режим Sora 2 активирован")
+    text = (
+        "🎬 Выбери формат генерируемого видео\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием, можешь прикрепить картинку.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+    )
+    await call.message.answer(text, reply_markup=sora2_main_settings_keyboard(None))
+
 @router.callback_query(F.data.startswith("sora2:aspect:"))
 @inject
 async def sora2_set_aspect(
