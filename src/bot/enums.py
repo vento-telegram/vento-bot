@@ -7,7 +7,7 @@ class BotModeEnum(StrEnum):
     gpt_mini = "GPT-5 Mini"
     nano_banana = "Nano Banana"
     suno_music = "Suno"
-    veo_video = "Veo 3"
+    veo_video = "Veo 3.1"
     sora2_video = "Sora 2"
 
 

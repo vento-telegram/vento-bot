@@ -29,7 +29,7 @@ def mode_keyboard(active_mode: str | None = None) -> InlineKeyboardMarkup:
         ],
         [
 
-            mode_button("Veo 3", "set_mode:veo_video", BotModeEnum.veo_video),
+            mode_button("Veo 3.1", "set_mode:veo_video", BotModeEnum.veo_video),
             mode_button("Sora 2", "set_mode:sora2_video", BotModeEnum.sora2_video),
         ],
         [

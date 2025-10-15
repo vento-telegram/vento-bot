@@ -54,7 +54,7 @@ async def set_mode_veo_video(
     settings: AbcSettingsService = Provide[Container.settings_service],
 ):
     await state.update_data(mode=BotModeEnum.veo_video, veo_aspect=None, veo_quality=None, veo_images=None)
-    await call.answer("Режим Veo 3 активирован")
+    await call.answer("Режим Veo 3.1 активирован")
     try:
         await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.veo_video))
     except Exception:
@@ -873,7 +873,7 @@ async def goto_switch(
 
     text = (
         "👾 *Выбор ИИ*\n\n"
-        f"📹 *Sora 2* и *Veo 3* | *{sora_price}* токенов\n"
+        f"📹 *Sora 2* и *Veo 3.1* | *{sora_price}* токенов\n"
         "Генерация видео по тексту или картинке.\n\n"
         f"🏞️ *Nano Banana* | *{nano_price}* токенов\n"
         "Создание и редактирование изображений.\n\n"
