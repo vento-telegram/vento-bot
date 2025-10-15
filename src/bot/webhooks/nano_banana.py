@@ -40,7 +40,7 @@ async def nano_banana_handle(
 
     state = data.get("state")
     result_json = data.get("resultJson")
-    raw_error_message = body.get("failMsg")
+    raw_error_message = data.get("failMsg")
     error_message = raw_error_message if isinstance(raw_error_message, str) else ""
     normalized_error_message = error_message.lower()
 
