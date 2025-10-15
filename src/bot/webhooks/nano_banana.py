@@ -15,6 +15,18 @@ from bot.interfaces.services.user import AbcUserService
 logger = logging.getLogger(__name__)
 
 
+def _as_int(value):
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.startswith("-") and stripped[1:].isdigit():
+            return int(stripped)
+        if stripped.isdigit():
+            return int(stripped)
+    return None
+
+
 @inject
 async def nano_banana_handle(
     request: web.Request,
@@ -34,8 +46,9 @@ async def nano_banana_handle(
     if not user_id:
         return web.json_response({"ok": False, "error": "no user_id"}, status=400)
 
-    code = body.get("code")
+    code = _as_int(body.get("code"))
     data = body.get("data") or {}
+    fail_code = _as_int(data.get("failCode") or body.get("failCode"))
 
     state = data.get("state")
     result_json = data.get("resultJson")
@@ -44,6 +57,11 @@ async def nano_banana_handle(
         or data.get("message")
         or data.get("errorMessage")
         or data.get("error")
+        or body.get("msg")
+        or data.get("failMsg")
+        or data.get("failReason")
+        or body.get("failMsg")
+        or body.get("failReason")
     )
     error_message = raw_error_message if isinstance(raw_error_message, str) else ""
     normalized_error_message = error_message.lower()
@@ -71,27 +89,34 @@ async def nano_banana_handle(
             await bot.send_message(user_id, "Задача создаётся... Ещё немного.")
         else:
             logger.warning(
-                "Nano Banana webhook: non-success or missing results: code=%s state=%s error=%r",
+                "Nano Banana webhook: non-success or missing results: code=%s fail_code=%s state=%s error=%r",
                 code,
+                fail_code,
                 state,
                 raw_error_message,
             )
-            if code == 422 or "no image content found in response" in normalized_error_message:
-                if "flagged as sensitive" in normalized_error_message:
-                    await bot.send_message(
-                        user_id,
-                        "🤐 Nano Banana отклонила запрос, потому что распознала чувствительное содержимое (цензура).\n\n"
-                        "Пожалуйста, измените описание: избегайте запрещённых тем и используйте более нейтральные формулировки.",
-                        parse_mode=None,
-                    )
-                elif "no image content found in response" in normalized_error_message:
-                    await bot.send_message(
-                        user_id,
-                        "🤐 Nano Banana не поняла запрос и не смогла создать изображение.\n\n"
-                        "Пожалуйста, измените формулировку: опишите сцену подробнее, уточните стиль или добавьте контекст.",
-                        parse_mode=None,
-                    )
-            else:
+            error_codes = tuple(c for c in (code, fail_code) if isinstance(c, int))
+            handled_error = False
+            if "flagged as sensitive" in normalized_error_message:
+                await bot.send_message(
+                    user_id,
+                    "🤐 Nano Banana отклонила запрос, потому что распознала чувствительное содержимое (цензура).\n\n"
+                    "Пожалуйста, измените описание: избегайте запрещённых тем и используйте более нейтральные формулировки.",
+                    parse_mode=None,
+                )
+                handled_error = True
+            elif "no image content found in response" in normalized_error_message:
+                await bot.send_message(
+                    user_id,
+                    "🤐 Nano Banana не поняла запрос и не смогла создать изображение.\n\n"
+                    "Пожалуйста, измените формулировку: опишите сцену подробнее, уточните стиль или добавьте контекст.",
+                    parse_mode=None,
+                )
+                handled_error = True
+            elif 422 in error_codes:
+                await bot.send_message(user_id, support_text, parse_mode=None)
+                handled_error = True
+            if not handled_error:
                 await bot.send_message(user_id, support_text, parse_mode=None)
             try:
                 amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana]))
