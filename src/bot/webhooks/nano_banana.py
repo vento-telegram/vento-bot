@@ -28,6 +28,8 @@ async def nano_banana_handle(
         logger.exception("Nano Banana webhook: bad JSON body")
         return web.json_response({"ok": False, "error": "bad json"}, status=400)
 
+    logger.info(f"Nano Banana webhook: {body}")
+
     user_id = request.query.get("user_id")
     if not user_id:
         return web.json_response({"ok": False, "error": "no user_id"}, status=400)
