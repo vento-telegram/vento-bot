@@ -583,12 +583,14 @@ async def pay_ru(
         except Exception:
             price = 0
         bundles.append((amount, price))
+    text_part_1 = (
+        "🇷🇺 *SberPay | T‑Pay | ЮMoney*\n\n"
+        "💳 Для оплаты но номеру банковской карты используй способ оплаты \"🌍 Картой МИР\".\n\n"
+    )
+    text_part_2 = "Выбери пакет токенов:"
+    text = text_part_1 + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n" + text_part_2
     await call.message.edit_text(
-        text=(
-            "🇷🇺 *SberPay | T‑Pay | ЮMoney*\n\n"
-            "💳 Для оплаты но номеру банковской карты используй способ оплаты \"🌍 Картой МИР\".\n\n"
-            "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
-            "Выбери пакет токенов:"),
+        text=text,
         reply_markup=ru_bundles_keyboard(bundles),
     )
     try:
@@ -652,12 +654,14 @@ async def pay_card(
         except Exception:
             price = 0
         bundles.append((amount, price))
+    text_part_1 = (
+        "🌍 *Картой МИР*\n\n"
+        "Оплата картой VISA/Mastercard/МИР.\n\n"
+    )
+    text_part_2 = "Выбери пакет токенов:"
+    text = text_part_1 + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n" + text_part_2
     await call.message.edit_text(
-        text=(
-            "🌍 *Картой МИР*\n\n"
-            "Оплата картой VISA/Mastercard/МИР.\n\n"
-            "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
-            "Выбери пакет токенов:"),
+        text=text,
         reply_markup=card_bundles_keyboard(bundles),
     )
     try:
@@ -711,11 +715,13 @@ async def pay_stars(
     subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
     await call.answer()
+    text_part_1 = (
+        "⭐ *Оплата звёздами*\n\n"
+    )
+    text_part_2 = "Выбери пакет токенов:"
+    text = text_part_1 + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n" + text_part_2
     await call.message.edit_text(
-        text=(
-            "⭐ *Оплата звёздами*\n\n"
-            "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
-            "Выбери пакет токенов:"),
+        text=text,
         reply_markup=await stars_bundles_keyboard(settings),
     )
     try:
@@ -753,12 +759,14 @@ async def pay_card_byn(
         usd_rate = float(rate_value) if rate_value is not None else 2.97
     except Exception:
         usd_rate = 2.97
-    await call.message.edit_text(
-        text=(
-            "🚀 *Картой VISA | Mastercard*\n\n"
+    text_part_1 = (
+        "🚀 *Картой VISA | Mastercard*\n\n"
             "Оплата картами VISA/Mastercard.\n\n"
-            "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
-            "Выбери пакет токенов:"),
+    )
+    text_part_2 = "Выбери пакет токенов:"
+    text = text_part_1 + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n" + text_part_2
+    await call.message.edit_text(
+        text=text,
         reply_markup=card_byn_bundles_keyboard(bundles, usd_rate),
     )
     try:

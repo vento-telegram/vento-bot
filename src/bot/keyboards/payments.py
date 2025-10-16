@@ -31,12 +31,13 @@ def card_byn_bundles_keyboard(bundles: list[tuple[int, int]], usd_rate: float, h
     }
     rows: list[list[InlineKeyboardButton]] = []
     # Add subscription option on top
-    rows.append([
-        InlineKeyboardButton(
-            text="🎟️ Подписка GPT + 2000 токенов — 110 BYN (~$37.04)",
-            callback_data="pay:card_byn_sub",
-        )
-    ])
+    if has_subscription:
+        rows.append([
+            InlineKeyboardButton(
+                text="🎟️ Подписка GPT + 2000 токенов — 110 BYN (~$37.04)",
+                callback_data="pay:card_byn_sub",
+            )
+        ])
     for tokens, byn in bundles:
         icon = icons_map.get(tokens, "💠")
         bonus = bonus_map.get(tokens, 0)
@@ -63,12 +64,6 @@ def card_byn_bundles_keyboard(bundles: list[tuple[int, int]], usd_rate: float, h
                 )
             ])
     rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])
-    if has_subscription:
-        try:
-            rows = [[b for b in row if getattr(b, 'callback_data', '') != 'pay:card_byn_sub'] for row in rows]
-            rows = [r for r in rows if r]
-        except Exception:
-            pass
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -98,12 +93,13 @@ def ru_bundles_keyboard(bundles: list[tuple[int, int]], has_subscription: bool =
     }
     rows: list[list[InlineKeyboardButton]] = []
     # Add subscription option on top
-    rows.append([
-        InlineKeyboardButton(
-            text="🎟️ Подписка GPT + 2000 токенов — 2999₽",
-            callback_data="pay:ru_sub",
-        )
-    ])
+    if has_subscription:
+        rows.append([
+            InlineKeyboardButton(
+                text="🎟️ Подписка GPT + 2000 токенов — 2999₽",
+                callback_data="pay:ru_sub",
+            )
+        ])
     for tokens, price in bundles:
         icon = icons_map.get(tokens, "🎁")
         bonus = bonus_map.get(tokens, 0)
@@ -114,12 +110,6 @@ def ru_bundles_keyboard(bundles: list[tuple[int, int]], has_subscription: bool =
         else:
             rows.append([InlineKeyboardButton(text=f"{icon} {tokens} токенов{bonus_text} — {price} ₽{tag_text}", callback_data=f"pay:ru:{tokens}")])
     rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])
-    if has_subscription:
-        try:
-            rows = [[b for b in row if getattr(b, 'callback_data', '') != 'pay:ru_sub'] for row in rows]
-            rows = [r for r in rows if r]
-        except Exception:
-            pass
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -149,12 +139,13 @@ def card_bundles_keyboard(bundles: list[tuple[int, int]], has_subscription: bool
     }
     rows: list[list[InlineKeyboardButton]] = []
     # Add subscription option on top
-    rows.append([
-        InlineKeyboardButton(
-            text="🎟️ Подписка GPT + 2000 токенов — 2999₽",
-            callback_data="pay:card_sub",
-        )
-    ])
+    if has_subscription:
+        rows.append([
+            InlineKeyboardButton(
+                text="🎟️ Подписка GPT + 2000 токенов — 2999₽",
+                callback_data="pay:card_sub",
+            )
+        ])
     for tokens, price in bundles:
         icon = icons_map.get(tokens, "🎁")
         bonus = bonus_map.get(tokens, 0)
@@ -166,12 +157,6 @@ def card_bundles_keyboard(bundles: list[tuple[int, int]], has_subscription: bool
             rows.append([InlineKeyboardButton(text=f"{icon} {tokens} токенов{bonus_text} — {price} ₽{tag_text}",
                                               callback_data=f"pay:card:{tokens}")])
     rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])
-    if has_subscription:
-        try:
-            rows = [[b for b in row if getattr(b, 'callback_data', '') != 'pay:card_sub'] for row in rows]
-            rows = [r for r in rows if r]
-        except Exception:
-            pass
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -205,12 +190,13 @@ async def stars_bundles_keyboard(settings_service, has_subscription: bool = Fals
     base_tokens_list = [300, 1100, 2400, 3800, 7000]
     rows: list[list[InlineKeyboardButton]] = []
     # Subscription option top row
-    rows.append([
-        InlineKeyboardButton(
-            text="🎟️ Подписка GPT + 2000 токенов — 2999 ⭐",
-            callback_data="pay:stars_sub",
-        )
-    ])
+    if has_subscription:
+        rows.append([
+            InlineKeyboardButton(
+                text="🎟️ Подписка GPT + 2000 токенов — 2999 ⭐",
+                callback_data="pay:stars_sub",
+            )
+        ])
     
     for base_tokens in base_tokens_list:
         try:
@@ -230,11 +216,5 @@ async def stars_bundles_keyboard(settings_service, has_subscription: bool = Fals
         rows.append([InlineKeyboardButton(text=label, callback_data=f"pay:stars:{total_tokens}:{stars}")])
     
     rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])
-    if has_subscription:
-        try:
-            rows = [[b for b in row if getattr(b, 'callback_data', '') != 'pay:stars_sub'] for row in rows]
-            rows = [r for r in rows if r]
-        except Exception:
-            pass
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
