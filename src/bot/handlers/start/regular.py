@@ -50,6 +50,7 @@ async def start_handler(
     if is_new:
         await state.update_data(history=[], mode=BotModeEnum.passive)
         start_bonus = await settings_service.get_value("start_bonus")
+        daily_bonus = await settings_service.get_value("daily_bonus")
         await message.answer(
             text=(
                 "🎉 Добро пожаловать, я *Vento*!\n\n"
@@ -60,7 +61,7 @@ async def start_handler(
                 "🎵 Создаю музыкальные шедевры с помощью *Suno*\n"
                 "🎬 Генерирую видео с *Veo 3.1* и *Sora 2* по описанию и оживляю фото\n\n"
                 f"🎁 Тебе уже начислено *{start_bonus}* стартовых токенов — можно сразу начать!\n"
-                f"🗓️ Каждый день твой баланс будет *бесплатно* пополнятся до *50 токенов*!\n"
+                f"🗓️ Каждый день твой баланс будет *бесплатно* пополнятся до *{daily_bonus} токенов*!\n"
                 "Для возвращения в меню всегда поможет команда /start."
             )
         )
