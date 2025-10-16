@@ -5,7 +5,6 @@ from aiogram.types import (
     LabeledPrice,
     Message,
     PreCheckoutQuery,
-    FSInputFile,
 )
 from dependency_injector.wiring import Provide, inject
 
@@ -858,27 +857,6 @@ async def stars_successful_payment(
             ),
             reply_markup=start_keyboard(BotModeEnum.passive),
         )
-        if tokens == 7000:
-            try:
-                special = (
-                    "🎉 Спасибо за покупку!\n\n"
-                    "Вы получили:\n"
-                    "🛸 7000 токенов — ваш личный запас для общения с ИИ\n"
-                    "🎁 Гайд по использованию — пошаговое руководство, как извлечь максимум из возможностей нашего бота.\n\n"
-                    "В гайде вы найдёте:\n"
-                    "✨ как правильно формулировать запросы,\n"
-                    "⚙️ примеры эффективных промтов,\n"
-                    "💡 способы ускорить и улучшить ответы ИИ,\n"
-                    "🚀 идеи для реальных задач — от работы до творчества.\n\n"
-                    "Приятного изучения и продуктивного общения с ИИ!"
-                )
-                await message.answer(text=special, reply_markup=start_keyboard(BotModeEnum.passive))
-                await message.answer_document(
-                    document=FSInputFile("src/media/files/guide.pdf"),
-                    caption="🎁 Гайд по использованию",
-                )
-            except Exception:
-                pass
         # Notify admins via admin bot
         try:
             admins = await user_service.list_admins()
