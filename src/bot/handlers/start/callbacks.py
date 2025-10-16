@@ -586,7 +586,7 @@ async def pay_ru(
             price = 0
         bundles.append((amount, price))
     text = (
-        "🇷🇺 *SberPay | T‑Pay | ЮMoney*\n\n"
+        "🇷🇺 *SberPay • T‑Pay • ЮMoney*\n\n"
         "💳 Для оплаты но номеру банковской карты используй способ оплаты \"🌍 Картой МИР\".\n\n"
     )
     if not bool(sub):
