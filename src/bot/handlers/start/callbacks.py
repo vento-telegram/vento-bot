@@ -587,7 +587,7 @@ async def pay_ru(
         text=(
             "🇷🇺 *SberPay | T‑Pay | ЮMoney*\n\n"
             "💳 Для оплаты но номеру банковской карты используй способ оплаты \"🌍 Картой МИР\".\n\n"
-            "🔖 Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
+            "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
             "Выбери пакет токенов:"),
         reply_markup=ru_bundles_keyboard(bundles),
     )
@@ -656,7 +656,7 @@ async def pay_card(
         text=(
             "🌍 *Картой МИР*\n\n"
             "Оплата картой VISA/Mastercard/МИР.\n\n"
-            "🔖 Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
+            "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
             "Выбери пакет токенов:"),
         reply_markup=card_bundles_keyboard(bundles),
     )
@@ -714,7 +714,7 @@ async def pay_stars(
     await call.message.edit_text(
         text=(
             "⭐ *Оплата звёздами*\n\n"
-            "🔖 Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
+            "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
             "Выбери пакет токенов:"),
         reply_markup=await stars_bundles_keyboard(settings),
     )
@@ -757,7 +757,7 @@ async def pay_card_byn(
         text=(
             "🚀 *Картой VISA | Mastercard*\n\n"
             "Оплата картами VISA/Mastercard.\n\n"
-            "🔖 Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
+            "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
             "Выбери пакет токенов:"),
         reply_markup=card_byn_bundles_keyboard(bundles, usd_rate),
     )
