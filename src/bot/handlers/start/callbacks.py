@@ -51,23 +51,6 @@ from bot.keyboards.sora2 import (
 from bot.settings import settings
 
 router = Router()
-
-
-def _remove_subscription_row(markup: InlineKeyboardMarkup) -> InlineKeyboardMarkup:
-    try:
-        rows: list[list] = []
-        for row in (markup.inline_keyboard or []):
-            new_row = []
-            for btn in row:
-                cb = getattr(btn, 'callback_data', None)
-                if cb in {"pay:ru_sub", "pay:card_sub", "pay:card_byn_sub", "pay:stars_sub"}:
-                    continue
-                new_row.append(btn)
-            if new_row:
-                rows.append(new_row)
-        return InlineKeyboardMarkup(inline_keyboard=rows)
-    except Exception:
-        return markup
 @router.callback_query(F.data == "set_mode:veo_video")
 @inject
 async def set_mode_veo_video(
@@ -611,12 +594,11 @@ async def pay_ru(
     try:
         user = await user_service.get_user(call.from_user.id)
         sub = await subscription_service.get_active_by_user_id(user.id) if user else None
-        if sub:
-            kb = _remove_subscription_row(ru_bundles_keyboard(bundles))
-            try:
-                await call.message.edit_reply_markup(reply_markup=kb)
-            except Exception:
-                pass
+        kb = ru_bundles_keyboard(bundles, has_subscription=bool(sub))
+        try:
+            await call.message.edit_reply_markup(reply_markup=kb)
+        except Exception:
+            pass
     except Exception:
         pass
 
@@ -681,12 +663,11 @@ async def pay_card(
     try:
         user = await user_service.get_user(call.from_user.id)
         sub = await subscription_service.get_active_by_user_id(user.id) if user else None
-        if sub:
-            kb = _remove_subscription_row(card_bundles_keyboard(bundles))
-            try:
-                await call.message.edit_reply_markup(reply_markup=kb)
-            except Exception:
-                pass
+        kb = card_bundles_keyboard(bundles, has_subscription=bool(sub))
+        try:
+            await call.message.edit_reply_markup(reply_markup=kb)
+        except Exception:
+            pass
     except Exception:
         pass
 
@@ -740,12 +721,11 @@ async def pay_stars(
     try:
         user = await user_service.get_user(call.from_user.id)
         sub = await subscription_service.get_active_by_user_id(user.id) if user else None
-        if sub:
-            kb = _remove_subscription_row(await stars_bundles_keyboard(settings))
-            try:
-                await call.message.edit_reply_markup(reply_markup=kb)
-            except Exception:
-                pass
+        kb = await stars_bundles_keyboard(settings, has_subscription=bool(sub))
+        try:
+            await call.message.edit_reply_markup(reply_markup=kb)
+        except Exception:
+            pass
     except Exception:
         pass
 
@@ -784,12 +764,11 @@ async def pay_card_byn(
     try:
         user = await user_service.get_user(call.from_user.id)
         sub = await subscription_service.get_active_by_user_id(user.id) if user else None
-        if sub:
-            kb = _remove_subscription_row(card_byn_bundles_keyboard(bundles, usd_rate))
-            try:
-                await call.message.edit_reply_markup(reply_markup=kb)
-            except Exception:
-                pass
+        kb = card_byn_bundles_keyboard(bundles, usd_rate, has_subscription=bool(sub))
+        try:
+            await call.message.edit_reply_markup(reply_markup=kb)
+        except Exception:
+            pass
     except Exception:
         pass
 
@@ -1013,6 +992,18 @@ async def goto_start(
         text += f"⚡ Ежедневно: до *{daily_bonus}* токенов\n\n"
     else:
         text += "\n"
+    try:
+        sub = await subscription_service.get_active_by_user_id(user.id)
+        if sub and getattr(sub, 'till', None):
+            until = None
+            try:
+                until = sub.till.strftime('%d.%m')
+            except Exception:
+                pass
+            if until:
+                text += f"🚀 Подписка GPT до *{until}*\n\n"
+    except Exception:
+        pass
     text += f"🤖 Текущий ИИ: *{current_mode}*\n"
 
     if current_mode != BotModeEnum.passive:
@@ -1029,17 +1020,6 @@ async def goto_start(
         text += "\n"
 
     text += "👇 Что хочешь сделать?"
-    # Show subscription validity date if active
-    try:
-        from bot.interfaces.services.subscription import AbcSubscriptionService  # type: ignore
-        from dependency_injector.wiring import Provide  # type: ignore
-        sub_service = Provide[Container.subscription_service]()  # type: ignore
-        if sub_service is not None:
-            sub_active = await sub_service.get_active_by_user_id(user.id)
-            if sub_active and getattr(sub_active, 'till', None):
-                text += f"\n🏷️ Подписка GPT до {sub_active.till.strftime('%d.%m')}"
-    except Exception:
-        pass
     kb = start_keyboard(current_mode)
 
     await call.message.edit_text(

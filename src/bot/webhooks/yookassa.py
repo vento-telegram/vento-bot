@@ -47,7 +47,7 @@ async def yookassa_handle(
                     await subscription_service.activate_or_extend_for_telegram(telegram_id, days=30, bonus_tokens=2000)
                     await bot.send_message(
                         telegram_id,
-                        "🏷️ Подписка GPT активирована на 30 дней.\n2000 токенов зачислены на баланс.",
+                        "🚀 Подписка GPT активирована на 30 дней.\n2000 токенов зачислены на баланс.",
                         reply_markup=start_keyboard(BotModeEnum.passive),
                         parse_mode=None,
                     )

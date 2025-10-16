@@ -76,7 +76,7 @@ async def bepaid_handle(
         await bot.send_message(
             telegram_id,
             text=(
-                "🏷️ Подписка GPT активирована на 30 дней.\n"
+                "🚀 Подписка GPT активирована на 30 дней.\n"
                 "2000 токенов зачислены на баланс."
             ),
             reply_markup=start_keyboard(BotModeEnum.passive),

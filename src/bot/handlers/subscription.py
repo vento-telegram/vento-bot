@@ -128,7 +128,7 @@ async def stars_sub_success(
         await subscription_service.activate_or_extend_for_telegram(message.from_user.id, days=30, bonus_tokens=2000)
         await message.answer(
             text=(
-                "🏷️ Подписка GPT активирована на 30 дней.\n"
+                "🚀 Подписка GPT активирована на 30 дней.\n"
                 "2000 токенов зачислены на баланс."
             ),
             reply_markup=start_keyboard(BotModeEnum.passive),

@@ -109,7 +109,7 @@ async def start_handler(
             except Exception:
                 pass
             if until:
-                text += f"🏷️ Подписка GPT до *{until}*\n\n"
+                text += f"🚀 Подписка GPT до *{until}*\n\n"
     except Exception:
         pass
     text += f"🤖 Текущий ИИ: *{current_mode}*\n"
