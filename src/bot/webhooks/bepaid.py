@@ -34,10 +34,18 @@ async def bepaid_handle(
     parts = tracking_id.split(":", maxsplit=1)
     try:
         telegram_id = int(parts[0])
-        tokens = int(parts[1])
     except Exception:
         logger.exception("Invalid tracking_id in BePaid webhook: %s", tracking_id)
         return web.json_response({"ok": False, "error": "invalid tracking_id"}, status=400)
+    token_part = parts[1] if len(parts) > 1 else ""
+    if token_part == "sub":
+        tokens = 0
+    else:
+        try:
+            tokens = int(token_part)
+        except Exception:
+            logger.exception("Invalid tracking_id tokens in BePaid webhook: %s", tracking_id)
+            return web.json_response({"ok": False, "error": "invalid tracking_id"}, status=400)
 
     if status != "successful":
         logger.info(

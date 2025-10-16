@@ -252,6 +252,7 @@ class PaymentsService(AbcPaymentsService):
             raise RuntimeError("BePaid credentials are not configured")
         payload: dict[str, Any] = {
             "checkout": {
+                "test": True,
                 "transaction_type": "payment",
                 "order": {
                     "amount": int(price_byn) * 100,
