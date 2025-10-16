@@ -11,46 +11,6 @@ def payments_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
-def card_byn_bundles_keyboard(bundles: list[tuple[int, int]], usd_rate: float) -> InlineKeyboardMarkup:
-    icons_map: dict[int, str] = {
-        300: "🎯",
-        1100: "🚀",
-        2400: "💎",
-        3800: "👑",
-        7000: "🛸",
-    }
-    bonus_map: dict[int, int] = {
-        300: 0,
-        1100: 0,
-        2400: 0,
-        3800: 0,
-        7000: 0,
-    }
-    tag_map: dict[int, str] = {
-        2400: " 🔥",
-    }
-    rows: list[list[InlineKeyboardButton]] = []
-    for tokens, byn in bundles:
-        icon = icons_map.get(tokens, "💠")
-        bonus = bonus_map.get(tokens, 0)
-        bonus_text = f" (+{bonus} 🔹)" if bonus else ""
-        tag_text = tag_map.get(tokens, "")
-        try:
-            usd = byn / float(usd_rate) if usd_rate else 0
-        except Exception:
-            usd = 0
-        # Use ~ and 2 decimals for USD approximation
-        usd_text = f" (~${usd:.2f})" if usd > 0 else ""
-        rows.append([
-            InlineKeyboardButton(
-                text=f"{icon} {tokens} токенов{bonus_text} — {byn} BYN{usd_text}{tag_text}",
-                callback_data=f"pay:card_byn:{tokens}",
-            )
-        ])
-    rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
-
-
 def payments_back_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔙 Способы оплаты", callback_data="goto:replenish")]
@@ -58,30 +18,12 @@ def payments_back_keyboard() -> InlineKeyboardMarkup:
 
 
 def ru_bundles_keyboard(bundles: list[tuple[int, int]]) -> InlineKeyboardMarkup:
-    icons_map: dict[int, str] = {
-        300: "🎯",
-        1100: "🚀",
-        2400: "💎",
-        3800: "👑",
-        7000: "🛸",
-    }
-    bonus_map: dict[int, int] = {
-        300: 0,
-        1100: 0,
-        2400: 0,
-        3800: 0,
-        7000: 0,
-    }
-    tag_map: dict[int, str] = {
-        2400: " 🔥",
-    }
     rows: list[list[InlineKeyboardButton]] = []
     for tokens, price in bundles:
-        icon = icons_map.get(tokens, "🎁")
-        bonus = bonus_map.get(tokens, 0)
-        bonus_text = f" (+{bonus} 🎁)" if bonus else ""
-        tag_text = tag_map.get(tokens, "")
-        rows.append([InlineKeyboardButton(text=f"{icon} {tokens} токенов{bonus_text} — {price} ₽{tag_text}", callback_data=f"pay:ru:{tokens}")])
+        guide_text = " + 🎁 Гайд" if tokens == 7000 else ""
+        icon = "🛸" if tokens == 7000 else "🪙"
+        label = f"{icon} {tokens} токенов{guide_text} — {price} ₽"
+        rows.append([InlineKeyboardButton(text=label, callback_data=f"pay:ru:{tokens}")])
     rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -93,30 +35,28 @@ def ru_bundles_back_keyboard() -> InlineKeyboardMarkup:
 
 
 def card_bundles_keyboard(bundles: list[tuple[int, int]]) -> InlineKeyboardMarkup:
-    icons_map: dict[int, str] = {
-        300: "🎯",
-        1100: "🚀",
-        2400: "💎",
-        3800: "👑",
-        7000: "🛸",
-    }
-    bonus_map: dict[int, int] = {
-        300: 0,
-        1100: 0,
-        2400: 0,
-        3800: 0,
-        7000: 0,
-    }
-    tag_map: dict[int, str] = {
-        2400: " 🔥",
-    }
     rows: list[list[InlineKeyboardButton]] = []
     for tokens, price in bundles:
-        icon = icons_map.get(tokens, "🎁")
-        bonus = bonus_map.get(tokens, 0)
-        bonus_text = f" (+{bonus} 🎁)" if bonus else ""
-        tag_text = tag_map.get(tokens, "")
-        rows.append([InlineKeyboardButton(text=f"{icon} {tokens} токенов{bonus_text} — {price} ₽{tag_text}", callback_data=f"pay:card:{tokens}")])
+        guide_text = " + 🎁 Гайд" if tokens == 7000 else ""
+        icon = "🛸" if tokens == 7000 else "🪙"
+        label = f"{icon} {tokens} токенов{guide_text} — {price} ₽"
+        rows.append([InlineKeyboardButton(text=label, callback_data=f"pay:card:{tokens}")])
+    rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def card_byn_bundles_keyboard(bundles: list[tuple[int, int]], usd_rate: float) -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
+    for tokens, byn in bundles:
+        guide_text = " + 🎁 Гайд" if tokens == 7000 else ""
+        icon = "🛸" if tokens == 7000 else "🪙"
+        try:
+            usd = byn / float(usd_rate) if usd_rate else 0.0
+        except Exception:
+            usd = 0.0
+        usd_text = f" (~${usd:.2f})" if usd > 0 else ""
+        label = f"{icon} {tokens} токенов{guide_text} — {byn} BYN{usd_text}"
+        rows.append([InlineKeyboardButton(text=label, callback_data=f"pay:card_byn:{tokens}")])
     rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -129,42 +69,19 @@ def pay_link_keyboard(url: str) -> InlineKeyboardMarkup:
 
 
 async def stars_bundles_keyboard(settings_service) -> InlineKeyboardMarkup:
-    icons_map: dict[int, str] = {
-        300: "🎯",
-        1100: "🚀",
-        2400: "💎",
-        3800: "👑",
-        7000: "🛸",
-    }
-    bonus_map: dict[int, int] = {
-        300: 0,
-        1100: 0,
-        2400: 0,
-        3800: 0,
-        7000: 0,
-    }
-    tag_map: dict[int, str] = {
-        2400: " 🔥",
-    }
-    
-    # Get star prices from settings
     base_tokens_list = [300, 1100, 2400, 3800, 7000]
     rows: list[list[InlineKeyboardButton]] = []
-    
     for base_tokens in base_tokens_list:
         try:
             stars = int(await settings_service.get_value(f"{base_tokens}_stars_price"))
         except Exception:
             stars = 0  # fallback if setting not found
-        
-        icon = icons_map.get(base_tokens, "🎁")
-        bonus = bonus_map.get(base_tokens, 0)
-        total_tokens = base_tokens + bonus
-        bonus_text = f" (+{bonus} 🎁)" if bonus else ""
-        tag_text = tag_map.get(base_tokens, "")
-        label = f"{icon} {base_tokens} токенов{bonus_text} — {stars} ⭐{tag_text}"
-        rows.append([InlineKeyboardButton(text=label, callback_data=f"pay:stars:{total_tokens}:{stars}")])
-    
+
+        guide_text = " + 🎁 Гайд" if base_tokens == 7000 else ""
+        icon = "🛸" if base_tokens == 7000 else "🪙"
+        label = f"{icon} {base_tokens} токенов{guide_text} — {stars} ⭐"
+        rows.append([InlineKeyboardButton(text=label, callback_data=f"pay:stars:{base_tokens}:{stars}")])
+
     rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
