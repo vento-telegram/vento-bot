@@ -573,6 +573,8 @@ async def pay_ru(
     user_service: AbcUserService = Provide[Container.user_service],
     subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
+    user = await user_service.get_user(call.from_user.id)
+    sub = await subscription_service.get_active_by_user_id(user.id) if user else None
     await call.answer()
     bundle_token_amounts = [300, 1100, 2400, 3800, 7000]
     bundles: list[tuple[int, int]] = []
@@ -583,26 +585,17 @@ async def pay_ru(
         except Exception:
             price = 0
         bundles.append((amount, price))
-    text_part_1 = (
+    text = (
         "🇷🇺 *SberPay | T‑Pay | ЮMoney*\n\n"
         "💳 Для оплаты но номеру банковской карты используй способ оплаты \"🌍 Картой МИР\".\n\n"
     )
-    text_part_2 = "Выбери пакет токенов:"
-    text = text_part_1 + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n" + text_part_2
+    if bool(sub):
+        text = text + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
+    text = text + "Выбери пакет токенов:"
     await call.message.edit_text(
         text=text,
-        reply_markup=ru_bundles_keyboard(bundles),
+        reply_markup=ru_bundles_keyboard(bundles, has_subscription=bool(sub)),
     )
-    try:
-        user = await user_service.get_user(call.from_user.id)
-        sub = await subscription_service.get_active_by_user_id(user.id) if user else None
-        kb = ru_bundles_keyboard(bundles, has_subscription=bool(sub))
-        try:
-            await call.message.edit_reply_markup(reply_markup=kb)
-        except Exception:
-            pass
-    except Exception:
-        pass
 
 
 @router.callback_query(F.data.startswith("pay:ru:"))
@@ -644,6 +637,8 @@ async def pay_card(
     user_service: AbcUserService = Provide[Container.user_service],
     subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
+    user = await user_service.get_user(call.from_user.id)
+    sub = await subscription_service.get_active_by_user_id(user.id) if user else None
     await call.answer()
     bundle_token_amounts = [300, 1100, 2400, 3800, 7000]
     bundles: list[tuple[int, int]] = []
@@ -654,26 +649,17 @@ async def pay_card(
         except Exception:
             price = 0
         bundles.append((amount, price))
-    text_part_1 = (
+    text = (
         "🌍 *Картой МИР*\n\n"
         "Оплата картой VISA/Mastercard/МИР.\n\n"
     )
-    text_part_2 = "Выбери пакет токенов:"
-    text = text_part_1 + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n" + text_part_2
+    if bool(sub):
+        text = text + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
+    text = text + "Выбери пакет токенов:"
     await call.message.edit_text(
         text=text,
-        reply_markup=card_bundles_keyboard(bundles),
+        reply_markup=card_bundles_keyboard(bundles, has_subscription=bool(sub)),
     )
-    try:
-        user = await user_service.get_user(call.from_user.id)
-        sub = await subscription_service.get_active_by_user_id(user.id) if user else None
-        kb = card_bundles_keyboard(bundles, has_subscription=bool(sub))
-        try:
-            await call.message.edit_reply_markup(reply_markup=kb)
-        except Exception:
-            pass
-    except Exception:
-        pass
 
 
 @router.callback_query(F.data.startswith("pay:card:"))
@@ -714,26 +700,19 @@ async def pay_stars(
     user_service: AbcUserService = Provide[Container.user_service],
     subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
+    user = await user_service.get_user(call.from_user.id)
+    sub = await subscription_service.get_active_by_user_id(user.id) if user else None
     await call.answer()
-    text_part_1 = (
+    text = (
         "⭐ *Оплата звёздами*\n\n"
     )
-    text_part_2 = "Выбери пакет токенов:"
-    text = text_part_1 + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n" + text_part_2
+    if bool(sub):
+        text = text + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
+    text = text + "Выбери пакет токенов:"
     await call.message.edit_text(
         text=text,
-        reply_markup=await stars_bundles_keyboard(settings),
+        reply_markup=await stars_bundles_keyboard(settings, has_subscription=bool(sub)),
     )
-    try:
-        user = await user_service.get_user(call.from_user.id)
-        sub = await subscription_service.get_active_by_user_id(user.id) if user else None
-        kb = await stars_bundles_keyboard(settings, has_subscription=bool(sub))
-        try:
-            await call.message.edit_reply_markup(reply_markup=kb)
-        except Exception:
-            pass
-    except Exception:
-        pass
 
 
 @router.callback_query(F.data == "pay:card_byn")
@@ -744,6 +723,8 @@ async def pay_card_byn(
     user_service: AbcUserService = Provide[Container.user_service],
     subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
+    user = await user_service.get_user(call.from_user.id)
+    sub = await subscription_service.get_active_by_user_id(user.id) if user else None
     await call.answer()
     bundle_token_amounts = [300, 1100, 2400, 3800, 7000]
     bundles: list[tuple[int, int]] = []
@@ -759,26 +740,17 @@ async def pay_card_byn(
         usd_rate = float(rate_value) if rate_value is not None else 2.97
     except Exception:
         usd_rate = 2.97
-    text_part_1 = (
+    text = (
         "🚀 *Картой VISA | Mastercard*\n\n"
             "Оплата картами VISA/Mastercard.\n\n"
     )
-    text_part_2 = "Выбери пакет токенов:"
-    text = text_part_1 + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n" + text_part_2
+    if bool(sub):
+        text = text + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
+    text = text + "Выбери пакет токенов:"
     await call.message.edit_text(
         text=text,
-        reply_markup=card_byn_bundles_keyboard(bundles, usd_rate),
+        reply_markup=card_byn_bundles_keyboard(bundles, usd_rate, has_subscription=bool(sub)),
     )
-    try:
-        user = await user_service.get_user(call.from_user.id)
-        sub = await subscription_service.get_active_by_user_id(user.id) if user else None
-        kb = card_byn_bundles_keyboard(bundles, usd_rate, has_subscription=bool(sub))
-        try:
-            await call.message.edit_reply_markup(reply_markup=kb)
-        except Exception:
-            pass
-    except Exception:
-        pass
 
 
 @router.callback_query(F.data.startswith("pay:card_byn:"))
