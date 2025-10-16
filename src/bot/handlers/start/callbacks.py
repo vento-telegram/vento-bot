@@ -6,6 +6,7 @@ from aiogram.types import (
     Message,
     PreCheckoutQuery,
     FSInputFile,
+    InlineKeyboardMarkup,
 )
 from pathlib import Path
 from dependency_injector.wiring import Provide, inject
@@ -50,6 +51,23 @@ from bot.keyboards.sora2 import (
 from bot.settings import settings
 
 router = Router()
+
+
+def _remove_subscription_row(markup: InlineKeyboardMarkup) -> InlineKeyboardMarkup:
+    try:
+        rows: list[list] = []
+        for row in (markup.inline_keyboard or []):
+            new_row = []
+            for btn in row:
+                cb = getattr(btn, 'callback_data', None)
+                if cb in {"pay:ru_sub", "pay:card_sub", "pay:card_byn_sub", "pay:stars_sub"}:
+                    continue
+                new_row.append(btn)
+            if new_row:
+                rows.append(new_row)
+        return InlineKeyboardMarkup(inline_keyboard=rows)
+    except Exception:
+        return markup
 @router.callback_query(F.data == "set_mode:veo_video")
 @inject
 async def set_mode_veo_video(
@@ -569,6 +587,8 @@ async def goto_replenish(
 async def pay_ru(
     call: CallbackQuery,
     settings: AbcSettingsService = Provide[Container.settings_service],
+    user_service: AbcUserService = Provide[Container.user_service],
+    subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
     await call.answer()
     bundle_token_amounts = [300, 1100, 2400, 3800, 7000]
@@ -588,6 +608,17 @@ async def pay_ru(
             "Выбери пакет токенов:"),
         reply_markup=ru_bundles_keyboard(bundles),
     )
+    try:
+        user = await user_service.get_user(call.from_user.id)
+        sub = await subscription_service.get_active_by_user_id(user.id) if user else None
+        if sub:
+            kb = _remove_subscription_row(ru_bundles_keyboard(bundles))
+            try:
+                await call.message.edit_reply_markup(reply_markup=kb)
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 
 @router.callback_query(F.data.startswith("pay:ru:"))
@@ -626,6 +657,8 @@ async def pay_ru_bundle_selected(
 async def pay_card(
     call: CallbackQuery,
     settings: AbcSettingsService = Provide[Container.settings_service],
+    user_service: AbcUserService = Provide[Container.user_service],
+    subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
     await call.answer()
     bundle_token_amounts = [300, 1100, 2400, 3800, 7000]
@@ -645,6 +678,17 @@ async def pay_card(
             "Выбери пакет токенов:"),
         reply_markup=card_bundles_keyboard(bundles),
     )
+    try:
+        user = await user_service.get_user(call.from_user.id)
+        sub = await subscription_service.get_active_by_user_id(user.id) if user else None
+        if sub:
+            kb = _remove_subscription_row(card_bundles_keyboard(bundles))
+            try:
+                await call.message.edit_reply_markup(reply_markup=kb)
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 
 @router.callback_query(F.data.startswith("pay:card:"))
@@ -682,6 +726,8 @@ async def pay_card_bundle_selected(
 async def pay_stars(
     call: CallbackQuery,
     settings: AbcSettingsService = Provide[Container.settings_service],
+    user_service: AbcUserService = Provide[Container.user_service],
+    subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
     await call.answer()
     await call.message.edit_text(
@@ -691,6 +737,17 @@ async def pay_stars(
             "Выбери пакет токенов:"),
         reply_markup=await stars_bundles_keyboard(settings),
     )
+    try:
+        user = await user_service.get_user(call.from_user.id)
+        sub = await subscription_service.get_active_by_user_id(user.id) if user else None
+        if sub:
+            kb = _remove_subscription_row(await stars_bundles_keyboard(settings))
+            try:
+                await call.message.edit_reply_markup(reply_markup=kb)
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 
 @router.callback_query(F.data == "pay:card_byn")
@@ -698,6 +755,8 @@ async def pay_stars(
 async def pay_card_byn(
     call: CallbackQuery,
     settings: AbcSettingsService = Provide[Container.settings_service],
+    user_service: AbcUserService = Provide[Container.user_service],
+    subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
     await call.answer()
     bundle_token_amounts = [300, 1100, 2400, 3800, 7000]
@@ -722,6 +781,17 @@ async def pay_card_byn(
             "Выбери пакет токенов:"),
         reply_markup=card_byn_bundles_keyboard(bundles, usd_rate),
     )
+    try:
+        user = await user_service.get_user(call.from_user.id)
+        sub = await subscription_service.get_active_by_user_id(user.id) if user else None
+        if sub:
+            kb = _remove_subscription_row(card_byn_bundles_keyboard(bundles, usd_rate))
+            try:
+                await call.message.edit_reply_markup(reply_markup=kb)
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 
 @router.callback_query(F.data.startswith("pay:card_byn:"))
