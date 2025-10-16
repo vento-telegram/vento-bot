@@ -41,12 +41,20 @@ def card_byn_bundles_keyboard(bundles: list[tuple[int, int]], usd_rate: float) -
             usd = 0
         # Use ~ and 2 decimals for USD approximation
         usd_text = f" (~${usd:.2f})" if usd > 0 else ""
-        rows.append([
-            InlineKeyboardButton(
-                text=f"{icon} {tokens} токенов{bonus_text} — {byn} BYN{usd_text}{tag_text}",
-                callback_data=f"pay:card_byn:{tokens}",
-            )
-        ])
+        if tokens == 7000:
+            rows.append([
+                InlineKeyboardButton(
+                    text=f"{icon} {tokens} токенов{bonus_text} + 🎁 Гайд — {byn} BYN{usd_text}{tag_text}",
+                    callback_data=f"pay:card_byn:{tokens}",
+                )
+            ])
+        else:
+            rows.append([
+                InlineKeyboardButton(
+                    text=f"{icon} {tokens} токенов{bonus_text} — {byn} BYN{usd_text}{tag_text}",
+                    callback_data=f"pay:card_byn:{tokens}",
+                )
+            ])
     rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -81,7 +89,10 @@ def ru_bundles_keyboard(bundles: list[tuple[int, int]]) -> InlineKeyboardMarkup:
         bonus = bonus_map.get(tokens, 0)
         bonus_text = f" (+{bonus} 🎁)" if bonus else ""
         tag_text = tag_map.get(tokens, "")
-        rows.append([InlineKeyboardButton(text=f"{icon} {tokens} токенов{bonus_text} — {price} ₽{tag_text}", callback_data=f"pay:ru:{tokens}")])
+        if tokens == 7000:
+            rows.append([InlineKeyboardButton(text=f"{icon} {tokens} токенов{bonus_text} + 🎁 Гайд — {price} ₽{tag_text}", callback_data=f"pay:ru:{tokens}")])
+        else:
+            rows.append([InlineKeyboardButton(text=f"{icon} {tokens} токенов{bonus_text} — {price} ₽{tag_text}", callback_data=f"pay:ru:{tokens}")])
     rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -116,7 +127,11 @@ def card_bundles_keyboard(bundles: list[tuple[int, int]]) -> InlineKeyboardMarku
         bonus = bonus_map.get(tokens, 0)
         bonus_text = f" (+{bonus} 🎁)" if bonus else ""
         tag_text = tag_map.get(tokens, "")
-        rows.append([InlineKeyboardButton(text=f"{icon} {tokens} токенов{bonus_text} — {price} ₽{tag_text}", callback_data=f"pay:card:{tokens}")])
+        if tokens == 7000:
+            rows.append([InlineKeyboardButton(text=f"{icon} {tokens} токенов{bonus_text} + 🎁 Гайд — {price} ₽{tag_text}", callback_data=f"pay:card:{tokens}")])
+        else:
+            rows.append([InlineKeyboardButton(text=f"{icon} {tokens} токенов{bonus_text} — {price} ₽{tag_text}",
+                                              callback_data=f"pay:card:{tokens}")])
     rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -162,7 +177,10 @@ async def stars_bundles_keyboard(settings_service) -> InlineKeyboardMarkup:
         total_tokens = base_tokens + bonus
         bonus_text = f" (+{bonus} 🎁)" if bonus else ""
         tag_text = tag_map.get(base_tokens, "")
-        label = f"{icon} {base_tokens} токенов{bonus_text} — {stars} ⭐{tag_text}"
+        if base_tokens == 7000:
+            label = f"{icon} {base_tokens} токенов{bonus_text} — 🎁 Гайд {stars} ⭐{tag_text}"
+        else:
+            label = f"{icon} {base_tokens} токенов{bonus_text} — {stars} ⭐{tag_text}"
         rows.append([InlineKeyboardButton(text=label, callback_data=f"pay:stars:{total_tokens}:{stars}")])
     
     rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])

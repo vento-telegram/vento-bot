@@ -5,7 +5,9 @@ from aiogram.types import (
     LabeledPrice,
     Message,
     PreCheckoutQuery,
+    FSInputFile,
 )
+from pathlib import Path
 from dependency_injector.wiring import Provide, inject
 
 from bot.constants import settings_models_mapper
@@ -849,7 +851,33 @@ async def stars_successful_payment(
         )
         balance = updated_user.balance if updated_user else None
         balance_text = f"*{balance}*" if balance is not None else "обновлён"
-        await message.answer(
+        if tokens == 7000:
+            special_text = (
+                "🎉 Спасибо за покупку!\n\n"
+                "Вы получили:\n"
+                "🛸 7000 токенов — ваш личный запас для общения с ИИ\n"
+                "🎁 Гайд по использованию — пошаговое руководство, как извлечь максимум из возможностей нашего бота.\n\n"
+                "В гайде вы найдёте:\n"
+                "✨ как правильно формулировать запросы,\n"
+                "⚙️ примеры эффективных промтов,\n"
+                "💡 способы ускорить и улучшить ответы ИИ,\n"
+                "🚀 идеи для реальных задач — от работы до творчества.\n\n"
+                "Приятного изучения и продуктивного общения с ИИ!"
+            )
+            await message.answer(
+                special_text,
+                reply_markup=start_keyboard(BotModeEnum.passive),
+                parse_mode=None,
+            )
+            try:
+                guide_path = (
+                    Path(__file__).resolve().parents[3] / "media" / "files" / "guide.pdf"
+                )
+                await message.answer_document(document=FSInputFile(guide_path.as_posix()))
+            except Exception:
+                pass
+        else:
+            await message.answer(
             text=(
                 f"✅ Оплата прошла успешно! Зачислено {tokens} токенов.\n\n"
                 f"🪙 Твой баланс: {balance_text} токенов\n\n"
