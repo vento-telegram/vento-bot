@@ -5,12 +5,14 @@ from typing import Self
 from bot.interfaces.repos.transaction import AbcTransactionRepo
 from bot.interfaces.repos.settings import AbcSettingsRepo
 from bot.interfaces.repos.user import AbcUserRepo
+from bot.interfaces.repos.subscription import AbcSubscriptionRepo
 
 
 class AbcUnitOfWork(ABC):
     user: AbcUserRepo
     settings: AbcSettingsRepo
     transaction: AbcTransactionRepo
+    subscription: AbcSubscriptionRepo
 
     async def __aenter__(self) -> Self:
         return self

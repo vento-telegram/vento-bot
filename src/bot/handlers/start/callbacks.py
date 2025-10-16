@@ -16,6 +16,7 @@ from bot.enums import BotModeEnum, TransactionReasonEnum
 from bot.interfaces.services.payments import AbcPaymentsService
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.interfaces.services.user import AbcUserService
+from bot.interfaces.services.subscription import AbcSubscriptionService
 from bot.keyboards.change_ai import mode_keyboard
 from bot.keyboards.payments import (
     card_bundles_keyboard,
@@ -583,6 +584,7 @@ async def pay_ru(
         text=(
             "🇷🇺 *SberPay | T‑Pay | ЮMoney*\n\n"
             "💳 Для оплаты но номеру банковской карты используй способ оплаты \"🌍 Картой МИР\".\n\n"
+            "🔖 Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
             "Выбери пакет токенов:"),
         reply_markup=ru_bundles_keyboard(bundles),
     )
@@ -639,6 +641,7 @@ async def pay_card(
         text=(
             "🌍 *Картой МИР*\n\n"
             "Оплата картой VISA/Mastercard/МИР.\n\n"
+            "🔖 Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
             "Выбери пакет токенов:"),
         reply_markup=card_bundles_keyboard(bundles),
     )
@@ -684,6 +687,7 @@ async def pay_stars(
     await call.message.edit_text(
         text=(
             "⭐ *Оплата звёздами*\n\n"
+            "🔖 Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
             "Выбери пакет токенов:"),
         reply_markup=await stars_bundles_keyboard(settings),
     )
@@ -714,6 +718,7 @@ async def pay_card_byn(
         text=(
             "🚀 *Картой VISA | Mastercard*\n\n"
             "Оплата картами VISA/Mastercard.\n\n"
+            "🔖 Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
             "Выбери пакет токенов:"),
         reply_markup=card_byn_bundles_keyboard(bundles, usd_rate),
     )
@@ -918,6 +923,7 @@ async def goto_start(
     state: FSMContext,
     service: AbcUserService = Provide[Container.user_service],
     settings: AbcSettingsService = Provide[Container.settings_service],
+    subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
     await call.answer()
 
@@ -941,11 +947,29 @@ async def goto_start(
 
     if current_mode != BotModeEnum.passive:
         price = await settings.get_value(settings_models_mapper[current_mode])
+        try:
+            if current_mode in (BotModeEnum.gpt, BotModeEnum.gpt_mini):
+                sub_active = await subscription_service.get_active_by_user_id(user.id)
+                if sub_active:
+                    price = "0"
+        except Exception:
+            pass
         text += f"💸 Цена запроса: *{price} токенов*\n\n"
     else:
         text += "\n"
 
     text += "👇 Что хочешь сделать?"
+    # Show subscription validity date if active
+    try:
+        from bot.interfaces.services.subscription import AbcSubscriptionService  # type: ignore
+        from dependency_injector.wiring import Provide  # type: ignore
+        sub_service = Provide[Container.subscription_service]()  # type: ignore
+        if sub_service is not None:
+            sub_active = await sub_service.get_active_by_user_id(user.id)
+            if sub_active and getattr(sub_active, 'till', None):
+                text += f"\n🏷️ Подписка GPT до {sub_active.till.strftime('%d.%m')}"
+    except Exception:
+        pass
     kb = start_keyboard(current_mode)
 
     await call.message.edit_text(

@@ -30,6 +30,13 @@ def card_byn_bundles_keyboard(bundles: list[tuple[int, int]], usd_rate: float) -
         2400: " 🔥",
     }
     rows: list[list[InlineKeyboardButton]] = []
+    # Add subscription option on top
+    rows.append([
+        InlineKeyboardButton(
+            text="🔖 Подписка GPT + 2000 токенов — 110 BYN (~$37.04)",
+            callback_data="pay:card_byn_sub",
+        )
+    ])
     for tokens, byn in bundles:
         icon = icons_map.get(tokens, "💠")
         bonus = bonus_map.get(tokens, 0)
@@ -84,6 +91,13 @@ def ru_bundles_keyboard(bundles: list[tuple[int, int]]) -> InlineKeyboardMarkup:
         2400: " 🔥",
     }
     rows: list[list[InlineKeyboardButton]] = []
+    # Add subscription option on top
+    rows.append([
+        InlineKeyboardButton(
+            text="🔖 Подписка GPT + 2000 токенов — 2999₽",
+            callback_data="pay:ru_sub",
+        )
+    ])
     for tokens, price in bundles:
         icon = icons_map.get(tokens, "🎁")
         bonus = bonus_map.get(tokens, 0)
@@ -122,6 +136,13 @@ def card_bundles_keyboard(bundles: list[tuple[int, int]]) -> InlineKeyboardMarku
         2400: " 🔥",
     }
     rows: list[list[InlineKeyboardButton]] = []
+    # Add subscription option on top
+    rows.append([
+        InlineKeyboardButton(
+            text="🔖 Подписка GPT + 2000 токенов — 2999₽",
+            callback_data="pay:card_sub",
+        )
+    ])
     for tokens, price in bundles:
         icon = icons_map.get(tokens, "🎁")
         bonus = bonus_map.get(tokens, 0)
@@ -165,6 +186,13 @@ async def stars_bundles_keyboard(settings_service) -> InlineKeyboardMarkup:
     # Get star prices from settings
     base_tokens_list = [300, 1100, 2400, 3800, 7000]
     rows: list[list[InlineKeyboardButton]] = []
+    # Subscription option top row
+    rows.append([
+        InlineKeyboardButton(
+            text="🔖 Подписка GPT + 2000 токенов — 2999 ⭐",
+            callback_data="pay:stars_sub",
+        )
+    ])
     
     for base_tokens in base_tokens_list:
         try:

@@ -19,6 +19,7 @@ from bot.services.suno import SunoService
 from bot.services.user import UserService
 from bot.services.veo import VeoService
 from bot.services.sora2 import Sora2Service
+from bot.services.subscription import SubscriptionService
 from bot.settings import settings
 
 
@@ -50,9 +51,10 @@ class Container(containers.DeclarativeContainer):
     dispatcher = providers.Singleton(Dispatcher, storage=storage)
     settings_service = providers.Factory(SettingsService, uow=uow)
     user_service = providers.Factory(UserService, uow=uow, settings_service=settings_service)
+    subscription_service = providers.Factory(SubscriptionService, uow=uow, settings_service=settings_service)
     payments_service = providers.Factory(PaymentsService, uow=uow)
     openai_client = providers.Singleton(AsyncOpenAI, api_key=settings.OPENAI.API_KEY)
-    openai_service = providers.Factory(OpenAIService, uow=uow, client=openai_client, settings_service=settings_service)
+    openai_service = providers.Factory(OpenAIService, uow=uow, client=openai_client, settings_service=settings_service, subscription_service=subscription_service)
     suno_service = providers.Factory(SunoService, uow=uow, settings_service=settings_service)
     veo_service = providers.Factory(VeoService, uow=uow, settings_service=settings_service)
     sora2_service = providers.Factory(Sora2Service, uow=uow, settings_service=settings_service)

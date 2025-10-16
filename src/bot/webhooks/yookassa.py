@@ -9,6 +9,7 @@ from dependency_injector.wiring import inject, Provide
 from bot.container import Container
 from bot.enums import BotModeEnum
 from bot.interfaces.services import AbcUserService
+from bot.interfaces.services.subscription import AbcSubscriptionService
 from bot.interfaces.services.payments import AbcPaymentsService
 from bot.keyboards import start_keyboard
 
@@ -21,6 +22,7 @@ async def yookassa_handle(
     admin_bot: Bot = Provide[Container.admin_bot],
     user_service: AbcUserService = Provide[Container.user_service],
     payments: AbcPaymentsService = Provide[Container.payments_service],
+    subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
     logger.info(f"JSON FOR DEBUGGING: \n\n\n{await request.json()}\n\n\n")
     try:
@@ -33,15 +35,40 @@ async def yookassa_handle(
         payment_id = body.get("object", {}).get("id")
         if payment_id:
             try:
+                obj = body.get("object", {})
+                metadata = obj.get("metadata", {}) or {}
+                telegram_id = (
+                    int(metadata.get("user_id"))
+                    if metadata.get("user_id")
+                    else None
+                )
+                if telegram_id and metadata.get("subscription"):
+                    # Subscription purchase
+                    await subscription_service.activate_or_extend_for_telegram(telegram_id, days=30, bonus_tokens=2000)
+                    await bot.send_message(
+                        telegram_id,
+                        "🏷️ Подписка GPT активирована на 30 дней.\n2000 токенов зачислены на баланс.",
+                        reply_markup=start_keyboard(BotModeEnum.passive),
+                        parse_mode=None,
+                    )
+                    try:
+                        admins = await user_service.list_admins()
+                        admin_text = (
+                            "Новая покупка подписки (YooKassa):\n"
+                            f"Пользователь: {telegram_id}\n"
+                            f"Срок: 30 дней, Бонус: +2000"
+                        )
+                        for admin in admins:
+                            try:
+                                await admin_bot.send_message(admin.telegram_id, admin_text, parse_mode=None)
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+                    return web.json_response({"ok": True})
+
                 credited = await payments.check_payment_and_credit(payment_id)
                 try:
-                    obj = body.get("object", {})
-                    metadata = obj.get("metadata", {}) or {}
-                    telegram_id = (
-                        int(metadata.get("user_id"))
-                        if metadata.get("user_id")
-                        else None
-                    )
                     tokens = (
                         int(metadata.get("tokens"))
                         if metadata.get("tokens")

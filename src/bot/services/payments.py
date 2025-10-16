@@ -182,3 +182,119 @@ class PaymentsService(AbcPaymentsService):
                         return value
                 raise RuntimeError("BePaid response did not contain redirect URL")
 
+    async def create_ru_subscription(self, user_id: int, price_rub: int) -> str:
+        if not (settings.YOOKASSA.SHOP_ID and settings.YOOKASSA.SECRET_KEY):
+            raise RuntimeError("YooKassa credentials are not configured")
+
+        # Use metadata to mark subscription purchase
+        payment = Payment.create({
+            "amount": {"value": f"{price_rub}.00", "currency": "RUB"},
+            "confirmation": {"type": "redirect", "return_url": "https://t.me"},
+            "capture": True,
+            "description": f"Vento subscription: gpt_30 for user {user_id}",
+            "metadata": {"user_id": user_id, "subscription": "gpt_30", "bonus_tokens": 2000},
+        })
+        return payment.confirmation.confirmation_url
+
+    async def create_card_subscription(self, user_id: int, price_rub: int) -> str:
+        if not self._bepaid_auth:
+            raise RuntimeError("BePaid credentials are not configured")
+        payload: dict[str, Any] = {
+            "checkout": {
+                "transaction_type": "payment",
+                "order": {
+                    "amount": int(price_rub) * 100,
+                    "currency": "RUB",
+                    "description": f"Vento subscription: gpt_30 for user {user_id}",
+                    "tracking_id": f"{user_id}:sub",
+                },
+                "customer": {"first_name": str(user_id)},
+                "settings": {
+                    "notification_url": f"{settings.WEBHOOKS.BASE_URL}/webhooks/bepaid",
+                    "success_url": "https://t.me/vento_toolbot",
+                    "decline_url": "https://t.me/vento_toolbot",
+                    "fail_url": "https://t.me/vento_toolbot",
+                    "cancel_url": "https://t.me/vento_toolbot",
+                    "language": "ru",
+                },
+            }
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "X-API-Version": "2",
+            "Authorization": f"Basic {self._bepaid_auth}",
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                "https://checkout.bepaid.by/ctp/api/checkouts", data=json.dumps(payload), headers=headers
+            ) as resp:
+                data = await resp.json(content_type=None)
+                if resp.status not in {200, 201}:
+                    raise RuntimeError(f"BePaid error {resp.status}: {data}")
+                checkout = data.get("checkout") if isinstance(data, dict) else None
+                if isinstance(checkout, dict):
+                    url = (
+                        checkout.get("redirect_url")
+                        or checkout.get("redirect_to")
+                        or checkout.get("redirect")
+                        or checkout.get("url")
+                    )
+                    if url:
+                        return str(url)
+                for key, value in (checkout or data or {}).items():
+                    if isinstance(value, str) and value.startswith("http"):
+                        return value
+                raise RuntimeError("BePaid response did not contain redirect URL")
+
+    async def create_card_byn_subscription(self, user_id: int, price_byn: int) -> str:
+        if not self._bepaid_auth:
+            raise RuntimeError("BePaid credentials are not configured")
+        payload: dict[str, Any] = {
+            "checkout": {
+                "transaction_type": "payment",
+                "order": {
+                    "amount": int(price_byn) * 100,
+                    "currency": "BYN",
+                    "description": f"Vento subscription: gpt_30 for user {user_id}",
+                    "tracking_id": f"{user_id}:sub",
+                },
+                "customer": {"first_name": str(user_id)},
+                "settings": {
+                    "notification_url": f"{settings.WEBHOOKS.BASE_URL}/webhooks/bepaid",
+                    "success_url": "https://t.me/vento_toolbot",
+                    "decline_url": "https://t.me/vento_toolbot",
+                    "fail_url": "https://t.me/vento_toolbot",
+                    "cancel_url": "https://t.me/vento_toolbot",
+                    "language": "ru",
+                },
+            }
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "X-API-Version": "2",
+            "Authorization": f"Basic {self._bepaid_auth}",
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                "https://checkout.bepaid.by/ctp/api/checkouts", data=json.dumps(payload), headers=headers
+            ) as resp:
+                data = await resp.json(content_type=None)
+                if resp.status not in {200, 201}:
+                    raise RuntimeError(f"BePaid error {resp.status}: {data}")
+                checkout = data.get("checkout") if isinstance(data, dict) else None
+                if isinstance(checkout, dict):
+                    url = (
+                        checkout.get("redirect_url")
+                        or checkout.get("redirect_to")
+                        or checkout.get("redirect")
+                        or checkout.get("url")
+                    )
+                    if url:
+                        return str(url)
+                for key, value in (checkout or data or {}).items():
+                    if isinstance(value, str) and value.startswith("http"):
+                        return value
+                raise RuntimeError("BePaid response did not contain redirect URL")
+

@@ -21,6 +21,7 @@ async def bepaid_handle(
     bot: Bot = Provide[Container.bot],
     admin_bot: Bot = Provide[Container.admin_bot],
     user_service: AbcUserService = Provide[Container.user_service],
+    subscription_service = Provide[Container.subscription_service],
 ):
     body = await request.json()
 
@@ -46,13 +47,48 @@ async def bepaid_handle(
         )
         return web.json_response({"ok": True})
 
-    await user_service.add_tokens_by_telegram_id(
-        telegram_id=telegram_id,
-        amount=tokens,
-        reason=TransactionReasonEnum.purchase_bepaid,
-    )
+    if (parts[1] if len(parts) > 1 else "") == "sub":
+        try:
+            await subscription_service.activate_or_extend_for_telegram(telegram_id, days=30, bonus_tokens=2000)
+        except Exception:
+            logger.exception("Failed to activate subscription for %s", telegram_id)
+        # For subscriptions, notify user below and continue
+        tokens = 0
+    else:
+        await user_service.add_tokens_by_telegram_id(
+            telegram_id=telegram_id,
+            amount=tokens,
+            reason=TransactionReasonEnum.purchase_bepaid,
+        )
 
     user = await user_service.get_user(telegram_id)
+
+    # Handle subscription purchases separately
+    if (parts[1] if len(parts) > 1 else "") == "sub":
+        await bot.send_message(
+            telegram_id,
+            text=(
+                "🏷️ Подписка GPT активирована на 30 дней.\n"
+                "2000 токенов зачислены на баланс."
+            ),
+            reply_markup=start_keyboard(BotModeEnum.passive),
+        )
+        try:
+            admins = await user_service.list_admins()
+            admin_text = (
+                "Новая покупка подписки (BePaid):\n"
+                f"Пользователь: {telegram_id}"
+                + (f" (@{getattr(user, 'username', None)})" if getattr(user, 'username', None) else "")
+                + f"\nСрок: 30 дней, Бонус: +2000"
+            )
+            for admin in admins:
+                try:
+                    await admin_bot.send_message(admin.telegram_id, admin_text, parse_mode=None)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        return web.json_response({"ok": True})
 
     if tokens == 7000:
         special_text = (
@@ -114,4 +150,3 @@ async def bepaid_handle(
         pass
 
     return web.json_response({"ok": True})
-
