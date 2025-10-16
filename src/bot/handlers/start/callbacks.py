@@ -17,6 +17,7 @@ from bot.interfaces.services.user import AbcUserService
 from bot.keyboards.change_ai import mode_keyboard
 from bot.keyboards.payments import (
     card_bundles_keyboard,
+    card_byn_bundles_keyboard,
     pay_link_keyboard,
     payments_back_keyboard,
     payments_keyboard,
@@ -579,7 +580,7 @@ async def pay_ru(
     await call.message.edit_text(
         text=(
             "🇷🇺 *SberPay | T‑Pay | ЮMoney*\n\n"
-            "💳 Для оплаты но номеру банковской карты используй способ оплаты \"Банковской картой\".\n\n"
+            "💳 Для оплаты но номеру банковской карты используй способ оплаты \"🌍 Картой МИР\".\n\n"
             "Выбери пакет токенов:"),
         reply_markup=ru_bundles_keyboard(bundles),
     )
@@ -634,7 +635,7 @@ async def pay_card(
         bundles.append((amount, price))
     await call.message.edit_text(
         text=(
-            "💳 *Банковская карта*\n\n"
+            "🌍 *Картой МИР*\n\n"
             "Оплата картой VISA/Mastercard/МИР.\n\n"
             "Выбери пакет токенов:"),
         reply_markup=card_bundles_keyboard(bundles),
@@ -684,6 +685,74 @@ async def pay_stars(
             "Выбери пакет токенов:"),
         reply_markup=await stars_bundles_keyboard(settings),
     )
+
+
+@router.callback_query(F.data == "pay:card_byn")
+@inject
+async def pay_card_byn(
+    call: CallbackQuery,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+):
+    await call.answer()
+    bundle_token_amounts = [300, 1100, 2400, 3800, 7000]
+    bundles: list[tuple[int, int]] = []
+    for amount in bundle_token_amounts:
+        price_value = await settings.get_value(f"{amount}_byn_bundle_price")
+        try:
+            byn = int(price_value)
+        except Exception:
+            byn = 0
+        bundles.append((amount, byn))
+    rate_value = await settings.get_value("byn-usd")
+    try:
+        usd_rate = float(rate_value) if rate_value is not None else 2.97
+    except Exception:
+        usd_rate = 2.97
+    await call.message.edit_text(
+        text=(
+            "🚀 *Картой VISA | Mastercard*\n\n"
+            "Оплата картами VISA/Mastercard.\n\n"
+            "Выбери пакет токенов:"),
+        reply_markup=card_byn_bundles_keyboard(bundles, usd_rate),
+    )
+
+
+@router.callback_query(F.data.startswith("pay:card_byn:"))
+@inject
+async def pay_card_byn_bundle_selected(
+    call: CallbackQuery,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+    payments: AbcPaymentsService = Provide[Container.payments_service],
+):
+    await call.answer()
+    parts = (call.data or "").split(":", maxsplit=2)
+    tokens = parts[-1] if parts and len(parts) >= 3 else ""
+    price_value = await settings.get_value(f"{tokens}_byn_bundle_price")
+    rate_value = await settings.get_value("byn-usd")
+    try:
+        byn = int(price_value)
+    except Exception:
+        byn = 0
+    try:
+        usd_rate = float(rate_value) if rate_value is not None else 2.97
+    except Exception:
+        usd_rate = 2.97
+    try:
+        confirm_url = await payments.create_card_payment_byn(user_id=call.from_user.id, tokens=int(tokens), price_byn=byn)
+        approx_usd = byn / usd_rate if usd_rate else 0
+        await call.message.edit_text(
+            text=(
+                f"✅ *Сумма заказа*: {tokens} токенов — {byn} BYN"
+                + (f" (~${approx_usd:.2f})" if approx_usd > 0 else "")
+                + "\n\nНажми кнопку, чтобы перейти к оплате."),
+            reply_markup=pay_link_keyboard(confirm_url),
+        )
+    except Exception:
+        await call.message.edit_text(
+            text=(
+                "⚠️ Не получилось создать ссылку на оплату. Попробуй позже."),
+            reply_markup=ru_bundles_back_keyboard(),
+        )
 
 
 @router.callback_query(F.data.startswith("pay:stars:"))

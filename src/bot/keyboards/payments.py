@@ -3,11 +3,52 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 def payments_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💳 Банковская карта", callback_data="pay:card")],
+        [InlineKeyboardButton(text="🌍 Картой МИР", callback_data="pay:card")],
+        [InlineKeyboardButton(text="🚀 Картой VISA | Mastercard", callback_data="pay:card_byn")],
         [InlineKeyboardButton(text="🇷🇺 SberPay | T‑Pay | ЮMoney", callback_data="pay:ru")],
         [InlineKeyboardButton(text="⭐ Звезды", callback_data="pay:stars")],
         [InlineKeyboardButton(text="🔙 Назад", callback_data="goto:start")],
     ])
+
+
+def card_byn_bundles_keyboard(bundles: list[tuple[int, int]], usd_rate: float) -> InlineKeyboardMarkup:
+    icons_map: dict[int, str] = {
+        300: "🎯",
+        1100: "🚀",
+        2400: "💎",
+        3800: "👑",
+        7000: "🛸",
+    }
+    bonus_map: dict[int, int] = {
+        300: 0,
+        1100: 0,
+        2400: 0,
+        3800: 0,
+        7000: 0,
+    }
+    tag_map: dict[int, str] = {
+        2400: " 🔥",
+    }
+    rows: list[list[InlineKeyboardButton]] = []
+    for tokens, byn in bundles:
+        icon = icons_map.get(tokens, "💠")
+        bonus = bonus_map.get(tokens, 0)
+        bonus_text = f" (+{bonus} 🔹)" if bonus else ""
+        tag_text = tag_map.get(tokens, "")
+        try:
+            usd = byn / float(usd_rate) if usd_rate else 0
+        except Exception:
+            usd = 0
+        # Use ~ and 2 decimals for USD approximation
+        usd_text = f" (~${usd:.2f})" if usd > 0 else ""
+        rows.append([
+            InlineKeyboardButton(
+                text=f"{icon} {tokens} токенов{bonus_text} — {byn} BYN{usd_text}{tag_text}",
+                callback_data=f"pay:card_byn:{tokens}",
+            )
+        ])
+    rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="goto:replenish")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def payments_back_keyboard() -> InlineKeyboardMarkup:
@@ -32,7 +73,7 @@ def ru_bundles_keyboard(bundles: list[tuple[int, int]]) -> InlineKeyboardMarkup:
         7000: 0,
     }
     tag_map: dict[int, str] = {
-        24000: " 🔥",
+        2400: " 🔥",
     }
     rows: list[list[InlineKeyboardButton]] = []
     for tokens, price in bundles:
@@ -67,7 +108,7 @@ def card_bundles_keyboard(bundles: list[tuple[int, int]]) -> InlineKeyboardMarku
         7000: 0,
     }
     tag_map: dict[int, str] = {
-        24000: " 🔥",
+        2400: " 🔥",
     }
     rows: list[list[InlineKeyboardButton]] = []
     for tokens, price in bundles:

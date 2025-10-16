@@ -12,3 +12,7 @@ class AbcPaymentsService(ABC):
     @abstractmethod
     async def create_card_payment(self, user_id: int, tokens: int, price_rub: int) -> str:
         """Create BePaid payment and return confirmation URL for card payment in RUB."""
+
+    @abstractmethod
+    async def create_card_payment_byn(self, user_id: int, tokens: int, price_byn: int) -> str:
+        """Create BePaid payment and return confirmation URL for card payment in BYN."""

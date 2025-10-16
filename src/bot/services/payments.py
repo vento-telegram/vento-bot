@@ -124,3 +124,61 @@ class PaymentsService(AbcPaymentsService):
                         return value
                 raise RuntimeError("BePaid response did not contain redirect URL")
 
+    async def create_card_payment_byn(self, user_id: int, tokens: int, price_byn: int) -> str:
+        if not self._bepaid_auth:
+            raise RuntimeError("BePaid credentials are not configured")
+
+        payload: dict[str, Any] = {
+            "checkout": {
+                "transaction_type": "payment",
+                "order": {
+                    "amount": int(price_byn) * 100,
+                    "currency": "BYN",
+                    "description": f"Vento tokens: {tokens} for user {user_id}",
+                    "tracking_id": f"{user_id}:{tokens}",
+                },
+                "customer": {
+                    "first_name": str(user_id),
+                },
+                "settings": {
+                    "notification_url": f"{settings.WEBHOOKS.BASE_URL}/webhooks/bepaid",
+                    "success_url": "https://t.me/vento_toolbot",
+                    "decline_url": "https://t.me/vento_toolbot",
+                    "fail_url": "https://t.me/vento_toolbot",
+                    "cancel_url": "https://t.me/vento_toolbot",
+                    "language": "ru",
+                },
+            }
+        }
+
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "X-API-Version": "2",
+            "Authorization": f"Basic {self._bepaid_auth}",
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                "https://checkout.bepaid.by/ctp/api/checkouts",
+                data=json.dumps(payload),
+                headers=headers,
+            ) as resp:
+                data = await resp.json(content_type=None)
+                if resp.status not in {200, 201}:
+                    raise RuntimeError(f"BePaid error {resp.status}: {data}")
+                checkout = data.get("checkout") if isinstance(data, dict) else None
+                if isinstance(checkout, dict):
+                    url = (
+                        checkout.get("redirect_url")
+                        or checkout.get("redirect_to")
+                        or checkout.get("redirect")
+                        or checkout.get("url")
+                    )
+                    if url:
+                        return str(url)
+                for key, value in (checkout or data or {}).items():
+                    if isinstance(value, str) and value.startswith("http"):
+                        return value
+                raise RuntimeError("BePaid response did not contain redirect URL")
+
