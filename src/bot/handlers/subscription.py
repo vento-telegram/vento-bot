@@ -29,7 +29,7 @@ async def pay_ru_sub(
         url = await payments.create_ru_subscription(user_id=call.from_user.id, price_rub=2999)
         await call.message.edit_text(
             text=(
-                "🎟️ Подписка GPT + 2000 токенов — 2999₽\n\n"
+                "🎟️ Подписка GPT + Бонус — 2999₽\n\n"
                 "Оплата через YooKassa."
             ),
             reply_markup=pay_link_keyboard(url),
@@ -52,7 +52,7 @@ async def pay_card_sub(
         url = await payments.create_card_subscription(user_id=call.from_user.id, price_rub=2999)
         await call.message.edit_text(
             text=(
-                "🎟️ Подписка GPT + 2000 токенов — 2999₽\n\n"
+                "🎟️ Подписка GPT + Бонус — 2999₽\n\n"
                 "Оплата картой (BePaid)."
             ),
             reply_markup=pay_link_keyboard(url),
@@ -75,7 +75,7 @@ async def pay_card_byn_sub(
         url = await payments.create_card_byn_subscription(user_id=call.from_user.id, price_byn=110)
         await call.message.edit_text(
             text=(
-                "🎟️ Подписка GPT + 2000 токенов — 110 BYN (~$37.04)\n\n"
+                "🎟️ Подписка GPT + Бонус — 110 BYN (~$37.04)\n\n"
                 "Оплата картой (BePaid)."
             ),
             reply_markup=pay_link_keyboard(url),
@@ -93,8 +93,8 @@ async def pay_stars_sub(call: CallbackQuery):
     try:
         await call.bot.send_invoice(
             chat_id=call.from_user.id,
-            title="Подписка GPT + 2000 токенов",
-            description="Доступ к GPT без списания токенов + 2000 токенов на баланс. Срок 30 дней.",
+            title="Подписка GPT + Бонус",
+            description="Доступ к GPT без списания токенов + Бонус. Срок 30 дней.",
             payload="stars_sub:2999",
             provider_token="",
             currency="XTR",

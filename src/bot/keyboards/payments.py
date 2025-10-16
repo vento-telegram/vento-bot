@@ -34,7 +34,7 @@ def card_byn_bundles_keyboard(bundles: list[tuple[int, int]], usd_rate: float, h
     if not has_subscription:
         rows.append([
             InlineKeyboardButton(
-                text="🎟️ Подписка GPT + 2000 токенов — 110 BYN (~$37.04)",
+                text="🎟️ Подписка GPT + Бонус — 110 BYN (~$37.04)",
                 callback_data="pay:card_byn_sub",
             )
         ])
@@ -96,7 +96,7 @@ def ru_bundles_keyboard(bundles: list[tuple[int, int]], has_subscription: bool =
     if not has_subscription:
         rows.append([
             InlineKeyboardButton(
-                text="🎟️ Подписка GPT + 2000 токенов — 2999₽",
+                text="🎟️ Подписка GPT + Бонус — 2999₽",
                 callback_data="pay:ru_sub",
             )
         ])
@@ -142,7 +142,7 @@ def card_bundles_keyboard(bundles: list[tuple[int, int]], has_subscription: bool
     if not has_subscription:
         rows.append([
             InlineKeyboardButton(
-                text="🎟️ Подписка GPT + 2000 токенов — 2999₽",
+                text="🎟️ Подписка GPT + Бонус — 2999₽",
                 callback_data="pay:card_sub",
             )
         ])
@@ -193,7 +193,7 @@ async def stars_bundles_keyboard(settings_service, has_subscription: bool = Fals
     if not has_subscription:
         rows.append([
             InlineKeyboardButton(
-                text="🎟️ Подписка GPT + 2000 токенов — 2999 ⭐",
+                text="🎟️ Подписка GPT + Бонус — 2999 ⭐",
                 callback_data="pay:stars_sub",
             )
         ])

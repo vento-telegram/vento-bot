@@ -590,7 +590,7 @@ async def pay_ru(
         "💳 Для оплаты но номеру банковской карты используй способ оплаты \"🌍 Картой МИР\".\n\n"
     )
     if not bool(sub):
-        text = text + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
+        text = text + "🎟️ *Подписка GPT* - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней. Бонус: *2000 токенов*.\n\n"
     text = text + "Выбери пакет токенов:"
     await call.message.edit_text(
         text=text,
@@ -654,7 +654,7 @@ async def pay_card(
         "Оплата картой МИР.\n\n"
     )
     if not bool(sub):
-        text = text + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
+        text = text + "🎟️ *Подписка GPT* - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней. Бонус: *2000 токенов*.\n\n"
     text = text + "Выбери пакет токенов:"
     await call.message.edit_text(
         text=text,
@@ -707,7 +707,7 @@ async def pay_stars(
         "⭐ *Оплата звёздами*\n\n"
     )
     if not bool(sub):
-        text = text + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
+        text = text + "🎟️ *Подписка GPT* - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней. Бонус: *2000 токенов*.\n\n"
     text = text + "Выбери пакет токенов:"
     await call.message.edit_text(
         text=text,
@@ -745,7 +745,7 @@ async def pay_card_byn(
             "Оплата картами VISA/Mastercard.\n\n"
     )
     if not bool(sub):
-        text = text + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
+        text = text + "🎟️ *Подписка GPT* - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней. Бонус: *2000 токенов*.\n\n"
     text = text + "Выбери пакет токенов:"
     await call.message.edit_text(
         text=text,
