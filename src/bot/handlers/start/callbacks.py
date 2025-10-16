@@ -651,7 +651,7 @@ async def pay_card(
         bundles.append((amount, price))
     text = (
         "🌍 *Картой МИР*\n\n"
-        "Оплата картой VISA/Mastercard/МИР.\n\n"
+        "Оплата картой МИР.\n\n"
     )
     if not bool(sub):
         text = text + "🎟️ Подписка GPT - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней.\n\n"
@@ -741,7 +741,7 @@ async def pay_card_byn(
     except Exception:
         usd_rate = 2.97
     text = (
-        "🚀 *Картой VISA | Mastercard*\n\n"
+        "🚀 *Visa и Mastercard*\n\n"
             "Оплата картами VISA/Mastercard.\n\n"
     )
     if not bool(sub):
