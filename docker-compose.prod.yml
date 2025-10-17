@@ -56,7 +56,7 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
-    command: sh -c "python cli.py start_admin"
+    command: sh -c "python cli.py start-admin"
     depends_on:
       db:
         condition: service_healthy
