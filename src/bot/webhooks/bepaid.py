@@ -143,7 +143,7 @@ async def bepaid_handle(
     try:
         admins = await user_service.list_admins()
         admin_text = (
-            "Новая покупка (BePaid):\n"
+            "Новая оплата (BePaid):\n"
             f"Пользователь: {telegram_id}"
             + (f" (@{getattr(user, 'username', None)})" if getattr(user, 'username', None) else "")
             + f"\nТокены: +{tokens}"
