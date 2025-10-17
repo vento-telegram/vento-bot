@@ -70,7 +70,6 @@ async def earnings_today(
     ]
     stars_total = 0
     rub_total = 0
-    byn_total = 0
     sub_stars_total = 0
     sub_rub_total = 0
     sub_byn_total = 0
@@ -93,12 +92,7 @@ async def earnings_today(
         elif reason == str(TransactionReasonEnum.purchase_yookassa):
             rub_total += await _get_int(f"{tokens}_bundle_price")
         elif reason == str(TransactionReasonEnum.purchase_bepaid):
-            byn_price = await _get_int(f"{tokens}_byn_bundle_price")
-            rub_price = await _get_int(f"{tokens}_bundle_price")
-            if byn_price > 0 and (rub_price == 0 or byn_price <= rub_price):
-                byn_total += byn_price
-            else:
-                rub_total += rub_price
+            rub_total += await _get_int(f"{tokens}_bundle_price")
         elif reason == str(TransactionReasonEnum.purchase_subscription_stars):
             price = await _get_int("subscription_stars_price")
             sub_stars_total += price if price > 0 else 2999
@@ -107,22 +101,16 @@ async def earnings_today(
             str(TransactionReasonEnum.purchase_subscription_bepaid),
         ):
             rub_price = await _get_int("subscription_rub_price")
-            byn_price = await _get_int("subscription_byn_price")
-            if reason == str(TransactionReasonEnum.purchase_subscription_bepaid) and (byn_price > 0 and byn_price <= (rub_price or 10**9)):
-                sub_byn_total += byn_price
-            else:
-                sub_rub_total += rub_price if rub_price > 0 else 2999
+            sub_rub_total += rub_price if rub_price > 0 else 2999
         elif reason == str(TransactionReasonEnum.purchase_subscription_bonus):
             rub_price = await _get_int("subscription_rub_price")
             sub_rub_total += rub_price if rub_price > 0 else 2999
 
     lines: list[str] = ["Выручка за сегодня:"]
     if stars_total:
-        lines.append(f"• Stars: {stars_total} XTR")
+        lines.append(f"• Звезды: {stars_total} ⭐")
     if rub_total:
-        lines.append(f"• YooKassa / Card (RUB): {rub_total} ₽")
-    if byn_total:
-        lines.append(f"• Card (BYN): {byn_total} BYN")
+        lines.append(f"• Рубли: {rub_total} ₽")
     if sub_stars_total or sub_rub_total or sub_byn_total:
         lines.append("• Подписки:")
         if sub_stars_total:
@@ -141,4 +129,3 @@ async def earnings_today(
     except Exception:
         await call.message.answer(text, reply_markup=admin_back_keyboard())
     await call.answer()
-
