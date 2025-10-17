@@ -1,16 +1,19 @@
 import logging
 from typing import Tuple
 
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 from dependency_injector.wiring import Provide, inject
 
 from bot.container import Container
 from bot.enums import TransactionReasonEnum
 from bot.interfaces.services.user import AbcUserService
+from bot.interfaces.uow import AbcUnitOfWork
+from bot.interfaces.services.settings import AbcSettingsService
+from bot.keyboards.admin import admin_main_keyboard, admin_back_keyboard
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +30,7 @@ router = Router()
 async def _ensure_admin(user_service: AbcUserService, telegram_id: int) -> Tuple[bool, bool]:
     """Return tuple (exists, is_admin)."""
     user = await user_service.get_user(telegram_id)
+    logger.info(f"Ensuring admin {telegram_id}, {user.id}, {user.is_admin}")
     if not user:
         return False, False
     return True, bool(user.is_admin)

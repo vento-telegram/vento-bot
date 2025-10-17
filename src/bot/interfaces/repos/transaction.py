@@ -31,4 +31,8 @@ class AbcTransactionRepo(AbcRepo[TransactionEntity]):
     async def user_totals(self, user_id: int) -> UserTotals:
         """Per-user totals: all-time spent, today spent, per-model all-time counts, last request time."""
 
+    @abstractmethod
+    async def list_today_by_reasons(self, reasons: list[str]) -> list[TransactionEntity]:
+        """List today's transactions filtered by a set of reasons."""
+
 

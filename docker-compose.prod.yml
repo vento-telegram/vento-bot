@@ -39,7 +39,24 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
-    command: sh -c "alembic upgrade head && python cli.py"
+    command: sh -c "alembic upgrade head && python cli.py start"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    expose:
+      - "8080"
+    networks: [internal]
+
+  admin-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: sh -c "python cli.py start_admin"
     depends_on:
       db:
         condition: service_healthy
