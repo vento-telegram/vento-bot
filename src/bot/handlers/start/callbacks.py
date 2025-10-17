@@ -527,6 +527,19 @@ async def set_mode_nano_banana(
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
 
+@router.callback_query(F.data == "nano_banana:open")
+async def open_nano_banana_noedit(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    await state.update_data(mode=BotModeEnum.nano_banana, history=[])
+    await call.answer("Режим Nano Banana активирован")
+    await call.message.answer(
+        "🖊️ Отправь текст, чтобы создать изображение.\n\n"
+        "🖼️ Отправь фото с подписью, чтобы отредактировать изображение.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+    )
+
 @router.callback_query(F.data == "set_mode:suno_music")
 async def set_mode_suno_music(
     call: CallbackQuery,
