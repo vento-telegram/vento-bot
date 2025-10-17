@@ -5,7 +5,10 @@ from aiogram.types import (
     LabeledPrice,
     Message,
     PreCheckoutQuery,
+    FSInputFile,
+    InlineKeyboardMarkup,
 )
+from pathlib import Path
 from dependency_injector.wiring import Provide, inject
 
 from bot.constants import settings_models_mapper
@@ -14,9 +17,11 @@ from bot.enums import BotModeEnum, TransactionReasonEnum
 from bot.interfaces.services.payments import AbcPaymentsService
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.interfaces.services.user import AbcUserService
+from bot.interfaces.services.subscription import AbcSubscriptionService
 from bot.keyboards.change_ai import mode_keyboard
 from bot.keyboards.payments import (
     card_bundles_keyboard,
+    card_byn_bundles_keyboard,
     pay_link_keyboard,
     payments_back_keyboard,
     payments_keyboard,
@@ -578,7 +583,11 @@ async def goto_replenish(
 async def pay_ru(
     call: CallbackQuery,
     settings: AbcSettingsService = Provide[Container.settings_service],
+    user_service: AbcUserService = Provide[Container.user_service],
+    subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
+    user = await user_service.get_user(call.from_user.id)
+    sub = await subscription_service.get_active_by_user_id(user.id) if user else None
     await call.answer()
     bundle_token_amounts = [300, 1100, 2400, 3800, 7000]
     bundles: list[tuple[int, int]] = []
@@ -589,12 +598,16 @@ async def pay_ru(
         except Exception:
             price = 0
         bundles.append((amount, price))
+    text = (
+        "🇷🇺 *SberPay • T‑Pay • ЮMoney*\n\n"
+        "💳 Для оплаты но номеру банковской карты используй способ оплаты \"🌍 Картой МИР\".\n\n"
+    )
+    if not bool(sub):
+        text = text + "🎟️ *Подписка GPT* - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней. Бонус: *2000 токенов*.\n\n"
+    text = text + "Выбери пакет токенов:"
     await call.message.edit_text(
-        text=(
-            "🇷🇺 *SberPay | T‑Pay | ЮMoney*\n\n"
-            "💳 Для оплаты но номеру банковской карты используй способ оплаты \"Банковской картой\".\n\n"
-            "Выбери пакет токенов:"),
-        reply_markup=ru_bundles_keyboard(bundles),
+        text=text,
+        reply_markup=ru_bundles_keyboard(bundles, has_subscription=bool(sub)),
     )
 
 
@@ -634,7 +647,11 @@ async def pay_ru_bundle_selected(
 async def pay_card(
     call: CallbackQuery,
     settings: AbcSettingsService = Provide[Container.settings_service],
+    user_service: AbcUserService = Provide[Container.user_service],
+    subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
+    user = await user_service.get_user(call.from_user.id)
+    sub = await subscription_service.get_active_by_user_id(user.id) if user else None
     await call.answer()
     bundle_token_amounts = [300, 1100, 2400, 3800, 7000]
     bundles: list[tuple[int, int]] = []
@@ -645,12 +662,16 @@ async def pay_card(
         except Exception:
             price = 0
         bundles.append((amount, price))
+    text = (
+        "🌍 *Картой МИР*\n\n"
+        "Оплата картой МИР.\n\n"
+    )
+    if not bool(sub):
+        text = text + "🎟️ *Подписка GPT* - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней. Бонус: *2000 токенов*.\n\n"
+    text = text + "Выбери пакет токенов:"
     await call.message.edit_text(
-        text=(
-            "💳 *Банковская карта*\n\n"
-            "Оплата картой VISA/Mastercard/МИР.\n\n"
-            "Выбери пакет токенов:"),
-        reply_markup=card_bundles_keyboard(bundles),
+        text=text,
+        reply_markup=card_bundles_keyboard(bundles, has_subscription=bool(sub)),
     )
 
 
@@ -689,14 +710,98 @@ async def pay_card_bundle_selected(
 async def pay_stars(
     call: CallbackQuery,
     settings: AbcSettingsService = Provide[Container.settings_service],
+    user_service: AbcUserService = Provide[Container.user_service],
+    subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
+):
+    user = await user_service.get_user(call.from_user.id)
+    sub = await subscription_service.get_active_by_user_id(user.id) if user else None
+    await call.answer()
+    text = (
+        "⭐ *Оплата звёздами*\n\n"
+    )
+    if not bool(sub):
+        text = text + "🎟️ *Подписка GPT* - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней. Бонус: *2000 токенов*.\n\n"
+    text = text + "Выбери пакет токенов:"
+    await call.message.edit_text(
+        text=text,
+        reply_markup=await stars_bundles_keyboard(settings, has_subscription=bool(sub)),
+    )
+
+
+@router.callback_query(F.data == "pay:card_byn")
+@inject
+async def pay_card_byn(
+    call: CallbackQuery,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+    user_service: AbcUserService = Provide[Container.user_service],
+    subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
+):
+    user = await user_service.get_user(call.from_user.id)
+    sub = await subscription_service.get_active_by_user_id(user.id) if user else None
+    await call.answer()
+    bundle_token_amounts = [300, 1100, 2400, 3800, 7000]
+    bundles: list[tuple[int, int]] = []
+    for amount in bundle_token_amounts:
+        price_value = await settings.get_value(f"{amount}_byn_bundle_price")
+        try:
+            byn = int(price_value)
+        except Exception:
+            byn = 0
+        bundles.append((amount, byn))
+    rate_value = await settings.get_value("byn-usd")
+    try:
+        usd_rate = float(rate_value) if rate_value is not None else 2.97
+    except Exception:
+        usd_rate = 2.97
+    text = (
+        "🚀 *Visa и Mastercard*\n\n"
+            "Оплата картами VISA/Mastercard.\n\n"
+    )
+    if not bool(sub):
+        text = text + "🎟️ *Подписка GPT* - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней. Бонус: *2000 токенов*.\n\n"
+    text = text + "Выбери пакет токенов:"
+    await call.message.edit_text(
+        text=text,
+        reply_markup=card_byn_bundles_keyboard(bundles, usd_rate, has_subscription=bool(sub)),
+    )
+
+
+@router.callback_query(F.data.startswith("pay:card_byn:"))
+@inject
+async def pay_card_byn_bundle_selected(
+    call: CallbackQuery,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+    payments: AbcPaymentsService = Provide[Container.payments_service],
 ):
     await call.answer()
-    await call.message.edit_text(
-        text=(
-            "⭐ *Оплата звёздами*\n\n"
-            "Выбери пакет токенов:"),
-        reply_markup=await stars_bundles_keyboard(settings),
-    )
+    parts = (call.data or "").split(":", maxsplit=2)
+    tokens = parts[-1] if parts and len(parts) >= 3 else ""
+    price_value = await settings.get_value(f"{tokens}_byn_bundle_price")
+    rate_value = await settings.get_value("byn-usd")
+    try:
+        byn = int(price_value)
+    except Exception:
+        byn = 0
+    try:
+        usd_rate = float(rate_value) if rate_value is not None else 2.97
+    except Exception:
+        usd_rate = 2.97
+    try:
+        confirm_url = await payments.create_card_payment_byn(user_id=call.from_user.id, tokens=int(tokens), price_byn=byn)
+        approx_usd = byn / usd_rate if usd_rate else 0
+        await call.message.edit_text(
+            text=(
+                f"✅ *Сумма заказа*: {tokens} токенов — {byn} BYN"
+                + (f" (~${approx_usd:.2f})" if approx_usd > 0 else "")
+                + "\n\nНажми кнопку, чтобы перейти к оплате."),
+            reply_markup=pay_link_keyboard(confirm_url),
+        )
+    except Exception:
+        await call.message.edit_text(
+            text=(
+                "⚠️ Не получилось создать ссылку на оплату. Попробуй позже."),
+            reply_markup=ru_bundles_back_keyboard(),
+        )
 
 
 @router.callback_query(F.data.startswith("pay:stars:"))
@@ -793,7 +898,33 @@ async def stars_successful_payment(
         )
         balance = updated_user.balance if updated_user else None
         balance_text = f"*{balance}*" if balance is not None else "обновлён"
-        await message.answer(
+        if tokens == 7000:
+            special_text = (
+                "🎉 Спасибо за покупку!\n\n"
+                "Вы получили:\n"
+                "🛸 7000 токенов — ваш личный запас для общения с ИИ\n"
+                "🎁 Гайд по использованию — пошаговое руководство, как извлечь максимум из возможностей нашего бота.\n\n"
+                "В гайде вы найдёте:\n"
+                "✨ как правильно формулировать запросы,\n"
+                "⚙️ примеры эффективных промтов,\n"
+                "💡 способы ускорить и улучшить ответы ИИ,\n"
+                "🚀 идеи для реальных задач — от работы до творчества.\n\n"
+                "Приятного изучения и продуктивного общения с ИИ!"
+            )
+            await message.answer(
+                special_text,
+                reply_markup=start_keyboard(BotModeEnum.passive),
+                parse_mode=None,
+            )
+            try:
+                guide_path = (
+                    Path(__file__).resolve().parents[3] / "media" / "files" / "guide.pdf"
+                )
+                await message.answer_document(document=FSInputFile(guide_path.as_posix()))
+            except Exception:
+                pass
+        else:
+            await message.answer(
             text=(
                 f"✅ Оплата прошла успешно! Зачислено {tokens} токенов.\n\n"
                 f"🪙 Твой баланс: {balance_text} токенов\n\n"
@@ -834,6 +965,7 @@ async def goto_start(
     state: FSMContext,
     service: AbcUserService = Provide[Container.user_service],
     settings: AbcSettingsService = Provide[Container.settings_service],
+    subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
     await call.answer()
 
@@ -853,10 +985,29 @@ async def goto_start(
         text += f"⚡ Ежедневно: до *{daily_bonus}* токенов\n\n"
     else:
         text += "\n"
+    try:
+        sub = await subscription_service.get_active_by_user_id(user.id)
+        if sub and getattr(sub, 'till', None):
+            until = None
+            try:
+                until = sub.till.strftime('%d.%m')
+            except Exception:
+                pass
+            if until:
+                text += f"🚀 Подписка GPT до *{until}*\n\n"
+    except Exception:
+        pass
     text += f"🤖 Текущий ИИ: *{current_mode}*\n"
 
     if current_mode != BotModeEnum.passive:
         price = await settings.get_value(settings_models_mapper[current_mode])
+        try:
+            if current_mode in (BotModeEnum.gpt, BotModeEnum.gpt_mini):
+                sub_active = await subscription_service.get_active_by_user_id(user.id)
+                if sub_active:
+                    price = "0"
+        except Exception:
+            pass
         text += f"💸 Цена запроса: *{price} токенов*\n\n"
     else:
         text += "\n"

@@ -1,4 +1,6 @@
 from aiogram import Bot
+from aiogram.types import FSInputFile
+from pathlib import Path
 from aiohttp import web
 import logging
 
@@ -7,6 +9,7 @@ from dependency_injector.wiring import inject, Provide
 from bot.container import Container
 from bot.enums import BotModeEnum
 from bot.interfaces.services import AbcUserService
+from bot.interfaces.services.subscription import AbcSubscriptionService
 from bot.interfaces.services.payments import AbcPaymentsService
 from bot.keyboards import start_keyboard
 
@@ -19,6 +22,7 @@ async def yookassa_handle(
     admin_bot: Bot = Provide[Container.admin_bot],
     user_service: AbcUserService = Provide[Container.user_service],
     payments: AbcPaymentsService = Provide[Container.payments_service],
+    subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
     logger.info(f"JSON FOR DEBUGGING: \n\n\n{await request.json()}\n\n\n")
     try:
@@ -31,15 +35,40 @@ async def yookassa_handle(
         payment_id = body.get("object", {}).get("id")
         if payment_id:
             try:
+                obj = body.get("object", {})
+                metadata = obj.get("metadata", {}) or {}
+                telegram_id = (
+                    int(metadata.get("user_id"))
+                    if metadata.get("user_id")
+                    else None
+                )
+                if telegram_id and metadata.get("subscription"):
+                    # Subscription purchase
+                    await subscription_service.activate_or_extend_for_telegram(telegram_id, days=30, bonus_tokens=2000)
+                    await bot.send_message(
+                        telegram_id,
+                        "🚀 Подписка GPT активирована на 30 дней.\n2000 токенов зачислены на баланс.",
+                        reply_markup=start_keyboard(BotModeEnum.passive),
+                        parse_mode=None,
+                    )
+                    try:
+                        admins = await user_service.list_admins()
+                        admin_text = (
+                            "Новая покупка подписки (YooKassa):\n"
+                            f"Пользователь: {telegram_id}\n"
+                            f"Срок: 30 дней, Бонус: +2000"
+                        )
+                        for admin in admins:
+                            try:
+                                await admin_bot.send_message(admin.telegram_id, admin_text, parse_mode=None)
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+                    return web.json_response({"ok": True})
+
                 credited = await payments.check_payment_and_credit(payment_id)
                 try:
-                    obj = body.get("object", {})
-                    metadata = obj.get("metadata", {}) or {}
-                    telegram_id = (
-                        int(metadata.get("user_id"))
-                        if metadata.get("user_id")
-                        else None
-                    )
                     tokens = (
                         int(metadata.get("tokens"))
                         if metadata.get("tokens")
@@ -48,16 +77,46 @@ async def yookassa_handle(
                     if telegram_id and tokens:
                         user = await user_service.get_user(telegram_id)
                         if user:
-                            text = (
+                            sent_custom = False
+                            if tokens == 7000:
+                                special_text = (
+                                    "🎉 Спасибо за покупку!\n\n"
+                                    "Вы получили:\n"
+                                    "🛸 7000 токенов — ваш личный запас для общения с ИИ\n"
+                                    "🎁 Гайд по использованию — пошаговое руководство, как извлечь максимум из возможностей нашего бота.\n\n"
+                                    "В гайде вы найдёте:\n"
+                                    "✨ как правильно формулировать запросы,\n"
+                                    "⚙️ примеры эффективных промтов,\n"
+                                    "💡 способы ускорить и улучшить ответы ИИ,\n"
+                                    "🚀 идеи для реальных задач — от работы до творчества.\n\n"
+                                    "Приятного изучения и продуктивного общения с ИИ!"
+                                )
+                                await bot.send_message(
+                                    telegram_id,
+                                    special_text,
+                                    reply_markup=start_keyboard(BotModeEnum.passive),
+                                    parse_mode=None,
+                                )
+                                try:
+                                    guide_path = (Path(__file__).resolve().parents[2] / "media" / "files" / "guide.pdf")
+                                    await bot.send_document(
+                                        telegram_id,
+                                        document=FSInputFile(guide_path.as_posix()),
+                                    )
+                                except Exception:
+                                    pass
+                                sent_custom = True
+                            if not sent_custom:
+                                text = (
                                 f"✅ Оплата прошла успешно! Зачислено {tokens} токенов.\n\n"
                                 f"🪙 Твой баланс: *{user.balance}* токенов\n\n"
                                 "👇 Что хочешь сделать?"
                             )
-                            await bot.send_message(
+                                await bot.send_message(
                                 telegram_id,
                                 text,
                                 reply_markup=start_keyboard(BotModeEnum.passive),
-                            )
+                                )
                             # Notify admins via admin bot
                             try:
                                 admins = await user_service.list_admins()

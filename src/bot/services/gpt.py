@@ -22,6 +22,7 @@ from bot.enums import BotModeEnum, TransactionReasonEnum
 from bot.errors import InsufficientBalanceError
 from bot.interfaces.services.gpt import AbcOpenAIService
 from bot.interfaces.services.settings import AbcSettingsService
+from bot.interfaces.services.subscription import AbcSubscriptionService
 from bot.interfaces.uow import AbcUnitOfWork
 from bot.schemas import GPTMessageResponse
 from bot.settings import settings
@@ -35,10 +36,11 @@ NB_GROUP_LOCKS: dict[str, asyncio.Lock] = {}
 NB_MEDIA_GROUPS: dict[str, dict] = {}
 
 class OpenAIService(AbcOpenAIService):
-    def __init__(self, uow: AbcUnitOfWork, client: OpenAIClient, settings_service: AbcSettingsService):
+    def __init__(self, uow: AbcUnitOfWork, client: OpenAIClient, settings_service: AbcSettingsService, subscription_service: AbcSubscriptionService | None = None):
         self._uow = uow
         self._client = client
         self._settings_service = settings_service
+        self._subscription_service = subscription_service
         # Instance-local buffers (kept for potential future use). Global locks are used instead.
         self._nb_group_locks: dict[str, asyncio.Lock] = {}
         self._nb_groups: dict[str, dict] = {}
@@ -53,9 +55,21 @@ class OpenAIService(AbcOpenAIService):
         mode: BotModeEnum = state_data.get("mode")
         request_price = int(await self._settings_service.get_value(settings_models_mapper[mode]))
         history = state_data.get("history", [])
+        charged_tokens = False
 
-        if user.balance < request_price:
-            raise InsufficientBalanceError
+        # Allow with subscription (GPT/GPT Mini) within daily limits
+        if mode in (BotModeEnum.gpt, BotModeEnum.gpt_mini) and getattr(self, "_subscription_service", None):
+            try:
+                allowed = await self._subscription_service.mark_and_check_limit(user.id, mode)
+            except Exception:
+                allowed = False
+            if allowed:
+                request_price = 0
+            elif user.balance < request_price:
+                raise InsufficientBalanceError
+        else:
+            if user.balance < request_price:
+                raise InsufficientBalanceError
 
         # Pre-charge before calling the model to prevent negative balances on multiple parallel requests
         # We still keep an early balance check above for UX, but enforce atomic debit here
@@ -65,13 +79,15 @@ class OpenAIService(AbcOpenAIService):
 
         # Perform atomic debit; if it fails due to race/insufficient balance, raise error
         meta_preview = self._make_meta(gpt_request, ChatCompletionAssistantMessageParam(role="assistant", content=""))
-        async with self._uow:
-            updated_user = await self._uow.user.try_debit(user.id, request_price)
-            if not updated_user:
-                raise InsufficientBalanceError
-            await self._uow.transaction.add(
-                TransactionEntity(user_id=user.id, delta=-request_price, reason=TransactionReasonEnum.gpt_request, meta=meta_preview)
-            )
+        if request_price > 0:
+            async with self._uow:
+                updated_user = await self._uow.user.try_debit(user.id, request_price)
+                if not updated_user:
+                    raise InsufficientBalanceError
+                await self._uow.transaction.add(
+                    TransactionEntity(user_id=user.id, delta=-request_price, reason=TransactionReasonEnum.gpt_request, meta=meta_preview)
+                )
+            charged_tokens = True
 
         gpt_response = await self._get_gpt_response(history, mode)
         history.append(gpt_response)
@@ -82,7 +98,7 @@ class OpenAIService(AbcOpenAIService):
         # Refund tokens if the model failed (detected by support marker in content)
         try:
             content = (telegram_response.text or "").strip()
-            if content:
+            if charged_tokens and content:
                 marker = "Произошла ошибка при взамодействии с моделью"
                 if marker in content:
                     refund_reason = TransactionReasonEnum.gpt_refund if mode == BotModeEnum.gpt else TransactionReasonEnum.gpt_mini_refund

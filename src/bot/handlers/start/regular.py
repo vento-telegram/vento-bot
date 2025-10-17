@@ -12,6 +12,7 @@ from bot.container import Container
 from bot.enums import BotModeEnum
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.interfaces.services.user import AbcUserService
+from bot.interfaces.services.subscription import AbcSubscriptionService
 from bot.keyboards.start import start_keyboard
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ async def start_handler(
     admin_bot: Bot = Provide[Container.admin_bot],
     user_service: AbcUserService = Provide[Container.user_service],
     settings_service: AbcSettingsService = Provide[Container.settings_service],
+    subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
     state_data = await state.get_data()
     ref_from: str | None = None
@@ -98,10 +100,30 @@ async def start_handler(
         text += f"⚡ Ежедневно: до *{daily_bonus}* токенов\n\n"
     else:
         text += "\n"
+    try:
+        sub = await subscription_service.get_active_by_user_id(user.id)
+        if sub and getattr(sub, 'till', None):
+            until = None
+            try:
+                until = sub.till.strftime('%d.%m')
+            except Exception:
+                pass
+            if until:
+                text += f"🚀 Подписка GPT до *{until}*\n\n"
+    except Exception:
+        pass
     text += f"🤖 Текущий ИИ: *{current_mode}*\n"
 
     if current_mode != BotModeEnum.passive:
         price = await settings_service.get_value(settings_models_mapper[current_mode])
+        # If subscription active and GPT/Mini, display 0 tokens
+        try:
+            if current_mode in (BotModeEnum.gpt, BotModeEnum.gpt_mini):
+                _sub = await subscription_service.get_active_by_user_id(user.id)
+                if _sub:
+                    price = "0"
+        except Exception:
+            pass
         text += f"💸 Цена запроса: *{price} токенов*\n\n"
     else:
         text += "\n"

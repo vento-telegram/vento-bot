@@ -55,3 +55,13 @@ class TransactionOrm(Base, TimeMixin):
     delta: Mapped[int] = mapped_column(nullable=False)
     reason: Mapped[str] = mapped_column(nullable=False)
     meta: Mapped[str | None] = mapped_column(nullable=True)
+
+
+class SubscriptionOrm(Base, TimeMixin):
+    __tablename__ = 'subscription'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(nullable=False)
+    till: Mapped[datetime] = mapped_column(nullable=False)
+    requests_count: Mapped[int] = mapped_column(nullable=False, server_default="0")
+    mini_requests_count: Mapped[int] = mapped_column(nullable=False, server_default="0")

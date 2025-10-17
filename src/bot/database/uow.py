@@ -4,6 +4,7 @@ from bot.interfaces.uow import AbcUnitOfWork
 from bot.repos.transaction import TransactionRepo
 from bot.repos.settings import SettingsRepo
 from bot.repos.user import UserRepo
+from bot.repos.subscription import SubscriptionRepo
 
 
 class Uow(AbcUnitOfWork):
@@ -16,6 +17,7 @@ class Uow(AbcUnitOfWork):
         self.user = UserRepo(self.session)
         self.settings = SettingsRepo(self.session)
         self.transaction = TransactionRepo(self.session)
+        self.subscription = SubscriptionRepo(self.session)
 
         return await super().__aenter__()
 

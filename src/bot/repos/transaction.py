@@ -89,6 +89,15 @@ class TransactionRepo(AbcTransactionRepo, BaseRepo):
             last_request_at=m.get("last_request_at"),
         )
 
+    async def list_today_by_reasons(self, reasons: list[str]) -> list[TransactionEntity]:
+        stmt = select(TransactionOrm).where(
+            func.date(TransactionOrm.created_at) == self._today(),
+            TransactionOrm.reason.in_(reasons),
+        )
+        result = await self.session.execute(stmt)
+        rows = result.scalars().all()
+        return [self.map_model_to_entity(r) for r in rows]
+
     def _model_case(self, reason_enum_value: str) -> ColumnElement:
         return func.sum(
             case(
