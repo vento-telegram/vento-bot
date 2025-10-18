@@ -7,6 +7,7 @@ from bot.interfaces.repos.base import DataMapper
 from bot.interfaces.repos.transaction import AbcTransactionRepo
 from bot.repos.base import BaseRepo
 from bot.schemas import RequestsCounts, UserTotals
+from datetime import date as _date
 
 
 class TransactionDataMapper(DataMapper):
@@ -92,6 +93,15 @@ class TransactionRepo(AbcTransactionRepo, BaseRepo):
     async def list_today_by_reasons(self, reasons: list[str]) -> list[TransactionEntity]:
         stmt = select(TransactionOrm).where(
             func.date(TransactionOrm.created_at) == self._today(),
+            TransactionOrm.reason.in_(reasons),
+        )
+        result = await self.session.execute(stmt)
+        rows = result.scalars().all()
+        return [self.map_model_to_entity(r) for r in rows]
+
+    async def list_by_date_by_reasons(self, day: _date, reasons: list[str]) -> list[TransactionEntity]:
+        stmt = select(TransactionOrm).where(
+            func.date(TransactionOrm.created_at) == day,
             TransactionOrm.reason.in_(reasons),
         )
         result = await self.session.execute(stmt)

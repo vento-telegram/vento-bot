@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from datetime import date
 
 from bot.entities.transaction import TransactionEntity
 from bot.interfaces.repos.base import AbcRepo
@@ -34,5 +35,9 @@ class AbcTransactionRepo(AbcRepo[TransactionEntity]):
     @abstractmethod
     async def list_today_by_reasons(self, reasons: list[str]) -> list[TransactionEntity]:
         """List today's transactions filtered by a set of reasons."""
+
+    @abstractmethod
+    async def list_by_date_by_reasons(self, day: date, reasons: list[str]) -> list[TransactionEntity]:
+        """List transactions for a specific calendar date filtered by a set of reasons."""
 
 
