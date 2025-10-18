@@ -12,6 +12,7 @@ from aiogram.exceptions import (
     TelegramRetryAfter,
 )
 from aiogram.types import FSInputFile, InputMediaPhoto, InputMediaVideo
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from sqlalchemy import select
 
 from bot.container import Container
@@ -30,11 +31,20 @@ MESSAGE_TEXT = (
     " Отправьте исходную картинку и промпт\."
 )
 
+NEW_MESSAGE_TEXT = (
+    "✋🏻 Стоп\\! Мне не приятно\\! Почему ты еще не попробовал возможности *Sora 2*\\?\n\n"
+    "📌 Промпт для этого видео ищи в канале [Vento Промпты](https://t.me/ventoprompt)\\!"
+)
+
+NEW_MESSAGE_TEXT = NEW_MESSAGE_TEXT.replace("\\?", "?")
+
+REPLY_MARKUP = InlineKeyboardMarkup(
+    inline_keyboard=[[InlineKeyboardButton(text="🎥 Сгенерировать", callback_data="sora2:open")]]
+)
+
 # Desired media order for album broadcast
 MEDIA_FILENAMES = [
-    "IMG_6407.MP4",
-    "IMG_6402.JPG",
-    "IMG_6404.JPG",
+    "broadcast.mp4",
 ]
 
 
@@ -54,9 +64,10 @@ async def _send_text(bot: Bot, chat_id: int) -> bool:
     try:
         await bot.send_message(
             chat_id=chat_id,
-            text=MESSAGE_TEXT,
+            text=NEW_MESSAGE_TEXT,
             disable_web_page_preview=True,
             parse_mode=ParseMode.MARKDOWN_V2,
+            reply_markup=REPLY_MARKUP,
         )
         return True
     except TelegramRetryAfter as e:
@@ -66,9 +77,10 @@ async def _send_text(bot: Bot, chat_id: int) -> bool:
         try:
             await bot.send_message(
                 chat_id=chat_id,
-                text=MESSAGE_TEXT,
+                text=NEW_MESSAGE_TEXT,
                 disable_web_page_preview=True,
                 parse_mode=ParseMode.MARKDOWN_V2,
+                reply_markup=REPLY_MARKUP,
             )
             return True
         except Exception as e2:
@@ -121,16 +133,18 @@ async def _send_single(
             await bot.send_video(
                 chat_id=chat_id,
                 video=media,
-                caption=MESSAGE_TEXT,
+                caption=NEW_MESSAGE_TEXT,
                 supports_streaming=True,
                 parse_mode=ParseMode.MARKDOWN_V2,
+                reply_markup=REPLY_MARKUP,
             )
         else:
             await bot.send_photo(
                 chat_id=chat_id,
                 photo=media,
-                caption=MESSAGE_TEXT,
+                caption=NEW_MESSAGE_TEXT,
                 parse_mode=ParseMode.MARKDOWN_V2,
+                reply_markup=REPLY_MARKUP,
             )
         return True
     except TelegramRetryAfter as e:
@@ -142,16 +156,18 @@ async def _send_single(
                 await bot.send_video(
                     chat_id=chat_id,
                     video=media,
-                    caption=MESSAGE_TEXT,
+                    caption=NEW_MESSAGE_TEXT,
                     supports_streaming=True,
                     parse_mode=ParseMode.MARKDOWN_V2,
+                    reply_markup=REPLY_MARKUP,
                 )
             else:
                 await bot.send_photo(
                     chat_id=chat_id,
                     photo=media,
-                    caption=MESSAGE_TEXT,
+                    caption=NEW_MESSAGE_TEXT,
                     parse_mode=ParseMode.MARKDOWN_V2,
+                    reply_markup=REPLY_MARKUP,
                 )
             return True
         except Exception as e2:
@@ -184,7 +200,7 @@ async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
         logger.warning("No media files found; will send text only.")
 
     # Prime: upload to obtain file_ids
-    file_ids: list[str | None] = [None, None, None]
+    file_ids: list[str | None] = [None] * len(media_paths)
     primed_chat: int | None = None
     single_idx: int | None = None
     if len(existing) >= 2:
@@ -201,7 +217,7 @@ async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
 
         # Add caption to the first media in group
         if media_for_prime:
-            media_for_prime[0].caption = MESSAGE_TEXT
+            media_for_prime[0].caption = NEW_MESSAGE_TEXT
             media_for_prime[0].parse_mode = ParseMode.MARKDOWN_V2
 
         for cid in chat_ids:
@@ -240,9 +256,10 @@ async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
                         msg = await bot.send_video(
                             chat_id=cid,
                             video=FSInputFile(single_path.as_posix()),
-                            caption=MESSAGE_TEXT,
+                            caption=NEW_MESSAGE_TEXT,
                             supports_streaming=True,
                             parse_mode=ParseMode.MARKDOWN_V2,
+                            reply_markup=REPLY_MARKUP,
                         )
                         primed_chat = cid
                         file_ids[single_idx] = getattr(getattr(msg, "video", None), "file_id", None)
@@ -252,8 +269,9 @@ async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
                         msg = await bot.send_photo(
                             chat_id=cid,
                             photo=FSInputFile(single_path.as_posix()),
-                            caption=MESSAGE_TEXT,
+                            caption=NEW_MESSAGE_TEXT,
                             parse_mode=ParseMode.MARKDOWN_V2,
+                            reply_markup=REPLY_MARKUP,
                         )
                         primed_chat = cid
                         sizes = getattr(msg, "photo", None) or []
@@ -296,7 +314,7 @@ async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
                         else:
                             item = InputMediaPhoto(media=target)
                         if not first_added:
-                            item.caption = MESSAGE_TEXT
+                            item.caption = NEW_MESSAGE_TEXT
                             item.parse_mode = ParseMode.MARKDOWN_V2
                             first_added = True
                         media_group.append(item)
