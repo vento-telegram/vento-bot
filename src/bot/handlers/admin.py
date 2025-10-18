@@ -23,6 +23,7 @@ class AdminStates(StatesGroup):
     block_user = State()
     unblock_user = State()
     earnings_by_date = State()
+    users_by_date = State()
 
 
 router = Router()

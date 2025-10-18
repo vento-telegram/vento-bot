@@ -242,3 +242,93 @@ async def earnings_by_date_handle(
 
     await state.clear()
     await message.answer("\n".join(lines), reply_markup=admin_back_keyboard())
+
+
+@admin_router.callback_query(F.data == "admin:users_total")
+@inject
+async def users_total(
+    call: CallbackQuery,
+    uow: AbcUnitOfWork = Provide[Container.uow],
+    user_service: AbcUserService = Provide[Container.user_service],
+):
+    exists, is_admin = await _ensure_admin(user_service, call.from_user.id)
+    if not exists or not is_admin:
+        await call.answer()
+        return
+    async with uow:
+        count = await uow.user.count_all()
+    text = f"Общее количество пользователей: {count}"
+    try:
+        await call.message.edit_text(text, reply_markup=admin_back_keyboard())
+    except Exception:
+        await call.message.answer(text, reply_markup=admin_back_keyboard())
+    await call.answer()
+
+
+@admin_router.callback_query(F.data == "admin:users_today")
+@inject
+async def users_today(
+    call: CallbackQuery,
+    uow: AbcUnitOfWork = Provide[Container.uow],
+    user_service: AbcUserService = Provide[Container.user_service],
+):
+    exists, is_admin = await _ensure_admin(user_service, call.from_user.id)
+    if not exists or not is_admin:
+        await call.answer()
+        return
+    async with uow:
+        count = await uow.user.count_today()
+    text = f"Количество пользователей за сегодня: {count}"
+    try:
+        await call.message.edit_text(text, reply_markup=admin_back_keyboard())
+    except Exception:
+        await call.message.answer(text, reply_markup=admin_back_keyboard())
+    await call.answer()
+
+
+@admin_router.callback_query(F.data == "admin:users_by_date")
+@inject
+async def users_by_date_prompt(
+    call: CallbackQuery,
+    state: FSMContext,
+    user_service: AbcUserService = Provide[Container.user_service],
+):
+    exists, is_admin = await _ensure_admin(user_service, call.from_user.id)
+    if not exists or not is_admin:
+        await call.answer()
+        return
+    await state.set_state(AdminStates.users_by_date)
+    text = "Введите дату в формате дд.мм.гггг"
+    try:
+        await call.message.edit_text(text, reply_markup=admin_back_keyboard())
+    except Exception:
+        await call.message.answer(text, reply_markup=admin_back_keyboard())
+    await call.answer()
+
+
+@admin_router.message(AdminStates.users_by_date)
+@inject
+async def users_by_date_handle(
+    message: Message,
+    state: FSMContext,
+    uow: AbcUnitOfWork = Provide[Container.uow],
+    user_service: AbcUserService = Provide[Container.user_service],
+):
+    exists, is_admin = await _ensure_admin(user_service, message.from_user.id)
+    if not exists or not is_admin:
+        await message.answer("Недостаточно прав")
+        await state.clear()
+        return
+    raw = (message.text or "").strip()
+    from datetime import datetime
+    try:
+        day = datetime.strptime(raw, "%d.%m.%Y").date()
+    except Exception:
+        await message.answer("Неверный формат даты. Введите в формате дд.мм.гггг")
+        return
+    async with uow:
+        count = await uow.user.count_by_date(day)
+    pretty_date = day.strftime("%d.%m.%Y")
+    text = f"Количество пользователей за {pretty_date}: {count}"
+    await state.clear()
+    await message.answer(text, reply_markup=admin_back_keyboard())

@@ -1,4 +1,4 @@
-from sqlalchemy import insert, select, update
+from sqlalchemy import insert, select, update, func
 
 from bot.database.models import UserOrm
 from bot.entities.user import UserDTO, UserEntity
@@ -87,3 +87,18 @@ class UserRepo(AbcUserRepo, BaseRepo):
         res = await self.session.scalars(stmt)
         models = list(res.all())
         return [self.map_model_to_entity(m) for m in models]
+
+    async def count_all(self) -> int:
+        stmt = select(func.count()).select_from(UserOrm)
+        result = await self.session.execute(stmt)
+        return int(result.scalar() or 0)
+
+    async def count_by_date(self, day) -> int:
+        stmt = select(func.count()).where(func.date(UserOrm.created_at) == day)
+        result = await self.session.execute(stmt)
+        return int(result.scalar() or 0)
+
+    async def count_today(self) -> int:
+        stmt = select(func.count()).where(func.date(UserOrm.created_at) == func.date(func.now()))
+        result = await self.session.execute(stmt)
+        return int(result.scalar() or 0)

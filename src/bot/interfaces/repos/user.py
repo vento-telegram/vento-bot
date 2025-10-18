@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from datetime import date
 
 from bot.entities.user import UserDTO, UserEntity
 from bot.interfaces.repos.base import AbcRepo
@@ -40,3 +41,16 @@ class AbcUserRepo(AbcRepo[UserEntity]):
     @abstractmethod
     async def list_admins(self) -> list[UserEntity]:
         """Return all users with is_admin flag enabled."""
+
+    # Aggregations
+    @abstractmethod
+    async def count_all(self) -> int:
+        """Total number of users."""
+
+    @abstractmethod
+    async def count_by_date(self, day: date) -> int:
+        """Number of users created on a specific date (server date)."""
+
+    @abstractmethod
+    async def count_today(self) -> int:
+        """Number of users created today (server date)."""
