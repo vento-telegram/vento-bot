@@ -9,7 +9,11 @@ def admin_main_keyboard() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="👥 Пользователей за сегодня", callback_data="admin:users_today"),
+        ],
+        [
             InlineKeyboardButton(text="👥 Пользователей за дату", callback_data="admin:users_by_date"),
+        ],
+        [
             InlineKeyboardButton(text="👥 Всего пользователей", callback_data="admin:users_total"),
         ],
     ]

@@ -10,6 +10,7 @@ from dependency_injector.wiring import inject, Provide
 from bot.container import Container
 from bot.enums import TransactionReasonEnum, BotModeEnum
 from bot.interfaces.services import AbcUserService
+from bot.interfaces.services.settings import AbcSettingsService
 from bot.keyboards import start_keyboard
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ async def bepaid_handle(
     admin_bot: Bot = Provide[Container.admin_bot],
     user_service: AbcUserService = Provide[Container.user_service],
     subscription_service = Provide[Container.subscription_service],
+    settings: AbcSettingsService = Provide[Container.settings_service],
 ):
     body = await request.json()
 
@@ -139,15 +141,16 @@ async def bepaid_handle(
             reply_markup=start_keyboard(BotModeEnum.passive),
         )
 
-    # Notify admins via admin bot
     try:
         admins = await user_service.list_admins()
+        uname = getattr(user, 'username', None)
+        username = f"@{uname}" if uname else "—"
         admin_text = (
-            "Новая оплата (BePaid):\n"
-            f"Пользователь: {telegram_id}"
-            + (f" (@{getattr(user, 'username', None)})" if getattr(user, 'username', None) else "")
-            + f"\nТокены: +{tokens}"
-            + (f"\nБаланс: {getattr(user, 'balance', None)}" if getattr(user, 'balance', None) is not None else "")
+            "🎉 Поступила оплата!\n\n"
+            f"👤 Пользователь: {username} ({telegram_id})\n"
+            f"📦 Количество токенов: {tokens}\n"
+            f"💳 Способ оплаты: BePaid\n\n"
+            f"💵 Сумма: {'—'}"
         )
         for admin in admins:
             try:
@@ -156,5 +159,4 @@ async def bepaid_handle(
                 pass
     except Exception:
         pass
-
     return web.json_response({"ok": True})

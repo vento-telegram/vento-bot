@@ -9,6 +9,7 @@ from dependency_injector.wiring import inject, Provide
 from bot.container import Container
 from bot.enums import BotModeEnum
 from bot.interfaces.services import AbcUserService
+from bot.interfaces.services.settings import AbcSettingsService
 from bot.interfaces.services.subscription import AbcSubscriptionService
 from bot.interfaces.services.payments import AbcPaymentsService
 from bot.keyboards import start_keyboard
@@ -23,6 +24,7 @@ async def yookassa_handle(
     user_service: AbcUserService = Provide[Container.user_service],
     payments: AbcPaymentsService = Provide[Container.payments_service],
     subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
+    settings: AbcSettingsService = Provide[Container.settings_service],
 ):
     logger.info(f"JSON FOR DEBUGGING: \n\n\n{await request.json()}\n\n\n")
     try:
@@ -117,14 +119,22 @@ async def yookassa_handle(
                                 text,
                                 reply_markup=start_keyboard(BotModeEnum.passive),
                                 )
-                            # Notify admins via admin bot
                             try:
                                 admins = await user_service.list_admins()
+                                try:
+                                    _raw = await settings.get_value(f"{tokens}_bundle_price")
+                                    _price_val = int(_raw) if _raw is not None else None
+                                except Exception:
+                                    _price_val = None
+                                amount_text = f"{_price_val} ₽" if isinstance(_price_val, int) and _price_val > 0 else "-"
+                                uname = getattr(user, 'username', None)
+                                username = f"@{uname}" if uname else "—"
                                 admin_text = (
-                                    "🫦 Успешная оплата (YooKassa):\n"
-                                    f"Пользователь: {telegram_id}"
-                                    + (f" (@{user.username})" if getattr(user, 'username', None) else "")
-                                    + f"\nТокены: +{tokens}\nБаланс: {user.balance}"
+                                    "🎉 Поступила оплата!\n\n"
+                                    f"👤 Пользователь: {username} ({telegram_id})\n"
+                                    f"📦 Количество токенов: {tokens}\n"
+                                    f"💳 Способ оплаты: YooKassa\n\n"
+                                    f"💵 Сумма: {amount_text}"
                                 )
                                 for admin in admins:
                                     try:
@@ -133,6 +143,7 @@ async def yookassa_handle(
                                         pass
                             except Exception:
                                 pass
+                            return web.json_response({"ok": credited})
                 except Exception:
                     pass
                 return web.json_response({"ok": credited})

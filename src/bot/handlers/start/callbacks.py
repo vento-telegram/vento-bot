@@ -872,6 +872,7 @@ async def stars_successful_payment(
     message: Message,
     user_service: AbcUserService = Provide[Container.user_service],
     admin_bot: Bot = Provide[Container.admin_bot],
+    settings: AbcSettingsService = Provide[Container.settings_service],
 ):
     sp = message.successful_payment
     if not sp or (sp.currency or "").upper() != "XTR":
@@ -932,15 +933,22 @@ async def stars_successful_payment(
             ),
             reply_markup=start_keyboard(BotModeEnum.passive),
         )
-        # Notify admins via admin bot
         try:
             admins = await user_service.list_admins()
+            uname = message.from_user.username if message.from_user.username else None
+            username = f"@{uname}" if uname else "—"
+            try:
+                _raw = await settings.get_value(f"{tokens}_stars_price")
+                _price_val = int(_raw) if _raw is not None else None
+            except Exception:
+                _price_val = None
+            amount_text = f"{_price_val} XTR" if isinstance(_price_val, int) and _price_val > 0 else "-"
             admin_text = (
-                "🫦 Успешная оплата (Stars):\n\n"
-                f"Пользователь: {message.from_user.id}(@{message.from_user.username if message.from_user.username else 'нет'})\n"
-                f"Токены: +{tokens}\n"
-                f"Звезды: {stars_used}" if stars_used else ""
-                f"\nБаланс: {balance}" if balance is not None else ""
+                "🎉 Поступила оплата!\n\n"
+                f"👤 Пользователь: {username} ({message.from_user.id})\n"
+                f"📦 Количество токенов: {tokens}\n"
+                f"💳 Способ оплаты: Stars\n\n"
+                f"💵 Сумма: {amount_text}"
             )
             for admin in admins:
                 try:
