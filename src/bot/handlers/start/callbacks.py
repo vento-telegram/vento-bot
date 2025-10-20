@@ -218,8 +218,9 @@ async def sora2pro_set_frames(call: CallbackQuery, state: FSMContext):
     await call.answer("Длительность сохранена")
     data = await state.get_data()
     text = (
-        "Создавай короткие видео по тексту или с картинки.\n\n"
-        "Укажи формат и длительность (10 или 15 сек), затем пришли текст или изображение с подписью."
+        "🎬 Выбери формат генерируемого видео\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием, можешь прикрепить картинку.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
     await call.message.edit_text(text, reply_markup=sora2pro_main_settings_keyboard(data.get("sora_pro_aspect"), n_frames))
 
