@@ -36,6 +36,10 @@ async def sora2_handle(
     data = body.get("data") or {}
 
     state = data.get("state")
+    model_name = (data.get("model") or "").lower()
+    is_pro = "sora-2-pro" in model_name
+    price_key = "sora2_pro_video_price" if is_pro else settings_models_mapper[BotModeEnum.sora2_video]
+    price_default = "150" if is_pro else "0"
     result_json = data.get("resultJson")
 
     result_urls = None
@@ -82,7 +86,7 @@ async def sora2_handle(
                 )
                 await bot.send_message(user_id, text, parse_mode=None)
                 try:
-                    amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.sora2_video]))
+                    amount = int((await settings_service.get_value(price_key)) or price_default)
                     await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
                 except Exception:
                     logger.exception("Failed to refund tokens for Sora2 photorealistic error user=%s", user_id)
@@ -94,7 +98,7 @@ async def sora2_handle(
                 )
                 await bot.send_message(user_id, text, parse_mode=None)
                 try:
-                    amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.sora2_video]))
+                    amount = int((await settings_service.get_value(price_key)) or price_default)
                     await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
                 except Exception:
                     logger.exception("Failed to refund tokens for Sora2 policy error user=%s", user_id)
@@ -110,7 +114,7 @@ async def sora2_handle(
                 )
                 await bot.send_message(user_id, text, parse_mode=None)
                 try:
-                    amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.sora2_video]))
+                    amount = int((await settings_service.get_value(price_key)) or price_default)
                     await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
                 except Exception:
                     logger.exception("Failed to refund tokens for Sora2 likeness error user=%s", user_id)
@@ -125,14 +129,14 @@ async def sora2_handle(
                 )
                 await bot.send_message(user_id, text, parse_mode=None)
                 try:
-                    amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.sora2_video]))
+                    amount = int((await settings_service.get_value(price_key)) or price_default)
                     await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
                 except Exception:
                     logger.exception("Failed to refund tokens for Sora2 NSFW error user=%s", user_id)
             else:
                 await bot.send_message(user_id, support_text, parse_mode=None)
                 try:
-                    amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.sora2_video]))
+                    amount = int((await settings_service.get_value(price_key)) or price_default)
                     await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
                 except Exception:
                     logger.exception("Failed to refund tokens for Sora2 error user=%s", user_id)

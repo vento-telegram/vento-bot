@@ -19,6 +19,7 @@ from bot.services.suno import SunoService
 from bot.services.user import UserService
 from bot.services.veo import VeoService
 from bot.services.sora2 import Sora2Service
+from bot.services.sora2_pro import Sora2ProService
 from bot.services.subscription import SubscriptionService
 from bot.settings import settings
 
@@ -58,6 +59,7 @@ class Container(containers.DeclarativeContainer):
     suno_service = providers.Factory(SunoService, uow=uow, settings_service=settings_service)
     veo_service = providers.Factory(VeoService, uow=uow, settings_service=settings_service)
     sora2_service = providers.Factory(Sora2Service, uow=uow, settings_service=settings_service)
+    sora2_pro_service = providers.Factory(Sora2ProService, uow=uow, settings_service=settings_service)
 
 
 @asynccontextmanager

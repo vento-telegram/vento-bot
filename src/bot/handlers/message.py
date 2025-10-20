@@ -12,10 +12,15 @@ from bot.errors import InsufficientBalanceError, OpenAIBadRequestError
 from bot.interfaces.services.gpt import AbcOpenAIService
 from bot.interfaces.services.suno import AbcSunoService
 from bot.interfaces.services.sora2 import AbcSora2Service
+from bot.interfaces.services.sora2_pro import AbcSora2ProService
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.veo import AbcVeoService
 from bot.keyboards.change_ai import mode_keyboard
 from bot.keyboards.sora2 import sora2_aspect_keyboard
+from bot.keyboards.sora2_pro import (
+    sora2pro_aspect_keyboard,
+    sora2pro_duration_keyboard,
+)
 from bot.keyboards.suno import (
     suno_main_settings_keyboard,
     suno_prompt_keyboard,
@@ -47,6 +52,7 @@ async def common_message_handler(
     suno_service: AbcSunoService = Provide[Container.suno_service],
     veo_service: AbcVeoService = Provide[Container.veo_service],
     sora2_service: AbcSora2Service = Provide[Container.sora2_service],
+    sora2_pro_service: AbcSora2ProService = Provide[Container.sora2_pro_service],
     user_service: AbcUserService = Provide[Container.user_service],
 ):
     # Ignore slash-commands to avoid conflicts with command routers
@@ -459,6 +465,94 @@ async def common_message_handler(
             except Exception:
                 try:
                     await message.answer("Не удалось отправить запрос в Sora 2. Попробуй позже.")
+                except Exception:
+                    pass
+
+    elif mode == BotModeEnum.sora2_pro_video:
+        state_data = await state.get_data()
+
+        aspect = state_data.get("sora_pro_aspect")
+        n_frames = state_data.get("sora_pro_frames")
+
+        image_urls: list[str] = []
+        prompt: str = ""
+        if message.photo:
+            try:
+                url = await _get_telegram_file_url(message.bot, message.photo[-1].file_id)
+                image_urls = [url]
+            except Exception:
+                image_urls = []
+            _cap = (message.caption or "").strip()
+            if not _cap:
+                await message.answer("Добавьте подпись к изображению (текстовый запрос)")
+                return
+            prompt = _cap
+        elif message.document and (message.document.mime_type or "").lower().startswith("image/"):
+            try:
+                url = await _get_telegram_file_url(message.bot, message.document.file_id)
+                image_urls = [url]
+            except Exception:
+                image_urls = []
+            _cap = (message.caption or "").strip()
+            if not _cap:
+                await message.answer("Добавьте подпись к изображению (текстовый запрос)")
+                return
+            prompt = _cap
+        else:
+            text = (message.text or "").strip()
+            if not text:
+                await message.answer("Пришлите текст запроса или изображение с подписью")
+                return
+            prompt = text
+
+        if not aspect:
+            await message.answer("📐 Выбери соотношение сторон: 16:9 или 9:16", reply_markup=sora2pro_aspect_keyboard(aspect))
+            return
+        if n_frames not in {"10", "15"}:
+            await message.answer("⏱️ Выбери длительность ролика: 10 или 15 сек", reply_markup=sora2pro_duration_keyboard(n_frames))
+            return
+
+        status_msg = await message.answer(
+            "🎥✨ *Работаю над видео...*\n\n"
+            "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
+        )
+        try:
+            await sora2_pro_service.submit_sora2_pro_request(
+                message,
+                state,
+                user,
+                prompt=prompt,
+                image_urls=image_urls or None,
+                aspect_ratio=aspect,
+                n_frames=n_frames,
+            )
+        except InsufficientBalanceError:
+            try:
+                await status_msg.edit_text(
+                    "Недостаточно токенов.\n\nПополните баланс или переключите режим.",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [InlineKeyboardButton(text="💳 Пополнить баланс", callback_data="goto:replenish"),
+                             InlineKeyboardButton(text="🔁 Сменить режим", callback_data="goto:switch")]],
+                    ),
+                )
+            except Exception:
+                await message.answer(
+                    "Недостаточно токенов.\n\нПополните баланс или переключите режим.",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [InlineKeyboardButton(text="💳 Пополнить баланс", callback_data="goto:replenish"),
+                             InlineKeyboardButton(text="🔁 Сменить режим", callback_data="goto:switch")]],
+                    ),
+                )
+            return
+        except Exception:
+            logger.exception("Unexpected error in Sora2 PRO handler")
+            try:
+                await status_msg.edit_text("Ошибка при отправке запроса в Sora 2 PRO. Напишите в поддержку.")
+            except Exception:
+                try:
+                    await message.answer("Ошибка при отправке запроса в Sora 2 PRO. Напишите в поддержку.")
                 except Exception:
                     pass
 

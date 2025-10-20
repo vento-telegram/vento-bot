@@ -9,4 +9,4 @@ class SettingsService(AbcSettingsService):
     async def get_value(self, key: str) -> str | None:
         async with self._uow:
             settings = await self._uow.settings.get_by_key(key)
-        return settings.value
+        return settings.value if settings else None

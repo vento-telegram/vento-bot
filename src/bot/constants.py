@@ -7,4 +7,5 @@ settings_models_mapper = {
     BotModeEnum.suno_music: "suno_music_price",
     BotModeEnum.veo_video: "veo_standard_price",  # default maps to standard; improved selected in flow
     BotModeEnum.sora2_video: "sora2_video_price",
+    BotModeEnum.sora2_pro_video: "sora2_pro_video_price",
 }

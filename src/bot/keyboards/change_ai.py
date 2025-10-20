@@ -4,18 +4,9 @@ from bot.enums import BotModeEnum
 
 
 def mode_keyboard(active_mode: str | None = None) -> InlineKeyboardMarkup:
-    emoji_mapper = {
-        BotModeEnum.gpt: "🤖",
-        BotModeEnum.gpt_mini: "⚡",
-        BotModeEnum.nano_banana: "🏞️",
-        BotModeEnum.suno_music: "🎵",
-        BotModeEnum.veo_video: "🎬",
-        BotModeEnum.sora2_video: "🎥",
-    }
-
     def mode_button(text: str, callback: str, mode_key):
         is_active = mode_key == active_mode
-        prefix = "✅ " if is_active else f"{emoji_mapper.get(mode_key, "")} "
+        prefix = "* " if is_active else ""
         return InlineKeyboardButton(text=f"{prefix}{text}", callback_data=callback)
 
     rows: list[list[InlineKeyboardButton]] = [
@@ -28,13 +19,16 @@ def mode_keyboard(active_mode: str | None = None) -> InlineKeyboardMarkup:
             mode_button("Suno", "set_mode:suno_music", BotModeEnum.suno_music),
         ],
         [
-
             mode_button("Veo 3.1", "set_mode:veo_video", BotModeEnum.veo_video),
             mode_button("Sora 2", "set_mode:sora2_video", BotModeEnum.sora2_video),
         ],
         [
-            InlineKeyboardButton(text="🔙 Назад", callback_data="goto:start"),
+            mode_button("Sora 2 PRO", "set_mode:sora2_pro_video", BotModeEnum.sora2_pro_video),
+        ]
+        [
+            InlineKeyboardButton(text="Back", callback_data="goto:start"),
         ],
     ]
 
     return InlineKeyboardMarkup(inline_keyboard=rows)
+

@@ -48,6 +48,11 @@ from bot.keyboards.sora2 import (
     sora2_aspect_keyboard,
     sora2_main_settings_keyboard,
 )
+from bot.keyboards.sora2_pro import (
+    sora2pro_aspect_keyboard,
+    sora2pro_duration_keyboard,
+    sora2pro_main_settings_keyboard,
+)
 from bot.settings import settings
 
 router = Router()
@@ -93,6 +98,26 @@ async def set_mode_sora2_video(
     )
     await call.message.answer(text, reply_markup=sora2_main_settings_keyboard(None))
 
+@router.callback_query(F.data == "set_mode:sora2_pro_video")
+@inject
+async def set_mode_sora2_pro_video(
+    call: CallbackQuery,
+    state: FSMContext,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+):
+    await state.update_data(mode=BotModeEnum.sora2_pro_video, sora_pro_aspect=None, sora_pro_frames=None)
+    await call.answer("Выбран Sora 2 PRO")
+    try:
+        await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.sora2_pro_video))
+    except Exception:
+        pass
+    text = (
+        "🎥✨ Выбери формат и длительность генерируемого видео\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием, можешь прикрепить картинку.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+    )
+    await call.message.answer(text, reply_markup=sora2pro_main_settings_keyboard(None, None))
+
 @router.callback_query(F.data == "sora2:open")
 @inject
 async def open_sora2_noedit(
@@ -131,6 +156,29 @@ async def sora2_set_aspect(
     )
     await call.message.edit_text(text=text, reply_markup=sora2_main_settings_keyboard(aspect))
 
+@router.callback_query(F.data.startswith("sora2pro:aspect:"))
+@inject
+async def sora2pro_set_aspect(
+    call: CallbackQuery,
+    state: FSMContext,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+):
+    raw = call.data or ""
+    prefix = "sora2pro:aspect:"
+    aspect = raw[len(prefix):] if raw.startswith(prefix) else raw.split(":", maxsplit=2)[-1]
+    if aspect not in {"16:9", "9:16"}:
+        await call.answer("Некорректное значение формата", show_alert=True)
+        return
+    await state.update_data(sora_pro_aspect=aspect)
+    await call.answer("Формат выбран")
+    text = (
+        "🎥✨ Выбери формат и длительность генерируемого видео\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием, можешь прикрепить картинку.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+    )
+    data = await state.get_data()
+    await call.message.edit_text(text=text, reply_markup=sora2pro_main_settings_keyboard(aspect, data.get("sora_pro_frames")))
+
 @router.callback_query(F.data == "sora2:open:aspect")
 async def sora2_open_aspect(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -139,6 +187,41 @@ async def sora2_open_aspect(call: CallbackQuery, state: FSMContext):
         await call.message.edit_text("📐 Выбери соотношение сторон видеоролика.", reply_markup=sora2_aspect_keyboard(data.get("sora_aspect")))
     except Exception:
         await call.message.edit_reply_markup(reply_markup=sora2_aspect_keyboard(data.get("sora_aspect")))
+
+@router.callback_query(F.data == "sora2pro:open:aspect")
+async def sora2pro_open_aspect(call: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    await call.answer()
+    try:
+        await call.message.edit_text("📐 Выбери соотношение сторон видеоролика.", reply_markup=sora2pro_aspect_keyboard(data.get("sora_pro_aspect")))
+    except Exception:
+        await call.message.edit_reply_markup(reply_markup=sora2pro_aspect_keyboard(data.get("sora_pro_aspect")))
+
+@router.callback_query(F.data == "sora2pro:open:frames")
+async def sora2pro_open_frames(call: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    await call.answer()
+    try:
+        await call.message.edit_text("⏱️ Выбери длительность ролика.", reply_markup=sora2pro_duration_keyboard(data.get("sora_pro_frames")))
+    except Exception:
+        await call.message.edit_reply_markup(reply_markup=sora2pro_duration_keyboard(data.get("sora_pro_frames")))
+
+@router.callback_query(F.data.startswith("sora2pro:frames:"))
+async def sora2pro_set_frames(call: CallbackQuery, state: FSMContext):
+    raw = call.data or ""
+    prefix = "sora2pro:frames:"
+    n_frames = raw[len(prefix):] if raw.startswith(prefix) else raw.split(":", maxsplit=2)[-1]
+    if n_frames not in {"10", "15"}:
+        await call.answer("Выбери: 10 или 15 секунд", show_alert=True)
+        return
+    await state.update_data(sora_pro_frames=n_frames)
+    await call.answer("Длительность сохранена")
+    data = await state.get_data()
+    text = (
+        "Создавай короткие видео по тексту или с картинки.\n\n"
+        "Укажи формат и длительность (10 или 15 сек), затем пришли текст или изображение с подписью."
+    )
+    await call.message.edit_text(text, reply_markup=sora2pro_main_settings_keyboard(data.get("sora_pro_aspect"), n_frames))
 
 @router.callback_query(F.data == "sora2:main")
 async def sora2_back_to_main(call: CallbackQuery, state: FSMContext):
@@ -152,6 +235,19 @@ async def sora2_back_to_main(call: CallbackQuery, state: FSMContext):
     await call.message.edit_text(
         text,
         reply_markup=sora2_main_settings_keyboard(data.get("sora_aspect")),
+    )
+@router.callback_query(F.data == "sora2pro:main")
+async def sora2pro_back_to_main(call: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    await call.answer()
+    text = (
+        "🎥✨ Выбери формат и длительность генерируемого видео\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием, можешь прикрепить картинку.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+    )
+    await call.message.edit_text(
+        text,
+        reply_markup=sora2pro_main_settings_keyboard(data.get("sora_pro_aspect"), data.get("sora_pro_frames")),
     )
 @router.callback_query(F.data.startswith("veo:quality:"))
 @inject
@@ -1042,19 +1138,22 @@ async def goto_switch(
     nano_price = await settings.get_value(settings_models_mapper[BotModeEnum.nano_banana])
     suno_price = await settings.get_value(settings_models_mapper[BotModeEnum.suno_music])
     sora_price = await settings.get_value(settings_models_mapper[BotModeEnum.sora2_video])
+    sora_pro_price = await settings.get_value(settings_models_mapper[BotModeEnum.sora2_pro_video])
 
     text = (
         "👾 *Выбор ИИ*\n\n"
-        f"📹 *Sora 2* и *Veo 3.1* | *{sora_price}* токенов\n"
-        "Генерация видео по тексту или картинке.\n\n"
-        f"🏞️ *Nano Banana* | *{nano_price}* токенов\n"
-        "Создание и редактирование изображений.\n\n"
-        f"🎵 *Suno* | *{suno_price}* токенов\n"
-        "Генерация музыки по стилю, описанию/тексту.\n\n"
         f"🤖 *GPT‑5* | *{gpt_price}* токенов\n"
         "Самый продвинутый ИИ-чат.\n\n"
         f"⚡ *GPT‑5 Mini* | *{mini_price}* токен\n"
         "Быстрые и экономные ответы.\n\n"
+        f"🏞️ *Nano Banana* | *{nano_price}* токенов\n"
+        "Создание и редактирование изображений.\n\n"
+        f"🎵 *Suno* | *{suno_price}* токенов\n"
+        "Генерация музыки по стилю, описанию/тексту.\n\n"
+        f"📹 *Sora 2* и *Veo 3.1* | *{sora_price}* токенов\n"
+        "Генерация видео по тексту или картинке.\n\n"
+        f"🎥✨ *Sora 2 PRO* | 🎟️ 3̶0̶0̶ *{sora_pro_price}* токенов"
+        "Лучшая модель генерации видео из существующих.\n\n"
         "🪙 _Цена указана за 1 запрос к модели_\n\n"
         "👇 Выбери нужный ИИ:"
     )
