@@ -7,7 +7,8 @@ from bot.interfaces.repos.base import DataMapper
 from bot.interfaces.repos.transaction import AbcTransactionRepo
 from bot.repos.base import BaseRepo
 from bot.schemas import RequestsCounts, UserTotals
-from datetime import date as _date
+from datetime import date as _date, datetime, time as _time, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 
 class TransactionDataMapper(DataMapper):
@@ -17,6 +18,8 @@ class TransactionDataMapper(DataMapper):
 
 class TransactionRepo(AbcTransactionRepo, BaseRepo):
     _mapper_class = TransactionDataMapper
+
+    _MSK = ZoneInfo("Europe/Moscow")
 
     async def add(self, entry: TransactionEntity) -> TransactionEntity:
         stmt = insert(TransactionOrm).values(**entry.model_dump(exclude_none=True)).returning(TransactionOrm)
@@ -91,8 +94,10 @@ class TransactionRepo(AbcTransactionRepo, BaseRepo):
         )
 
     async def list_today_by_reasons(self, reasons: list[str]) -> list[TransactionEntity]:
+        start_utc, end_utc = self._msk_day_bounds()
         stmt = select(TransactionOrm).where(
-            func.date(TransactionOrm.created_at) == self._today(),
+            TransactionOrm.created_at >= start_utc,
+            TransactionOrm.created_at < end_utc,
             TransactionOrm.reason.in_(reasons),
         )
         result = await self.session.execute(stmt)
@@ -100,8 +105,10 @@ class TransactionRepo(AbcTransactionRepo, BaseRepo):
         return [self.map_model_to_entity(r) for r in rows]
 
     async def list_by_date_by_reasons(self, day: _date, reasons: list[str]) -> list[TransactionEntity]:
+        start_utc, end_utc = self._msk_day_bounds(day)
         stmt = select(TransactionOrm).where(
-            func.date(TransactionOrm.created_at) == day,
+            TransactionOrm.created_at >= start_utc,
+            TransactionOrm.created_at < end_utc,
             TransactionOrm.reason.in_(reasons),
         )
         result = await self.session.execute(stmt)
@@ -123,3 +130,13 @@ class TransactionRepo(AbcTransactionRepo, BaseRepo):
         stmt = select(func.coalesce(func.sum(-TransactionOrm.delta), 0)).where(TransactionOrm.delta < 0, *where)
         result = await self.session.execute(stmt)
         return int(result.scalar() or 0)
+
+    def _msk_day_bounds(self, day: _date | None = None) -> tuple[datetime, datetime]:
+        if day is None:
+            now_msk = datetime.now(self._MSK)
+            day = now_msk.date()
+        start_msk = datetime.combine(day, _time(0, 0), tzinfo=self._MSK)
+        end_msk = start_msk + timedelta(days=1)
+        start_utc = start_msk.astimezone(timezone.utc).replace(tzinfo=None)
+        end_utc = end_msk.astimezone(timezone.utc).replace(tzinfo=None)
+        return start_utc, end_utc
