@@ -9,7 +9,7 @@ class BotModeEnum(StrEnum):
     suno_music = "Suno"
     veo_video = "Veo 3.1"
     sora2_video = "Sora 2"
-    sora2_pro_video = "Sora 2 PRO"
+    sora2_pro_video = "Sora 2 Pro"
 
 
 class TransactionReasonEnum(StrEnum):

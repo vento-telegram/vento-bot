@@ -547,12 +547,12 @@ async def common_message_handler(
                 )
             return
         except Exception:
-            logger.exception("Unexpected error in Sora2 PRO handler")
+            logger.exception("Unexpected error in Sora2 Pro handler")
             try:
-                await status_msg.edit_text("Ошибка при отправке запроса в Sora 2 PRO. Напишите в поддержку.")
+                await status_msg.edit_text("Ошибка при отправке запроса в Sora 2 Pro. Напишите в поддержку.")
             except Exception:
                 try:
-                    await message.answer("Ошибка при отправке запроса в Sora 2 PRO. Напишите в поддержку.")
+                    await message.answer("Ошибка при отправке запроса в Sora 2 Pro. Напишите в поддержку.")
                 except Exception:
                     pass
 

@@ -106,7 +106,7 @@ async def set_mode_sora2_pro_video(
     settings: AbcSettingsService = Provide[Container.settings_service],
 ):
     await state.update_data(mode=BotModeEnum.sora2_pro_video, sora_pro_aspect=None, sora_pro_frames=None)
-    await call.answer("Выбран Sora 2 PRO")
+    await call.answer("Выбран Sora 2 Pro")
     try:
         await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.sora2_pro_video))
     except Exception:
@@ -1152,7 +1152,7 @@ async def goto_switch(
         "Генерация музыки по стилю, описанию/тексту.\n\n"
         f"📹 *Sora 2* и *Veo 3.1* | *{sora_price}* токенов\n"
         "Генерация видео по тексту или картинке.\n\n"
-        f"🎥 *Sora 2 PRO* | *{sora_pro_price}* токенов\n"
+        f"🎥 *Sora 2 Pro* | *{sora_pro_price}* токенов\n"
         "Лучшая модель генерации видео из существующих.\n\n"
         "🪙 _Цена указана за 1 запрос к модели_\n\n"
         "👇 Выбери нужный ИИ:"

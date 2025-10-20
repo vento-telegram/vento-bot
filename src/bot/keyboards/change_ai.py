@@ -33,7 +33,7 @@ def mode_keyboard(active_mode: str | None = None) -> InlineKeyboardMarkup:
             mode_button("Sora 2", "set_mode:sora2_video", BotModeEnum.sora2_video),
         ],
         [
-            mode_button("Sora 2 PRO", "set_mode:sora2_pro_video", BotModeEnum.sora2_pro_video),
+            mode_button("Sora 2 Pro", "set_mode:sora2_pro_video", BotModeEnum.sora2_pro_video),
         ],
         [
             InlineKeyboardButton(text="Back", callback_data="goto:start"),

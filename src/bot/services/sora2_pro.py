@@ -124,7 +124,7 @@ class Sora2ProService(AbcSora2ProService):
                             parse_mode=None,
                         )
                     else:
-                        await message.answer(f"Ошибка при запуске Sora 2 PRO: {msg}", parse_mode=None)
+                        await message.answer(f"Ошибка при запуске Sora 2 Pro: {msg}", parse_mode=None)
                     await self._refund(user.id, request_price, prompt, aspect_ratio, n_frames_val, image_urls or [])
                     return
                 # success: nothing more to do here; webhook will deliver the result
