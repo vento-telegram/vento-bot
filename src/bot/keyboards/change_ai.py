@@ -10,8 +10,8 @@ def mode_keyboard(active_mode: str | None = None) -> InlineKeyboardMarkup:
         BotModeEnum.nano_banana: "🏞️",
         BotModeEnum.suno_music: "🎵",
         BotModeEnum.veo_video: "🎬",
-        BotModeEnum.sora2_video: "🎥",
-        BotModeEnum.sora2_pro_video: "🎥✨",
+        BotModeEnum.sora2_video: "📹",
+        BotModeEnum.sora2_pro_video: "🎥",
     }
 
     def mode_button(text: str, callback: str, mode_key):

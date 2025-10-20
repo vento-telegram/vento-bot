@@ -513,7 +513,7 @@ async def common_message_handler(
             return
 
         status_msg = await message.answer(
-            "🎥✨ *Работаю над видео...*\n\n"
+            "🎥 *Работаю над видео...*\n\n"
             "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
         )
         try:
