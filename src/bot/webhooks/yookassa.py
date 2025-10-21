@@ -44,31 +44,6 @@ async def yookassa_handle(
                     if metadata.get("user_id")
                     else None
                 )
-                if telegram_id and metadata.get("subscription"):
-                    # Subscription purchase
-                    await subscription_service.activate_or_extend_for_telegram(telegram_id, days=30, bonus_tokens=2000)
-                    await bot.send_message(
-                        telegram_id,
-                        "🚀 Подписка GPT активирована на 30 дней.\n2000 токенов зачислены на баланс.",
-                        reply_markup=start_keyboard(BotModeEnum.passive),
-                        parse_mode=None,
-                    )
-                    try:
-                        admins = await user_service.list_admins()
-                        admin_text = (
-                            "Новая покупка подписки (YooKassa):\n"
-                            f"Пользователь: {telegram_id}\n"
-                            f"Срок: 30 дней, Бонус: +2000"
-                        )
-                        for admin in admins:
-                            try:
-                                await admin_bot.send_message(admin.telegram_id, admin_text, parse_mode=None)
-                            except Exception:
-                                pass
-                    except Exception:
-                        pass
-                    return web.json_response({"ok": True})
-
                 credited = await payments.check_payment_and_credit(payment_id)
                 try:
                     tokens = (
@@ -80,11 +55,11 @@ async def yookassa_handle(
                         user = await user_service.get_user(telegram_id)
                         if user:
                             sent_custom = False
-                            if tokens == 7000:
+                            if tokens in (1100, 2400, 3800, 7000):
                                 special_text = (
                                     "🎉 Спасибо за покупку!\n\n"
                                     "Вы получили:\n"
-                                    "🛸 7000 токенов — ваш личный запас для общения с ИИ\n"
+                                    f"🛸 {tokens} токенов — ваш личный запас для общения с ИИ\n"
                                     "🎁 Гайд по использованию — пошаговое руководство, как извлечь максимум из возможностей нашего бота.\n\n"
                                     "В гайде вы найдёте:\n"
                                     "✨ как правильно формулировать запросы,\n"

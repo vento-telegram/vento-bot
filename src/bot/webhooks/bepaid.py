@@ -74,37 +74,12 @@ async def bepaid_handle(
     user = await user_service.get_user(telegram_id)
 
     # Handle subscription purchases separately
-    if (parts[1] if len(parts) > 1 else "") == "sub":
-        await bot.send_message(
-            telegram_id,
-            text=(
-                "🚀 Подписка GPT активирована на 30 дней.\n"
-                "2000 токенов зачислены на баланс."
-            ),
-            reply_markup=start_keyboard(BotModeEnum.passive),
-        )
-        try:
-            admins = await user_service.list_admins()
-            admin_text = (
-                "Новая покупка подписки (BePaid):\n"
-                f"Пользователь: {telegram_id}"
-                + (f" (@{getattr(user, 'username', None)})" if getattr(user, 'username', None) else "")
-                + f"\nСрок: 30 дней, Бонус: +2000"
-            )
-            for admin in admins:
-                try:
-                    await admin_bot.send_message(admin.telegram_id, admin_text, parse_mode=None)
-                except Exception:
-                    pass
-        except Exception:
-            pass
-        return web.json_response({"ok": True})
 
-    if tokens == 7000:
+    if tokens in (1100, 2400, 3800, 7000):
         special_text = (
             "🎉 Спасибо за покупку!\n\n"
             "Вы получили:\n"
-            "🛸 7000 токенов — ваш личный запас для общения с ИИ\n"
+            f"🛸 {tokens} токенов — ваш личный запас для общения с ИИ\n"
             "🎁 Гайд по использованию — пошаговое руководство, как извлечь максимум из возможностей нашего бота.\n\n"
             "В гайде вы найдёте:\n"
             "✨ как правильно формулировать запросы,\n"

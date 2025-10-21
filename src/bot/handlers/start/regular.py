@@ -100,18 +100,6 @@ async def start_handler(
         text += f"⚡ Ежедневно: до *{daily_bonus}* токенов\n\n"
     else:
         text += "\n"
-    try:
-        sub = await subscription_service.get_active_by_user_id(user.id)
-        if sub and getattr(sub, 'till', None):
-            until = None
-            try:
-                until = sub.till.strftime('%d.%m')
-            except Exception:
-                pass
-            if until:
-                text += f"🚀 Подписка GPT до *{until}*\n\n"
-    except Exception:
-        pass
     text += f"🤖 Текущий ИИ: *{current_mode}*\n"
 
     if current_mode != BotModeEnum.passive:

@@ -31,13 +31,6 @@ def card_byn_bundles_keyboard(bundles: list[tuple[int, int]], usd_rate: float, h
     }
     rows: list[list[InlineKeyboardButton]] = []
     # Add subscription option on top
-    if not has_subscription:
-        rows.append([
-            InlineKeyboardButton(
-                text="🎟️ Подписка GPT + Бонус — 110 BYN (~$37.04)",
-                callback_data="pay:card_byn_sub",
-            )
-        ])
     for tokens, byn in bundles:
         icon = icons_map.get(tokens, "💠")
         bonus = bonus_map.get(tokens, 0)
@@ -49,7 +42,7 @@ def card_byn_bundles_keyboard(bundles: list[tuple[int, int]], usd_rate: float, h
             usd = 0
         # Use ~ and 2 decimals for USD approximation
         usd_text = f" (~${usd:.2f})" if usd > 0 else ""
-        if tokens == 7000:
+        if tokens in (1100, 2400, 3800, 7000):
             rows.append([
                 InlineKeyboardButton(
                     text=f"{icon} {tokens} токенов{bonus_text} + 🎁 Гайд — {byn} BYN{usd_text}{tag_text}",
@@ -93,19 +86,12 @@ def ru_bundles_keyboard(bundles: list[tuple[int, int]], has_subscription: bool =
     }
     rows: list[list[InlineKeyboardButton]] = []
     # Add subscription option on top
-    if not has_subscription:
-        rows.append([
-            InlineKeyboardButton(
-                text="🎟️ Подписка GPT + Бонус — 2999₽",
-                callback_data="pay:ru_sub",
-            )
-        ])
     for tokens, price in bundles:
         icon = icons_map.get(tokens, "🎁")
         bonus = bonus_map.get(tokens, 0)
         bonus_text = f" (+{bonus} 🎁)" if bonus else ""
         tag_text = tag_map.get(tokens, "")
-        if tokens == 7000:
+        if tokens in (1100, 2400, 3800, 7000):
             rows.append([InlineKeyboardButton(text=f"{icon} {tokens} токенов{bonus_text} + 🎁 Гайд — {price} ₽{tag_text}", callback_data=f"pay:ru:{tokens}")])
         else:
             rows.append([InlineKeyboardButton(text=f"{icon} {tokens} токенов{bonus_text} — {price} ₽{tag_text}", callback_data=f"pay:ru:{tokens}")])
@@ -138,20 +124,12 @@ def card_bundles_keyboard(bundles: list[tuple[int, int]], has_subscription: bool
         2400: " 🔥",
     }
     rows: list[list[InlineKeyboardButton]] = []
-    # Add subscription option on top
-    if not has_subscription:
-        rows.append([
-            InlineKeyboardButton(
-                text="🎟️ Подписка GPT + Бонус — 2999₽",
-                callback_data="pay:card_sub",
-            )
-        ])
     for tokens, price in bundles:
         icon = icons_map.get(tokens, "🎁")
         bonus = bonus_map.get(tokens, 0)
         bonus_text = f" (+{bonus} 🎁)" if bonus else ""
         tag_text = tag_map.get(tokens, "")
-        if tokens == 7000:
+        if tokens in (1100, 2400, 3800, 7000):
             rows.append([InlineKeyboardButton(text=f"{icon} {tokens} токенов{bonus_text} + 🎁 Гайд — {price} ₽{tag_text}", callback_data=f"pay:card:{tokens}")])
         else:
             rows.append([InlineKeyboardButton(text=f"{icon} {tokens} токенов{bonus_text} — {price} ₽{tag_text}",
@@ -189,15 +167,6 @@ async def stars_bundles_keyboard(settings_service, has_subscription: bool = Fals
     # Get star prices from settings
     base_tokens_list = [300, 1100, 2400, 3800, 7000]
     rows: list[list[InlineKeyboardButton]] = []
-    # Subscription option top row
-    if not has_subscription:
-        rows.append([
-            InlineKeyboardButton(
-                text="🎟️ Подписка GPT + Бонус — 2999 ⭐",
-                callback_data="pay:stars_sub",
-            )
-        ])
-    
     for base_tokens in base_tokens_list:
         try:
             stars = int(await settings_service.get_value(f"{base_tokens}_stars_price"))
@@ -209,7 +178,7 @@ async def stars_bundles_keyboard(settings_service, has_subscription: bool = Fals
         total_tokens = base_tokens + bonus
         bonus_text = f" (+{bonus} 🎁)" if bonus else ""
         tag_text = tag_map.get(base_tokens, "")
-        if base_tokens == 7000:
+        if base_tokens in (1100, 2400, 3800, 7000):
             label = f"{icon} {base_tokens} токенов{bonus_text} — 🎁 Гайд {stars} ⭐{tag_text}"
         else:
             label = f"{icon} {base_tokens} токенов{bonus_text} — {stars} ⭐{tag_text}"

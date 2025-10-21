@@ -179,7 +179,7 @@ async def common_message_handler(
                 reply_markup=InlineKeyboardMarkup(
                     inline_keyboard=[
                         [
-                            InlineKeyboardButton(text="🎟️ Баланс и подписка", callback_data="goto:replenish"),
+                            InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
                             InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
                         ]
                     ]
@@ -197,7 +197,7 @@ async def common_message_handler(
                 reply_markup=InlineKeyboardMarkup(
                     inline_keyboard=[
                         [
-                            InlineKeyboardButton(text="🎟️ Баланс и подписка", callback_data="goto:replenish"),
+                            InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
                             InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
                         ]
                     ]
@@ -268,7 +268,7 @@ async def common_message_handler(
                 reply_markup=InlineKeyboardMarkup(
                     inline_keyboard=[
                         [
-                            InlineKeyboardButton(text="🎟️ Баланс и подписка", callback_data="goto:replenish"),
+                            InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
                             InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
                         ]
                     ]
@@ -354,7 +354,7 @@ async def common_message_handler(
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
                             [
-                                InlineKeyboardButton(text="🎟️ Баланс и подписка", callback_data="goto:replenish"),
+                                InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
                                 InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
                             ]
                         ]
@@ -366,7 +366,7 @@ async def common_message_handler(
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
                             [
-                                InlineKeyboardButton(text="🎟️ Баланс и подписка", callback_data="goto:replenish"),
+                                InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
                                 InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
                             ]
                         ]

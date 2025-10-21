@@ -720,10 +720,9 @@ async def pay_ru(
     text = (
         "🇷🇺 *SberPay • T‑Pay • ЮMoney*\n\n"
         "💳 Для оплаты но номеру банковской карты используй способ оплаты \"🌍 Картой МИР\".\n\n"
+        "🎁 *Гайд* - исчерпывающая инструкция по работе с моделями и составлению промптов.\n\n"
+        "Выбери пакет токенов:"
     )
-    if not bool(sub):
-        text = text + "🎟️ *Подписка GPT* - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней. Бонус: *2000 токенов*.\n\n"
-    text = text + "Выбери пакет токенов:"
     await call.message.edit_text(
         text=text,
         reply_markup=ru_bundles_keyboard(bundles, has_subscription=bool(sub)),
@@ -784,10 +783,9 @@ async def pay_card(
     text = (
         "🌍 *Картой МИР*\n\n"
         "Оплата картой МИР.\n\n"
+        "🎁 *Гайд* - исчерпывающая инструкция по работе с моделями и составлению промптов.\n\n"
+        "Выбери пакет токенов:"
     )
-    if not bool(sub):
-        text = text + "🎟️ *Подписка GPT* - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней. Бонус: *2000 токенов*.\n\n"
-    text = text + "Выбери пакет токенов:"
     await call.message.edit_text(
         text=text,
         reply_markup=card_bundles_keyboard(bundles, has_subscription=bool(sub)),
@@ -837,10 +835,9 @@ async def pay_stars(
     await call.answer()
     text = (
         "⭐ *Оплата звёздами*\n\n"
+        "🎁 *Гайд* - исчерпывающая инструкция по работе с моделями и составлению промптов.\n\n"
+        "Выбери пакет токенов:"
     )
-    if not bool(sub):
-        text = text + "🎟️ *Подписка GPT* - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней. Бонус: *2000 токенов*.\n\n"
-    text = text + "Выбери пакет токенов:"
     await call.message.edit_text(
         text=text,
         reply_markup=await stars_bundles_keyboard(settings, has_subscription=bool(sub)),
@@ -874,11 +871,10 @@ async def pay_card_byn(
         usd_rate = 2.97
     text = (
         "🚀 *Visa и Mastercard*\n\n"
-            "Оплата картами VISA/Mastercard.\n\n"
+        "Оплата картами VISA/Mastercard.\n\n"
+        "🎁 *Гайд* - исчерпывающая инструкция по работе с моделями и составлению промптов.\n\n"
+        "Выбери пакет токенов:"
     )
-    if not bool(sub):
-        text = text + "🎟️ *Подписка GPT* - бесплатный доступ к GPT-5 и GPT-5-Mini сроком на 30 дней. Бонус: *2000 токенов*.\n\n"
-    text = text + "Выбери пакет токенов:"
     await call.message.edit_text(
         text=text,
         reply_markup=card_byn_bundles_keyboard(bundles, usd_rate, has_subscription=bool(sub)),
@@ -1018,11 +1014,11 @@ async def stars_successful_payment(
         )
         balance = updated_user.balance if updated_user else None
         balance_text = f"*{balance}*" if balance is not None else "обновлён"
-        if tokens == 7000:
+        if tokens in (1100, 2400, 3800, 7000):
             special_text = (
                 "🎉 Спасибо за покупку!\n\n"
                 "Вы получили:\n"
-                "🛸 7000 токенов — ваш личный запас для общения с ИИ\n"
+                f"🛸 {tokens} токенов — ваш личный запас для общения с ИИ\n"
                 "🎁 Гайд по использованию — пошаговое руководство, как извлечь максимум из возможностей нашего бота.\n\n"
                 "В гайде вы найдёте:\n"
                 "✨ как правильно формулировать запросы,\n"
@@ -1112,18 +1108,6 @@ async def goto_start(
         text += f"⚡ Ежедневно: до *{daily_bonus}* токенов\n\n"
     else:
         text += "\n"
-    try:
-        sub = await subscription_service.get_active_by_user_id(user.id)
-        if sub and getattr(sub, 'till', None):
-            until = None
-            try:
-                until = sub.till.strftime('%d.%m')
-            except Exception:
-                pass
-            if until:
-                text += f"🚀 Подписка GPT до *{until}*\n\n"
-    except Exception:
-        pass
     text += f"🤖 Текущий ИИ: *{current_mode}*\n"
 
     if current_mode != BotModeEnum.passive:
