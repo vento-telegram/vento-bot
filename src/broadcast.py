@@ -22,24 +22,15 @@ from bot.database.models import UserOrm
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("broadcast_sora2")
 
-
-MESSAGE_TEXT = (
-    "🔥 Промпт для этого пранка уже в нашем канале "
-    "[Vento Промпты](https://t.me/ventoprompt)\.\n\n"
-    "🪄 Сгенерировать такую картинку можно прямо в "
-    "[нашем боте](https://t.me/vento_toolbot):\n\n/start → 👾 Сменить ИИ → *Nano Banana* →"
-    " Отправьте исходную картинку и промпт\."
-)
-
 NEW_MESSAGE_TEXT = (
-    "✋🏻🔥 *Стоп\\! Мне не приятно\\!*\n\nПочему ты еще не попробовал возможности *Sora 2*\\?\n\n"
-    "📌 Промпт для этого видео ищи в канале [Vento Промпты](https://t.me/ventoprompt)\\!"
+    "🚀 *Sora 2 Pro уже здесь\!*\n\n"
+    "Теперь ты можешь создавать *видео до 15 секунд*, а также получать ещё больше эмоций, динамики, деталей и реализма\.\n\n"
+    "Стоимость: 🎟️  3̶0̶0̶ *200* токенов\n\n"
+    "💡 Попробуй прямо сейчас 👇"
 )
-
-NEW_MESSAGE_TEXT = NEW_MESSAGE_TEXT.replace("\\?", "?")
 
 REPLY_MARKUP = InlineKeyboardMarkup(
-    inline_keyboard=[[InlineKeyboardButton(text="🎥 Сгенерировать", callback_data="sora2:open")]]
+    inline_keyboard=[[InlineKeyboardButton(text="🎥 Сгенерировать", callback_data="sora2pro:open")]]
 )
 
 # Desired media order for album broadcast
@@ -174,7 +165,7 @@ async def _send_single(
             logger.error("Single retry failed for %s: %s", chat_id, repr(e2))
             return False
     except (TelegramForbiddenError, TelegramBadRequest) as e:
-        logger.info("Skip %s due to Telegram error (single): %s", chat_id, e.__class__.__name__)
+        logger.info("Skip %s due to Telegram error (single): %s", chat_id, e)
         return False
     except TelegramAPIError as e:
         logger.info("Skip %s due to Telegram API error (single): %s", chat_id, e)

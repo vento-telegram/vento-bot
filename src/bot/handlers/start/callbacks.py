@@ -135,6 +135,23 @@ async def open_sora2_noedit(
     )
     await call.message.answer(text, reply_markup=sora2_main_settings_keyboard(None))
 
+@router.callback_query(F.data == "sora2pro:open")
+@inject
+async def open_sora2pro_noedit(
+    call: CallbackQuery,
+    state: FSMContext,
+    settings: AbcSettingsService = Provide[Container.settings_service],
+):
+    await state.update_data(mode=BotModeEnum.sora2_pro_video, sora_pro_aspect=None, sora_pro_frames=None)
+    await call.answer("Выбран Sora 2 Pro")
+    text = (
+        "🎥 Выбери формат и длительность генерируемого видео\n\n"
+        "⏩ Когда настройки выбраны, просто отправь запрос с описанием нужного видео или сценарием, можешь прикрепить картинку.\n\n"
+        "⚠️ Возможны ошибки в работе Sora 2 Pro из-за высокой нагрузки на OpenAI. В этом случае токены будут автоматически возвращены на ваш баланс. Ответы могут занимать до 1 часа.\n\n"
+        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+    )
+    await call.message.answer(text, reply_markup=sora2pro_main_settings_keyboard(None, None))
+
 @router.callback_query(F.data.startswith("sora2:aspect:"))
 @inject
 async def sora2_set_aspect(
