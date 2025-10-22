@@ -696,6 +696,18 @@ async def goto_replenish(
         reply_markup=payments_keyboard(),
     )
 
+@router.callback_query(F.data == "goto:replenish_broadcast")
+async def goto_replenish_broadcast(
+    call: CallbackQuery,
+):
+    await call.answer()
+    await call.message.answer(
+        text=(
+            "🎟️ *Пополнение баланса*\n\n"
+            "💰 Держим самые демократичные цены на рынке!\n\n"
+            "👇 Выбери удобный способ пополнения:"),
+        reply_markup=payments_keyboard(),
+    )
 
 @router.callback_query(F.data == "pay:ru")
 @inject

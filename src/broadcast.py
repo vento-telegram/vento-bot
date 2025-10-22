@@ -24,12 +24,12 @@ logger = logging.getLogger("broadcast_sora2")
 
 NEW_MESSAGE_TEXT = (
     "💡 *Не получается сгенерировать с первого раза\?*\n\n"
-    "Теперь при покупке любого пакета от 999 ₽ (1100 токенов) — 🎁 *гайд* по работе с нейросетями *бесплатно*\! Научись писать запросы, которые дают точный результат\.\n\n"
+    "Теперь при покупке любого пакета от 999 ₽ \(1100 токенов\) — 🎁 *гайд* по работе с нейросетями *бесплатно*\!\n\nНаучись писать запросы, которые дают точный результат\.\n\n"
     "👇 Выбери пакет и забери подарок\!"
 )
 
 REPLY_MARKUP = InlineKeyboardMarkup(
-    inline_keyboard=[[InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish")]]
+    inline_keyboard=[[InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish_broadcast")]]
 )
 
 # Desired media order for album broadcast
