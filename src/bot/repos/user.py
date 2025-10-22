@@ -7,6 +7,8 @@ from bot.interfaces.repos.user import AbcUserRepo
 from datetime import date as _date, datetime, time as _time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
+from bot.repos.base import BaseRepo
+
 
 class UserDataMapper(DataMapper):
     def model_to_entity(self, instance: UserOrm) -> UserEntity:
