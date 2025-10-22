@@ -1,4 +1,4 @@
-from abc import abstractmethod
+﻿from abc import abstractmethod
 from datetime import date
 
 from bot.entities.user import UserDTO, UserEntity
@@ -49,8 +49,8 @@ class AbcUserRepo(AbcRepo[UserEntity]):
 
     @abstractmethod
     async def count_by_date(self, day: date) -> int:
-        """Number of users created on a specific date (server date)."""
+        """Number of users created on a specific date (MSK day)."""
 
     @abstractmethod
     async def count_today(self) -> int:
-        """Number of users created today (server date)."""
+        """Number of users created today (MSK day)."""

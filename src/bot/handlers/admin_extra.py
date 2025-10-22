@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 from typing import List
 
 from aiogram import F
@@ -278,7 +278,29 @@ async def users_today(
         return
     async with uow:
         count = await uow.user.count_today()
-    text = f"Количество пользователей за сегодня: {count}"
+    text = f"Количество пользователей: {count}"
+    try:
+        await call.message.edit_text(text, reply_markup=admin_back_keyboard())
+    except Exception:
+        await call.message.answer(text, reply_markup=admin_back_keyboard())
+    await call.answer()
+
+
+
+@admin_router.callback_query(F.data == "admin:active_today")
+@inject
+async def active_today(
+    call: CallbackQuery,
+    uow: AbcUnitOfWork = Provide[Container.uow],
+    user_service: AbcUserService = Provide[Container.user_service],
+):
+    exists, is_admin = await _ensure_admin(user_service, call.from_user.id)
+    if not exists or not is_admin:
+        await call.answer()
+        return
+    async with uow:
+        count = await uow.transaction.count_active_users_today()
+    text = f"Актив за сегодня: {count}"
     try:
         await call.message.edit_text(text, reply_markup=admin_back_keyboard())
     except Exception:

@@ -1,4 +1,4 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+﻿from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 def admin_main_keyboard() -> InlineKeyboardMarkup:
@@ -9,6 +9,9 @@ def admin_main_keyboard() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="👥 Пользователей за сегодня", callback_data="admin:users_today"),
+        ],
+        [
+            InlineKeyboardButton(text="Актив за сегодня", callback_data="admin:active_today"),
         ],
         [
             InlineKeyboardButton(text="👥 Пользователей за дату", callback_data="admin:users_by_date"),

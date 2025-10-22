@@ -23,14 +23,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("broadcast_sora2")
 
 NEW_MESSAGE_TEXT = (
-    "🚀 *Sora 2 Pro уже здесь\!*\n\n"
-    "Теперь ты можешь создавать *видео до 15 секунд*, а также получать ещё больше эмоций, динамики, деталей и реализма\.\n\n"
-    "Стоимость: 🎟️  3̶0̶0̶ *200* токенов\n\n"
-    "💡 Попробуй прямо сейчас 👇"
+    "💡 *Не получается сгенерировать с первого раза\?*\n\n"
+    "Теперь при покупке любого пакета от 999 ₽ \(1100 токенов\) — 🎁 *гайд* по работе с нейросетями *бесплатно*\!\n\nНаучись писать запросы, которые дают точный результат\.\n\n"
+    "👇 Выбери пакет и забери подарок\!"
 )
 
 REPLY_MARKUP = InlineKeyboardMarkup(
-    inline_keyboard=[[InlineKeyboardButton(text="🎥 Сгенерировать", callback_data="sora2pro:open")]]
+    inline_keyboard=[[InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish_broadcast")]]
 )
 
 # Desired media order for album broadcast

@@ -56,6 +56,37 @@ from bot.keyboards.sora2_pro import (
 from bot.settings import settings
 
 router = Router()
+
+# Helper: check if user has ever purchased any token bundle
+from sqlalchemy import select
+from bot.interfaces.uow import AbcUnitOfWork
+from bot.database.models import TransactionOrm
+
+
+@inject
+async def _has_any_token_purchase(
+    telegram_id: int,
+    uow: AbcUnitOfWork = Provide[Container.uow],
+) -> bool:
+    try:
+        async with uow:
+            user = await uow.user.get_by_telegram_id(telegram_id)
+            if not user:
+                return False
+            reasons = [
+                str(TransactionReasonEnum.purchase_stars),
+                str(TransactionReasonEnum.purchase_bepaid),
+                str(TransactionReasonEnum.purchase_yookassa),
+            ]
+            stmt = (
+                select(TransactionOrm.id)
+                .where(TransactionOrm.user_id == user.id, TransactionOrm.reason.in_(reasons))
+                .limit(1)
+            )
+            result = await uow.transaction.session.execute(stmt)
+            return result.first() is not None
+    except Exception:
+        return False
 @router.callback_query(F.data == "set_mode:veo_video")
 @inject
 async def set_mode_veo_video(
@@ -696,6 +727,18 @@ async def goto_replenish(
         reply_markup=payments_keyboard(),
     )
 
+@router.callback_query(F.data == "goto:replenish_broadcast")
+async def goto_replenish_broadcast(
+    call: CallbackQuery,
+):
+    await call.answer()
+    await call.message.answer(
+        text=(
+            "🎟️ *Пополнение баланса*\n\n"
+            "💰 Держим самые демократичные цены на рынке!\n\n"
+            "👇 Выбери удобный способ пополнения:"),
+        reply_markup=payments_keyboard(),
+    )
 
 @router.callback_query(F.data == "pay:ru")
 @inject
@@ -708,14 +751,19 @@ async def pay_ru(
     user = await user_service.get_user(call.from_user.id)
     sub = await subscription_service.get_active_by_user_id(user.id) if user else None
     await call.answer()
-    bundle_token_amounts = [300, 1100, 2400, 3800, 7000]
+    # Show 100 tokens (99 RUB) only to users who never purchased tokens
+    first_time_offer = not (await _has_any_token_purchase(call.from_user.id))
+    bundle_token_amounts = ([100] if first_time_offer else []) + [300, 1100, 2400, 3800, 7000]
     bundles: list[tuple[int, int]] = []
     for amount in bundle_token_amounts:
-        price_value = await settings.get_value(f"{amount}_bundle_price")
-        try:
-            price = int(price_value)
-        except Exception:
-            price = 0
+        if amount == 100:
+            price = 99
+        else:
+            price_value = await settings.get_value(f"{amount}_bundle_price")
+            try:
+                price = int(price_value)
+            except Exception:
+                price = 0
         bundles.append((amount, price))
     text = (
         "🇷🇺 *SberPay • T‑Pay • ЮMoney*\n\n"
@@ -739,11 +787,14 @@ async def pay_ru_bundle_selected(
     await call.answer()
     parts = (call.data or "").split(":", maxsplit=2)
     tokens = parts[-1] if parts and len(parts) >= 3 else ""
-    price_value = await settings.get_value(f"{tokens}_bundle_price")
-    try:
-        price = int(price_value)
-    except Exception:
-        price = 0
+    if tokens == "100":
+        price = 99
+    else:
+        price_value = await settings.get_value(f"{tokens}_bundle_price")
+        try:
+            price = int(price_value)
+        except Exception:
+            price = 0
     try:
         confirm_url = await payments.create_ru_payment(user_id=call.from_user.id, tokens=int(tokens), price_rub=price)
         await call.message.edit_text(
@@ -771,14 +822,19 @@ async def pay_card(
     user = await user_service.get_user(call.from_user.id)
     sub = await subscription_service.get_active_by_user_id(user.id) if user else None
     await call.answer()
-    bundle_token_amounts = [300, 1100, 2400, 3800, 7000]
+    # Show 100 tokens (99 RUB) only to users who never purchased tokens
+    first_time_offer = not (await _has_any_token_purchase(call.from_user.id))
+    bundle_token_amounts = ([100] if first_time_offer else []) + [300, 1100, 2400, 3800, 7000]
     bundles: list[tuple[int, int]] = []
     for amount in bundle_token_amounts:
-        price_value = await settings.get_value(f"{amount}_bundle_price")
-        try:
-            price = int(price_value)
-        except Exception:
-            price = 0
+        if amount == 100:
+            price = 99
+        else:
+            price_value = await settings.get_value(f"{amount}_bundle_price")
+            try:
+                price = int(price_value)
+            except Exception:
+                price = 0
         bundles.append((amount, price))
     text = (
         "🌍 *Картой МИР*\n\n"
@@ -802,11 +858,14 @@ async def pay_card_bundle_selected(
     await call.answer()
     parts = (call.data or "").split(":", maxsplit=2)
     tokens = parts[-1] if parts and len(parts) >= 3 else ""
-    price_value = await settings.get_value(f"{tokens}_bundle_price")
-    try:
-        price = int(price_value)
-    except Exception:
-        price = 0
+    if tokens == "100":
+        price = 99
+    else:
+        price_value = await settings.get_value(f"{tokens}_bundle_price")
+        try:
+            price = int(price_value)
+        except Exception:
+            price = 0
     try:
         confirm_url = await payments.create_card_payment(user_id=call.from_user.id, tokens=int(tokens), price_rub=price)
         await call.message.edit_text(
@@ -838,9 +897,10 @@ async def pay_stars(
         "🎁 *Гайд* - исчерпывающая инструкция по работе с моделями и составлению промптов.\n\n"
         "Выбери пакет токенов:"
     )
+    first_time_offer = not (await _has_any_token_purchase(call.from_user.id))
     await call.message.edit_text(
         text=text,
-        reply_markup=await stars_bundles_keyboard(settings, has_subscription=bool(sub)),
+        reply_markup=await stars_bundles_keyboard(settings, has_subscription=bool(sub), first_time_offer=first_time_offer),
     )
 
 
@@ -855,14 +915,18 @@ async def pay_card_byn(
     user = await user_service.get_user(call.from_user.id)
     sub = await subscription_service.get_active_by_user_id(user.id) if user else None
     await call.answer()
-    bundle_token_amounts = [300, 1100, 2400, 3800, 7000]
+    first_time_offer = not (await _has_any_token_purchase(call.from_user.id))
+    bundle_token_amounts = ([100] if first_time_offer else []) + [300, 1100, 2400, 3800, 7000]
     bundles: list[tuple[int, int]] = []
     for amount in bundle_token_amounts:
-        price_value = await settings.get_value(f"{amount}_byn_bundle_price")
-        try:
-            byn = int(price_value)
-        except Exception:
-            byn = 0
+        if amount == 100:
+            byn = 3.40
+        else:
+            price_value = await settings.get_value(f"{amount}_byn_bundle_price")
+            try:
+                byn = int(price_value)
+            except Exception:
+                byn = 0
         bundles.append((amount, byn))
     rate_value = await settings.get_value("byn-usd")
     try:
@@ -891,12 +955,15 @@ async def pay_card_byn_bundle_selected(
     await call.answer()
     parts = (call.data or "").split(":", maxsplit=2)
     tokens = parts[-1] if parts and len(parts) >= 3 else ""
-    price_value = await settings.get_value(f"{tokens}_byn_bundle_price")
     rate_value = await settings.get_value("byn-usd")
-    try:
-        byn = int(price_value)
-    except Exception:
-        byn = 0
+    if tokens == "100":
+        byn = 3.40
+    else:
+        price_value = await settings.get_value(f"{tokens}_byn_bundle_price")
+        try:
+            byn = int(price_value)
+        except Exception:
+            byn = 0
     try:
         usd_rate = float(rate_value) if rate_value is not None else 2.97
     except Exception:
@@ -1104,7 +1171,7 @@ async def goto_start(
         user_balance_int = int(user.balance)
     except Exception:
         user_balance_int = 0
-    if user_balance_int <= int(daily_bonus):
+    if False:
         text += f"⚡ Ежедневно: до *{daily_bonus}* токенов\n\n"
     else:
         text += "\n"
