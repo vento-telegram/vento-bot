@@ -1,4 +1,5 @@
 import base64
+from decimal import Decimal, ROUND_HALF_UP
 import json
 import logging
 from typing import Any
@@ -124,15 +125,20 @@ class PaymentsService(AbcPaymentsService):
                         return value
                 raise RuntimeError("BePaid response did not contain redirect URL")
 
-    async def create_card_payment_byn(self, user_id: int, tokens: int, price_byn: int) -> str:
+    async def create_card_payment_byn(self, user_id: int, tokens: int, price_byn: int | float) -> str:
         if not self._bepaid_auth:
             raise RuntimeError("BePaid credentials are not configured")
+
+        try:
+            amount_cents = int((Decimal(str(price_byn)) * 100).to_integral_value(rounding=ROUND_HALF_UP))
+        except Exception:
+            amount_cents = int(price_byn) * 100
 
         payload: dict[str, Any] = {
             "checkout": {
                 "transaction_type": "payment",
                 "order": {
-                    "amount": int(price_byn) * 100,
+                    "amount": amount_cents,
                     "currency": "BYN",
                     "description": f"Vento tokens: {tokens} for user {user_id}",
                     "tracking_id": f"{user_id}:{tokens}",

@@ -145,7 +145,7 @@ def pay_link_keyboard(url: str) -> InlineKeyboardMarkup:
     ])
 
 
-async def stars_bundles_keyboard(settings_service, has_subscription: bool = False) -> InlineKeyboardMarkup:
+async def stars_bundles_keyboard(settings_service, has_subscription: bool = False, first_time_offer: bool = False) -> InlineKeyboardMarkup:
     icons_map: dict[int, str] = {
         300: "🎯",
         1100: "🚀",
@@ -167,6 +167,12 @@ async def stars_bundles_keyboard(settings_service, has_subscription: bool = Fals
     # Get star prices from settings
     base_tokens_list = [300, 1100, 2400, 3800, 7000]
     rows: list[list[InlineKeyboardButton]] = []
+    # First purchase only: 100 tokens for 99 stars
+    if first_time_offer:
+        icon = icons_map.get(100, "🔰")
+        # Keep label concise and clear
+        label_first = f"{icon} 100 токенов — 99 ⭐"
+        rows.append([InlineKeyboardButton(text=label_first, callback_data=f"pay:stars:100:99")])
     for base_tokens in base_tokens_list:
         try:
             stars = int(await settings_service.get_value(f"{base_tokens}_stars_price"))

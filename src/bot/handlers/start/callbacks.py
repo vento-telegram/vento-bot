@@ -897,9 +897,10 @@ async def pay_stars(
         "🎁 *Гайд* - исчерпывающая инструкция по работе с моделями и составлению промптов.\n\n"
         "Выбери пакет токенов:"
     )
+    first_time_offer = not (await _has_any_token_purchase(call.from_user.id))
     await call.message.edit_text(
         text=text,
-        reply_markup=await stars_bundles_keyboard(settings, has_subscription=bool(sub)),
+        reply_markup=await stars_bundles_keyboard(settings, has_subscription=bool(sub), first_time_offer=first_time_offer),
     )
 
 
@@ -914,14 +915,18 @@ async def pay_card_byn(
     user = await user_service.get_user(call.from_user.id)
     sub = await subscription_service.get_active_by_user_id(user.id) if user else None
     await call.answer()
-    bundle_token_amounts = [300, 1100, 2400, 3800, 7000]
+    first_time_offer = not (await _has_any_token_purchase(call.from_user.id))
+    bundle_token_amounts = ([100] if first_time_offer else []) + [300, 1100, 2400, 3800, 7000]
     bundles: list[tuple[int, int]] = []
     for amount in bundle_token_amounts:
-        price_value = await settings.get_value(f"{amount}_byn_bundle_price")
-        try:
-            byn = int(price_value)
-        except Exception:
-            byn = 0
+        if amount == 100:
+            byn = 3.40
+        else:
+            price_value = await settings.get_value(f"{amount}_byn_bundle_price")
+            try:
+                byn = int(price_value)
+            except Exception:
+                byn = 0
         bundles.append((amount, byn))
     rate_value = await settings.get_value("byn-usd")
     try:
@@ -950,12 +955,15 @@ async def pay_card_byn_bundle_selected(
     await call.answer()
     parts = (call.data or "").split(":", maxsplit=2)
     tokens = parts[-1] if parts and len(parts) >= 3 else ""
-    price_value = await settings.get_value(f"{tokens}_byn_bundle_price")
     rate_value = await settings.get_value("byn-usd")
-    try:
-        byn = int(price_value)
-    except Exception:
-        byn = 0
+    if tokens == "100":
+        byn = 3.40
+    else:
+        price_value = await settings.get_value(f"{tokens}_byn_bundle_price")
+        try:
+            byn = int(price_value)
+        except Exception:
+            byn = 0
     try:
         usd_rate = float(rate_value) if rate_value is not None else 2.97
     except Exception:
