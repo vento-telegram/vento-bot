@@ -32,7 +32,7 @@ def card_byn_bundles_keyboard(bundles: list[tuple[int, int]], usd_rate: float, h
     rows: list[list[InlineKeyboardButton]] = []
     # Add subscription option on top
     for tokens, byn in bundles:
-        icon = icons_map.get(tokens, "💠")
+        icon = icons_map.get(tokens, "🔰")
         bonus = bonus_map.get(tokens, 0)
         bonus_text = f" (+{bonus} 🔹)" if bonus else ""
         tag_text = tag_map.get(tokens, "")
@@ -87,7 +87,7 @@ def ru_bundles_keyboard(bundles: list[tuple[int, int]], has_subscription: bool =
     rows: list[list[InlineKeyboardButton]] = []
     # Add subscription option on top
     for tokens, price in bundles:
-        icon = icons_map.get(tokens, "🎁")
+        icon = icons_map.get(tokens, "🔰")
         bonus = bonus_map.get(tokens, 0)
         bonus_text = f" (+{bonus} 🎁)" if bonus else ""
         tag_text = tag_map.get(tokens, "")
@@ -125,7 +125,7 @@ def card_bundles_keyboard(bundles: list[tuple[int, int]], has_subscription: bool
     }
     rows: list[list[InlineKeyboardButton]] = []
     for tokens, price in bundles:
-        icon = icons_map.get(tokens, "🎁")
+        icon = icons_map.get(tokens, "🔰")
         bonus = bonus_map.get(tokens, 0)
         bonus_text = f" (+{bonus} 🎁)" if bonus else ""
         tag_text = tag_map.get(tokens, "")
