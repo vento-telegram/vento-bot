@@ -27,7 +27,7 @@ async def admin_start(
     exists, is_admin = await _ensure_admin(user_service, message.from_user.id)
     if not exists or not is_admin:
         return
-    await message.answer("ÐÐ´Ð¼Ð¸Ð½-Ð¼ÐµÐ½ÑŽ:", reply_markup=admin_main_keyboard())
+    await message.answer("Админ-меню:", reply_markup=admin_main_keyboard())
 
 
 @admin_router.callback_query(F.data == "goto:admin")
@@ -41,9 +41,9 @@ async def goto_admin(
         await call.answer()
         return
     try:
-        await call.message.edit_text("ÐÐ´Ð¼Ð¸Ð½-Ð¼ÐµÐ½ÑŽ:", reply_markup=admin_main_keyboard())
+        await call.message.edit_text("Админ-меню:", reply_markup=admin_main_keyboard())
     except Exception:
-        await call.message.answer("ÐÐ´Ð¼Ð¸Ð½-Ð¼ÐµÐ½ÑŽ:", reply_markup=admin_main_keyboard())
+        await call.message.answer("Админ-меню:", reply_markup=admin_main_keyboard())
     await call.answer()
 
 
@@ -107,22 +107,22 @@ async def earnings_today(
             rub_price = await _get_int("subscription_rub_price")
             sub_rub_total += rub_price if rub_price > 0 else 2999
 
-    lines: list[str] = ["Ð’Ñ‹Ñ€ÑƒÑ‡ÐºÐ° Ð·Ð° ÑÐµÐ³Ð¾Ð´Ð½Ñ:"]
+    lines: list[str] = ["Выручка за сегодня:"]
     if stars_total:
-        lines.append(f"â€¢ Ð—Ð²ÐµÐ·Ð´Ñ‹: {stars_total} â­")
+        lines.append(f"• Звезды: {stars_total} ⭐")
     if rub_total:
-        lines.append(f"â€¢ Ð ÑƒÐ±Ð»Ð¸: {rub_total} â‚½")
+        lines.append(f"• Рубли: {rub_total} ₽")
     if sub_stars_total or sub_rub_total or sub_byn_total:
-        lines.append("â€¢ ÐŸÐ¾Ð´Ð¿Ð¸ÑÐºÐ¸:")
+        lines.append("• Подписки:")
         if sub_stars_total:
-            lines.append(f"  â€“ Stars: {sub_stars_total} XTR")
+            lines.append(f"  – Stars: {sub_stars_total} XTR")
         if sub_rub_total:
-            lines.append(f"  â€“ RUB: {sub_rub_total} â‚½")
+            lines.append(f"  – RUB: {sub_rub_total} ₽")
         if sub_byn_total:
-            lines.append(f"  â€“ BYN: {sub_byn_total} BYN")
+            lines.append(f"  – BYN: {sub_byn_total} BYN")
 
     if len(lines) == 1:
-        lines.append("Ð¡ÐµÐ³Ð¾Ð´Ð½Ñ Ð¿Ð¾ÐºÑƒÐ¿Ð¾Ðº Ð½Ðµ Ð±Ñ‹Ð»Ð¾.")
+        lines.append("Сегодня покупок не было.")
 
     text = "\n".join(lines)
     try:
@@ -144,7 +144,7 @@ async def earnings_by_date_prompt(
         await call.answer()
         return
     await state.set_state(AdminStates.earnings_by_date)
-    text = "Ð’Ð²ÐµÐ´Ð¸Ñ‚Ðµ Ð´Ð°Ñ‚Ñƒ Ð² Ñ„Ð¾Ñ€Ð¼Ð°Ñ‚Ðµ Ð´Ð´.Ð¼Ð¼.Ð³Ð³Ð³Ð³"
+    text = "Введите дату в формате дд.мм.гггг"
     try:
         await call.message.edit_text(text, reply_markup=admin_back_keyboard())
     except Exception:
@@ -163,7 +163,7 @@ async def earnings_by_date_handle(
 ):
     exists, is_admin = await _ensure_admin(user_service, message.from_user.id)
     if not exists or not is_admin:
-        await message.answer("ÐÐµÐ´Ð¾ÑÑ‚Ð°Ñ‚Ð¾Ñ‡Ð½Ð¾ Ð¿Ñ€Ð°Ð²")
+        await message.answer("Недостаточно прав")
         await state.clear()
         return
 
@@ -172,7 +172,7 @@ async def earnings_by_date_handle(
     try:
         day = datetime.strptime(raw, "%d.%m.%Y").date()
     except Exception:
-        await message.answer("ÐÐµÐ²ÐµÑ€Ð½Ñ‹Ð¹ Ñ„Ð¾Ñ€Ð¼Ð°Ñ‚ Ð´Ð°Ñ‚Ñ‹. Ð’Ð²ÐµÐ´Ð¸Ñ‚Ðµ Ð² Ñ„Ð¾Ñ€Ð¼Ð°Ñ‚Ðµ Ð´Ð´.Ð¼Ð¼.Ð³Ð³Ð³Ð³")
+        await message.answer("Неверный формат даты. Введите в формате дд.мм.гггг")
         return
 
     reasons: List[str] = [
@@ -223,22 +223,22 @@ async def earnings_by_date_handle(
             sub_rub_total += rub_price if rub_price > 0 else 2999
 
     pretty_date = day.strftime("%d.%m.%Y")
-    lines: list[str] = [f"Ð’Ñ‹Ñ€ÑƒÑ‡ÐºÐ° Ð·Ð° {pretty_date}:"]
+    lines: list[str] = [f"Выручка за {pretty_date}:"]
     if stars_total:
-        lines.append(f"â€¢ Stars: {stars_total} XTR")
+        lines.append(f"• Stars: {stars_total} XTR")
     if rub_total:
-        lines.append(f"â€¢ RUB: {rub_total} â‚½")
+        lines.append(f"• RUB: {rub_total} ₽")
     if sub_stars_total or sub_rub_total or sub_byn_total:
-        lines.append("â€¢ ÐŸÐ¾Ð´Ð¿Ð¸ÑÐºÐ¸:")
+        lines.append("• Подписки:")
         if sub_stars_total:
             lines.append(f"  - Stars: {sub_stars_total} XTR")
         if sub_rub_total:
-            lines.append(f"  - RUB: {sub_rub_total} â‚½")
+            lines.append(f"  - RUB: {sub_rub_total} ₽")
         if sub_byn_total:
             lines.append(f"  - BYN: {sub_byn_total} BYN")
 
     if len(lines) == 1:
-        lines.append("ÐŸÐ¾ÐºÑƒÐ¿Ð¾Ðº Ð½Ðµ Ð±Ñ‹Ð»Ð¾.")
+        lines.append("Покупок не было.")
 
     await state.clear()
     await message.answer("\n".join(lines), reply_markup=admin_back_keyboard())
@@ -257,7 +257,7 @@ async def users_total(
         return
     async with uow:
         count = await uow.user.count_all()
-    text = f"ÐžÐ±Ñ‰ÐµÐµ ÐºÐ¾Ð»Ð¸Ñ‡ÐµÑÑ‚Ð²Ð¾ Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»ÐµÐ¹: {count}"
+    text = f"Общее количество пользователей: {count}"
     try:
         await call.message.edit_text(text, reply_markup=admin_back_keyboard())
     except Exception:
@@ -278,7 +278,7 @@ async def users_today(
         return
     async with uow:
         count = await uow.user.count_today()
-    text = f"ÐšÐ¾Ð»Ð¸Ñ‡ÐµÑÑ‚Ð²Ð¾ Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»ÐµÐ¹ Ð·Ð° ÑÐµÐ³Ð¾Ð´Ð½Ñ: {count}"
+    text = f"Количество пользователей: {count}"
     try:
         await call.message.edit_text(text, reply_markup=admin_back_keyboard())
     except Exception:
@@ -306,6 +306,8 @@ async def active_today(
     except Exception:
         await call.message.answer(text, reply_markup=admin_back_keyboard())
     await call.answer()
+
+
 @admin_router.callback_query(F.data == "admin:users_by_date")
 @inject
 async def users_by_date_prompt(
@@ -318,7 +320,7 @@ async def users_by_date_prompt(
         await call.answer()
         return
     await state.set_state(AdminStates.users_by_date)
-    text = "Ð’Ð²ÐµÐ´Ð¸Ñ‚Ðµ Ð´Ð°Ñ‚Ñƒ Ð² Ñ„Ð¾Ñ€Ð¼Ð°Ñ‚Ðµ Ð´Ð´.Ð¼Ð¼.Ð³Ð³Ð³Ð³"
+    text = "Введите дату в формате дд.мм.гггг"
     try:
         await call.message.edit_text(text, reply_markup=admin_back_keyboard())
     except Exception:
@@ -336,7 +338,7 @@ async def users_by_date_handle(
 ):
     exists, is_admin = await _ensure_admin(user_service, message.from_user.id)
     if not exists or not is_admin:
-        await message.answer("ÐÐµÐ´Ð¾ÑÑ‚Ð°Ñ‚Ð¾Ñ‡Ð½Ð¾ Ð¿Ñ€Ð°Ð²")
+        await message.answer("Недостаточно прав")
         await state.clear()
         return
     raw = (message.text or "").strip()
@@ -344,11 +346,11 @@ async def users_by_date_handle(
     try:
         day = datetime.strptime(raw, "%d.%m.%Y").date()
     except Exception:
-        await message.answer("ÐÐµÐ²ÐµÑ€Ð½Ñ‹Ð¹ Ñ„Ð¾Ñ€Ð¼Ð°Ñ‚ Ð´Ð°Ñ‚Ñ‹. Ð’Ð²ÐµÐ´Ð¸Ñ‚Ðµ Ð² Ñ„Ð¾Ñ€Ð¼Ð°Ñ‚Ðµ Ð´Ð´.Ð¼Ð¼.Ð³Ð³Ð³Ð³")
+        await message.answer("Неверный формат даты. Введите в формате дд.мм.гггг")
         return
     async with uow:
         count = await uow.user.count_by_date(day)
     pretty_date = day.strftime("%d.%m.%Y")
-    text = f"ÐšÐ¾Ð»Ð¸Ñ‡ÐµÑÑ‚Ð²Ð¾ Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»ÐµÐ¹ Ð·Ð° {pretty_date}: {count}"
+    text = f"Количество пользователей за {pretty_date}: {count}"
     await state.clear()
     await message.answer(text, reply_markup=admin_back_keyboard())

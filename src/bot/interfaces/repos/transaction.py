@@ -31,6 +31,10 @@ class AbcTransactionRepo(AbcRepo[TransactionEntity]):
     @abstractmethod
     async def count_active_users_today(self) -> int:
         """Number of unique users who made at least one paid request today (MSK day)."""
+
+    @abstractmethod
+    async def count_active_users_today(self) -> int:
+        """Number of unique users who made at least one paid request today (MSK day)."""
     @abstractmethod
     async def user_totals(self, user_id: int) -> UserTotals:
         """Per-user totals: all-time spent, today spent, per-model all-time counts, last request time."""

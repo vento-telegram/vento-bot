@@ -76,6 +76,8 @@ class TransactionRepo(AbcTransactionRepo, BaseRepo):
         )
         result = await self.session.execute(stmt)
         return int(result.scalar() or 0)
+
+
     async def user_totals(self, user_id: int) -> UserTotals:
         total_spent = await self._sum_negative_delta(TransactionOrm.user_id == user_id)
         today_spent = await self._sum_negative_delta(
