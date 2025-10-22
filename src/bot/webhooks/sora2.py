@@ -102,7 +102,7 @@ async def sora2_handle(
                     await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
                 except Exception:
                     logger.exception("Failed to refund tokens for Sora2 policy error user=%s", user_id)
-            elif ("third-party" in low and "likeness" in low) or ("third party" in low and "likeness" in low) or ("likeness" in low and "guardrails" in low):
+            elif "third-party" in low:
                 text = (
                     "🚫 Запрос затрагивает сходство реальных людей (third‑party likeness).\n\n"
                     "Что можно сделать:\n"
