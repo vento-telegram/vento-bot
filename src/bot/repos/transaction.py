@@ -1,4 +1,4 @@
-from sqlalchemy import ColumnElement, case, func, insert, select, update
+﻿from sqlalchemy import ColumnElement, case, func, insert, select, update
 
 from bot.database.models import TransactionOrm
 from bot.entities.transaction import TransactionEntity
@@ -66,6 +66,16 @@ class TransactionRepo(AbcTransactionRepo, BaseRepo):
             "gpt-5-mini": int(m.get("gpt-5-mini") or 0),
         })
 
+
+    async def count_active_users_today(self) -> int:
+        start_utc, end_utc = self._msk_day_bounds()
+        stmt = select(func.count(func.distinct(TransactionOrm.user_id))).where(
+            TransactionOrm.delta < 0,
+            TransactionOrm.created_at >= start_utc,
+            TransactionOrm.created_at < end_utc,
+        )
+        result = await self.session.execute(stmt)
+        return int(result.scalar() or 0)
     async def user_totals(self, user_id: int) -> UserTotals:
         total_spent = await self._sum_negative_delta(TransactionOrm.user_id == user_id)
         today_spent = await self._sum_negative_delta(

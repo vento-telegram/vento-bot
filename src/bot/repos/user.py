@@ -1,10 +1,11 @@
-from sqlalchemy import insert, select, update, func
+﻿from sqlalchemy import insert, select, update, func
 
 from bot.database.models import UserOrm
 from bot.entities.user import UserDTO, UserEntity
 from bot.interfaces.repos.base import DataMapper
 from bot.interfaces.repos.user import AbcUserRepo
-from bot.repos.base import BaseRepo
+from datetime import date as _date, datetime, time as _time, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 
 class UserDataMapper(DataMapper):
@@ -14,6 +15,18 @@ class UserDataMapper(DataMapper):
 
 class UserRepo(AbcUserRepo, BaseRepo):
     _mapper_class = UserDataMapper
+
+    _MSK = ZoneInfo("Europe/Moscow")
+
+    def _msk_day_bounds(self, day: _date | None = None) -> tuple[datetime, datetime]:
+        if day is None:
+            now_msk = datetime.now(self._MSK)
+            day = now_msk.date()
+        start_msk = datetime.combine(day, _time(0, 0), tzinfo=self._MSK)
+        end_msk = start_msk + timedelta(days=1)
+        start_utc = start_msk.astimezone(timezone.utc).replace(tzinfo=None)
+        end_utc = end_msk.astimezone(timezone.utc).replace(tzinfo=None)
+        return start_utc, end_utc
 
     async def get_or_create(self, user_data: UserDTO) -> tuple[UserEntity, bool]:
         stmt = select(UserOrm).filter_by(telegram_id=user_data.telegram_id).limit(1)
@@ -93,12 +106,20 @@ class UserRepo(AbcUserRepo, BaseRepo):
         result = await self.session.execute(stmt)
         return int(result.scalar() or 0)
 
-    async def count_by_date(self, day) -> int:
-        stmt = select(func.count()).where(func.date(UserOrm.created_at) == day)
+    async def count_by_date(self, day: _date) -> int:
+        start_utc, end_utc = self._msk_day_bounds(day)
+        stmt = select(func.count()).where(
+            UserOrm.created_at >= start_utc,
+            UserOrm.created_at < end_utc,
+        )
         result = await self.session.execute(stmt)
         return int(result.scalar() or 0)
 
     async def count_today(self) -> int:
-        stmt = select(func.count()).where(func.date(UserOrm.created_at) == func.date(func.now()))
+        start_utc, end_utc = self._msk_day_bounds()
+        stmt = select(func.count()).where(
+            UserOrm.created_at >= start_utc,
+            UserOrm.created_at < end_utc,
+        )
         result = await self.session.execute(stmt)
         return int(result.scalar() or 0)
