@@ -120,12 +120,18 @@ async def bepaid_handle(
         admins = await user_service.list_admins()
         uname = getattr(user, 'username', None)
         username = f"@{uname}" if uname else "—"
+        try:
+            _raw = await settings.get_value(f"{tokens}_bundle_price")
+            _price_val = int(_raw) if _raw is not None else None
+        except Exception:
+            _price_val = None
+        amount_text = f"{_price_val} ₽" if isinstance(_price_val, int) and _price_val > 0 else "-"
         admin_text = (
             "🎉 Поступила оплата!\n\n"
             f"👤 Пользователь: {username} ({telegram_id})\n"
             f"📦 Количество токенов: {tokens}\n"
             f"💳 Способ оплаты: BePaid\n\n"
-            f"💵 Сумма: {'—'}"
+            f"💵 Сумма: {amount_text}"
         )
         for admin in admins:
             try:
