@@ -10,6 +10,13 @@ def referral_keyboard(share_url: str) -> InlineKeyboardMarkup:
         ]
     )
 
+def broadcast_ref_keyboard(share_url: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🔗 Поделиться", url=share_url)],
+        ]
+    )
+
 
 def referral_bonus_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
