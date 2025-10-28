@@ -23,9 +23,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("broadcast_sora2")
 
 NEW_MESSAGE_TEXT = (
-    "💡 *Не получается сгенерировать с первого раза\?*\n\n"
-    "Теперь при покупке любого пакета от 999 ₽ \(1100 токенов\) — 🎁 *гайд* по работе с нейросетями *бесплатно*\!\n\nНаучись писать запросы, которые дают точный результат\.\n\n"
-    "👇 Выбери пакет и забери подарок\!"
+    "*✌️ Два видео\. ☝️ Один промпт\.*\n\n"
+    "🎥 *Sora 2* против *Veo 3\.1* — битва нейросетей\.\n\n"
+    "⤵️ Проверь сам и реши, кто выглядит убедительнее: /start"
 )
 
 REPLY_MARKUP = InlineKeyboardMarkup(
@@ -34,8 +34,13 @@ REPLY_MARKUP = InlineKeyboardMarkup(
 
 # Desired media order for album broadcast
 MEDIA_FILENAMES = [
-    "broadcast.mp4",
+    "broadcast1.MOV",
+    "broadcast2.MOV",
 ]
+
+
+def _is_video(path: Path) -> bool:
+    return path.suffix.lower() in {".mp4", ".mov"}
 
 
 async def fetch_all_chat_ids(container: Container) -> list[int]:
@@ -199,7 +204,7 @@ async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
         prime_index_map: list[int] = []  # map from media_for_prime index to MEDIA_FILENAMES index
         for idx, path in enumerate(media_paths):
             if path.exists():
-                if path.suffix.lower() == ".mp4":
+                if _is_video(path):
                     media_for_prime.append(InputMediaVideo(media=FSInputFile(path.as_posix())))
                 else:
                     media_for_prime.append(InputMediaPhoto(media=FSInputFile(path.as_posix())))
@@ -242,7 +247,7 @@ async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
             single_path = media_paths[single_idx]
             for cid in chat_ids:
                 try:
-                    if single_path.suffix.lower() == ".mp4":
+                    if _is_video(single_path):
                         msg = await bot.send_video(
                             chat_id=cid,
                             video=FSInputFile(single_path.as_posix()),
@@ -299,7 +304,7 @@ async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
                         if target is None:
                             continue
 
-                        if path.suffix.lower() == ".mp4":
+                        if _is_video(path):
                             item = InputMediaVideo(media=target)
                         else:
                             item = InputMediaPhoto(media=target)
@@ -316,12 +321,12 @@ async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
                 elif len(existing) == 1 and single_idx is not None:
                     path = media_paths[single_idx]
                     if file_ids[single_idx]:
-                        if path.suffix.lower() == ".mp4":
+                        if _is_video(path):
                             delivered = await _send_single(bot, cid, True, file_ids[single_idx])
                         else:
                             delivered = await _send_single(bot, cid, False, file_ids[single_idx])
                     elif path.exists():
-                        if path.suffix.lower() == ".mp4":
+                        if _is_video(path):
                             delivered = await _send_single(bot, cid, True, FSInputFile(path.as_posix()))
                         else:
                             delivered = await _send_single(bot, cid, False, FSInputFile(path.as_posix()))
