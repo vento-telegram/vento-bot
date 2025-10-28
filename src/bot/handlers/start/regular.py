@@ -52,6 +52,7 @@ async def start_handler(
     user, is_new = await user_service.is_user_new(message.from_user, ref_from=ref_from)
     # Notify inviter on new signup bonus (+10)
     if is_new:
+        logger.info(f"ref_from: {ref_from}, int: {int(ref_from)}, ")
         inviter_tid: int | None = None
         try:
             inviter_tid = int(ref_from) if ref_from else None
@@ -67,8 +68,8 @@ async def start_handler(
                 )
                 from bot.keyboards.referral import referral_bonus_keyboard
                 await bot.send_message(inviter_tid, text, reply_markup=referral_bonus_keyboard())
-            except Exception:
-                pass
+            except Exception as e:
+                logger.exception(e)
     if is_new:
         await state.update_data(history=[], mode=BotModeEnum.passive)
         start_bonus = await settings_service.get_value("start_bonus")
