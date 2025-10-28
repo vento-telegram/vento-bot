@@ -29,7 +29,7 @@ from bot.keyboards.payments import (
     ru_bundles_keyboard,
     stars_bundles_keyboard,
 )
-from bot.keyboards.referral import referral_keyboard
+from bot.keyboards.referral import referral_keyboard, referral_bonus_keyboard
 from bot.keyboards.start import (
     start_keyboard,
 )
@@ -55,13 +55,15 @@ from bot.keyboards.sora2_pro import (
     sora2pro_main_settings_keyboard,
 )
 from bot.settings import settings
+from sqlalchemy import select, func
 
 router = Router()
 
 # Helper: check if user has ever purchased any token bundle
 from sqlalchemy import select
 from bot.interfaces.uow import AbcUnitOfWork
-from bot.database.models import TransactionOrm
+from bot.database.models import TransactionOrm, UserOrm
+from bot.entities.transaction import TransactionEntity
 
 
 @inject
@@ -766,6 +768,99 @@ async def goto_referral(call: CallbackQuery, bot: Bot):
     except Exception:
         await call.message.answer(text=text, reply_markup=referral_keyboard(share_url))
 
+
+@router.callback_query(F.data == "referral:copy")
+async def referral_copy(call: CallbackQuery, bot: Bot):
+    await call.answer()
+    try:
+        me = await bot.get_me()
+        username = me.username or ""
+    except Exception:
+        username = ""
+    ref_payload = str(call.from_user.id)
+    deep_link = f"https://t.me/{username}?start={ref_payload}" if username else ""
+    from urllib.parse import quote_plus
+    share_text = (
+        "Попробуй этого бота 🤖\n"
+        "Тут все ИИ в одном месте — чат, картинки, видео, музыка!\n"
+        "🔥 Реально удобно, глянь сам!"
+    )
+    url_param = quote_plus(deep_link) if deep_link else ""
+    text_param = quote_plus(share_text)
+    share_url = f"https://t.me/share/url?url={url_param}&text={text_param}"
+    link_text = deep_link if deep_link else "Ссылка временно недоступна"
+    try:
+        await call.message.answer(
+            text=f"Ваша реферальная ссылка:\n{link_text}",
+            reply_markup=referral_keyboard(share_url),
+        )
+    except Exception:
+        pass
+
+
+@router.callback_query(F.data == "referral:stats")
+@inject
+async def referral_stats(
+    call: CallbackQuery,
+    bot: Bot,
+    uow: AbcUnitOfWork = Provide[Container.uow],
+):
+    await call.answer()
+    inviter_tid = call.from_user.id
+    total_referred = 0
+    total_buyers = 0
+    try:
+        async with uow:
+            # Count total referred users
+            stmt_ref = select(func.count()).where(UserOrm.from_ == str(inviter_tid))
+            res_ref = await uow.transaction.session.execute(stmt_ref)
+            total_referred = int(res_ref.scalar() or 0)
+
+            # Count distinct referred users who made token purchases
+            reasons = [
+                str(TransactionReasonEnum.purchase_stars),
+                str(TransactionReasonEnum.purchase_bepaid),
+                str(TransactionReasonEnum.purchase_yookassa),
+            ]
+            subq = select(UserOrm.id).where(UserOrm.from_ == str(inviter_tid))
+            stmt_buy = select(func.count(func.distinct(TransactionOrm.user_id))).where(
+                TransactionOrm.user_id.in_(subq),
+                TransactionOrm.reason.in_(reasons),
+            )
+            res_buy = await uow.transaction.session.execute(stmt_buy)
+            total_buyers = int(res_buy.scalar() or 0)
+    except Exception:
+        total_referred = 0
+        total_buyers = 0
+
+    # Provide share + copy buttons again
+    try:
+        me = await bot.get_me()
+        username = me.username or ""
+    except Exception:
+        username = ""
+    ref_payload = str(inviter_tid)
+    deep_link = f"https://t.me/{username}?start={ref_payload}" if username else ""
+    from urllib.parse import quote_plus
+    share_text = (
+        "Попробуй этого бота 🤖\n"
+        "Тут все ИИ в одном месте — чат, картинки, видео, музыка!\n"
+        "🔥 Реально удобно, глянь сам!"
+    )
+    url_param = quote_plus(deep_link) if deep_link else ""
+    text_param = quote_plus(share_text)
+    share_url = f"https://t.me/share/url?url={url_param}&text={text_param}"
+
+    text = (
+        "📊 Статистика рефералов\n\n"
+        f"Пришло по ссылке: *{total_referred}*\n"
+        f"Совершили покупку: *{total_buyers}*"
+    )
+    try:
+        await call.message.answer(text=text, reply_markup=referral_keyboard(share_url))
+    except Exception:
+        pass
+
 @router.callback_query(F.data == "goto:replenish_broadcast")
 async def goto_replenish_broadcast(
     call: CallbackQuery,
@@ -1094,6 +1189,7 @@ async def stars_successful_payment(
     user_service: AbcUserService = Provide[Container.user_service],
     admin_bot: Bot = Provide[Container.admin_bot],
     settings: AbcSettingsService = Provide[Container.settings_service],
+    uow: AbcUnitOfWork = Provide[Container.uow],
 ):
     sp = message.successful_payment
     if not sp or (sp.currency or "").upper() != "XTR":
@@ -1118,6 +1214,52 @@ async def stars_successful_payment(
             amount=tokens,
             reason=TransactionReasonEnum.purchase_stars,
         )
+        # Award referral purchase bonus (+100) to inviter, once per referred user
+        try:
+            user = await user_service.get_user(message.from_user.id)
+            ref_raw = getattr(user, 'from_', None) if user else None
+            inviter_tid = int(ref_raw) if ref_raw else None
+        except Exception:
+            inviter_tid = None
+        if inviter_tid and inviter_tid != message.from_user.id:
+            try:
+                async with uow:
+                    inviter = await uow.user.get_by_telegram_id(inviter_tid)
+                    if inviter:
+                        meta_tag = f"referred:{message.from_user.id}"
+                        stmt = (
+                            select(TransactionOrm.id)
+                            .where(
+                                TransactionOrm.user_id == inviter.id,
+                                TransactionOrm.reason == str(TransactionReasonEnum.referral_purchase_bonus),
+                                TransactionOrm.meta == meta_tag,
+                            )
+                            .limit(1)
+                        )
+                        res = await uow.transaction.session.execute(stmt)
+                        if res.first() is None:
+                            updated = await uow.user.update_balance_by_user_id(inviter.id, 100)
+                            if updated:
+                                await uow.transaction.add(
+                                    TransactionEntity(
+                                        user_id=inviter.id,
+                                        delta=100,
+                                        reason=TransactionReasonEnum.referral_purchase_bonus,
+                                        meta=meta_tag,
+                                    )
+                                )
+                                try:
+                                    uname = getattr(user, 'username', None)
+                                    suffix = f" за пользователя {uname}" if uname else ""
+                                    note = (
+                                        f"🎉 Поздравляем, ты получил реферальный бонус{suffix}: *100 токенов*!\n\n"
+                                        "Копи бонусные токены или выбирай модель и твори!"
+                                    )
+                                    await message.bot.send_message(inviter_tid, note, reply_markup=referral_bonus_keyboard())
+                                except Exception:
+                                    pass
+            except Exception:
+                pass
         balance = updated_user.balance if updated_user else None
         balance_text = f"*{balance}*" if balance is not None else "обновлён"
         if tokens in (1100, 2400, 3800, 7000):

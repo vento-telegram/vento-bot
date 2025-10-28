@@ -14,6 +14,8 @@ class BotModeEnum(StrEnum):
 
 class TransactionReasonEnum(StrEnum):
     welcome_bonus = auto()
+    referral_signup_bonus = auto()
+    referral_purchase_bonus = auto()
     gpt_request = auto()
     gpt_mini_request = auto()
     gpt_refund = auto()

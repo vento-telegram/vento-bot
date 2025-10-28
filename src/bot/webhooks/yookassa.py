@@ -5,14 +5,19 @@ from aiohttp import web
 import logging
 
 from dependency_injector.wiring import inject, Provide
+from sqlalchemy import select
 
 from bot.container import Container
-from bot.enums import BotModeEnum
+from bot.enums import BotModeEnum, TransactionReasonEnum
+from bot.entities.transaction import TransactionEntity
+from bot.database.models import TransactionOrm
 from bot.interfaces.services import AbcUserService
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.interfaces.services.subscription import AbcSubscriptionService
 from bot.interfaces.services.payments import AbcPaymentsService
+from bot.interfaces.uow import AbcUnitOfWork
 from bot.keyboards import start_keyboard
+from bot.keyboards.referral import referral_bonus_keyboard
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +30,7 @@ async def yookassa_handle(
     payments: AbcPaymentsService = Provide[Container.payments_service],
     subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
     settings: AbcSettingsService = Provide[Container.settings_service],
+    uow: AbcUnitOfWork = Provide[Container.uow],
 ):
     logger.info(f"JSON FOR DEBUGGING: \n\n\n{await request.json()}\n\n\n")
     try:
@@ -54,6 +60,51 @@ async def yookassa_handle(
                     if telegram_id and tokens:
                         user = await user_service.get_user(telegram_id)
                         if user:
+                            # Try to award referral purchase bonus (+100) to inviter once per referred user
+                            try:
+                                ref_raw = getattr(user, 'from_', None)
+                                inviter_tid = int(ref_raw) if ref_raw else None
+                            except Exception:
+                                inviter_tid = None
+                            if inviter_tid and inviter_tid != telegram_id:
+                                try:
+                                    async with uow:
+                                        inviter = await uow.user.get_by_telegram_id(inviter_tid)
+                                        if inviter:
+                                            meta_tag = f"referred:{telegram_id}"
+                                            stmt = (
+                                                select(TransactionOrm.id)
+                                                .where(
+                                                    TransactionOrm.user_id == inviter.id,
+                                                    TransactionOrm.reason == str(TransactionReasonEnum.referral_purchase_bonus),
+                                                    TransactionOrm.meta == meta_tag,
+                                                )
+                                                .limit(1)
+                                            )
+                                            res = await uow.transaction.session.execute(stmt)
+                                            if res.first() is None:
+                                                updated = await uow.user.update_balance_by_user_id(inviter.id, 100)
+                                                if updated:
+                                                    await uow.transaction.add(
+                                                        TransactionEntity(
+                                                            user_id=inviter.id,
+                                                            delta=100,
+                                                            reason=TransactionReasonEnum.referral_purchase_bonus,
+                                                            meta=meta_tag,
+                                                        )
+                                                    )
+                                                    try:
+                                                        uname = getattr(user, 'username', None)
+                                                        suffix = f" за пользователя {uname}" if uname else ""
+                                                        text = (
+                                                            f"🎉 Поздравляем, ты получил реферальный бонус{suffix}: *100 токенов*!\n\n"
+                                                            "Копи бонусные токены или выбирай модель и твори!"
+                                                        )
+                                                        await bot.send_message(inviter_tid, text, reply_markup=referral_bonus_keyboard())
+                                                    except Exception:
+                                                        pass
+                                except Exception:
+                                    pass
                             sent_custom = False
                             if tokens in (1100, 2400, 3800, 7000):
                                 special_text = (

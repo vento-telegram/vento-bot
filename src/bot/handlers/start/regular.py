@@ -24,6 +24,7 @@ router = Router()
 async def start_handler(
     message: Message,
     state: FSMContext,
+    bot: Bot = Provide[Container.bot],
     admin_bot: Bot = Provide[Container.admin_bot],
     user_service: AbcUserService = Provide[Container.user_service],
     settings_service: AbcSettingsService = Provide[Container.settings_service],
@@ -49,6 +50,25 @@ async def start_handler(
         ref_from = None
 
     user, is_new = await user_service.is_user_new(message.from_user, ref_from=ref_from)
+    # Notify inviter on new signup bonus (+10)
+    if is_new:
+        inviter_tid: int | None = None
+        try:
+            inviter_tid = int(ref_from) if ref_from else None
+        except Exception:
+            inviter_tid = None
+        if inviter_tid and inviter_tid != message.from_user.id:
+            try:
+                uname = message.from_user.username if message.from_user.username else None
+                suffix = f" за пользователя {uname}" if uname else ""
+                text = (
+                    f"🎉 Поздравляем, ты получил реферальный бонус{suffix}: *10 токенов*!\n\n"
+                    "Копи бонусные токены или выбирай модель и твори!"
+                )
+                from bot.keyboards.referral import referral_bonus_keyboard
+                await bot.send_message(inviter_tid, text, reply_markup=referral_bonus_keyboard())
+            except Exception:
+                pass
     if is_new:
         await state.update_data(history=[], mode=BotModeEnum.passive)
         start_bonus = await settings_service.get_value("start_bonus")
