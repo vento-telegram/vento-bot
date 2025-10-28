@@ -14,6 +14,7 @@ from bot.entities.transaction import TransactionEntity
 from bot.database.models import TransactionOrm
 from bot.interfaces.services import AbcUserService
 from bot.interfaces.services.settings import AbcSettingsService
+from bot.interfaces.uow import AbcUnitOfWork
 from bot.keyboards import start_keyboard
 from bot.keyboards.referral import referral_bonus_keyboard
 
