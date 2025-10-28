@@ -175,11 +175,12 @@ async def common_message_handler(
                             logger.exception("answer fallback failed for part=%d", idx)
         except InsufficientBalanceError:
             await status_msg.edit_text(
-                "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс токенов, оформить подписку на модель или выбрать более экономичную модель.",
+                "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
                 reply_markup=InlineKeyboardMarkup(
                     inline_keyboard=[
                         [
                             InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
+                            InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
                             InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
                         ]
                     ]
@@ -193,11 +194,12 @@ async def common_message_handler(
             await openai_service.submit_nano_banana_request(message, state, user)
         except InsufficientBalanceError:
             await message.answer(
-                "*☹️ Недостаточно токенов*\n\nПополните баланс или выбери другую модель.",
+                "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
                 reply_markup=InlineKeyboardMarkup(
                     inline_keyboard=[
                         [
                             InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
+                            InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
                             InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
                         ]
                     ]
@@ -264,11 +266,12 @@ async def common_message_handler(
             )
         except InsufficientBalanceError:
             await message.answer(
-                "*☹️ Недостаточно токенов*\n\nПополните баланс или выбери другую модель.",
+                "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
                 reply_markup=InlineKeyboardMarkup(
                     inline_keyboard=[
                         [
                             InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
+                            InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
                             InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
                         ]
                     ]
@@ -350,11 +353,12 @@ async def common_message_handler(
         except InsufficientBalanceError:
             try:
                 await status_msg.edit_text(
-                    "*☹️ Недостаточно токенов*\n\nПополни баланс или выбери стандартное качество.",
+                    "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
                             [
                                 InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
+                                InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
                                 InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
                             ]
                         ]
@@ -362,11 +366,12 @@ async def common_message_handler(
                 )
             except Exception:
                 await message.answer(
-                    "*☹️ Недостаточно токенов*\n\nПополни баланс или выбери стандартное качество.",
+                    "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
                             [
                                 InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
+                                InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
                                 InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
                             ]
                         ]
@@ -441,20 +446,28 @@ async def common_message_handler(
         except InsufficientBalanceError:
             try:
                 await status_msg.edit_text(
-                    "*☹️ Недостаточно токенов*\n\nПополни баланс или выбери другую модель.",
+                    "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
-                            [InlineKeyboardButton(text="💳 Пополнить баланс", callback_data="goto:replenish"),
-                             InlineKeyboardButton(text="🔀 Сменить режим", callback_data="goto:switch")]],
+                            [
+                                InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
+                                InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
+                                InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
+                            ]
+                        ]
                     ),
                 )
             except Exception:
                 await message.answer(
-                    "*☹️ Недостаточно токенов*\n\nПополни баланс или выбери другую модель.",
+                    "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
-                            [InlineKeyboardButton(text="💳 Пополнить баланс", callback_data="goto:replenish"),
-                             InlineKeyboardButton(text="🔀 Сменить режим", callback_data="goto:switch")]],
+                            [
+                                InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
+                                InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
+                                InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
+                            ]
+                        ]
                     ),
                 )
             return
@@ -529,20 +542,28 @@ async def common_message_handler(
         except InsufficientBalanceError:
             try:
                 await status_msg.edit_text(
-                    "Недостаточно токенов.\n\nПополните баланс или переключите режим.",
+                    "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
-                            [InlineKeyboardButton(text="💳 Пополнить баланс", callback_data="goto:replenish"),
-                             InlineKeyboardButton(text="🔁 Сменить режим", callback_data="goto:switch")]],
+                            [
+                                InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
+                                InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
+                                InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
+                            ]
+                        ]
                     ),
                 )
             except Exception:
                 await message.answer(
-                    "Недостаточно токенов.\n\нПополните баланс или переключите режим.",
+                    "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
-                            [InlineKeyboardButton(text="💳 Пополнить баланс", callback_data="goto:replenish"),
-                             InlineKeyboardButton(text="🔁 Сменить режим", callback_data="goto:switch")]],
+                            [
+                                InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
+                                InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
+                                InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
+                            ]
+                        ]
                     ),
                 )
             return

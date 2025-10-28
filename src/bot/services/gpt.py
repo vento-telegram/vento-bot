@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiohttp import ClientSession
 from openai import OpenAI as OpenAIClient
 from openai.types.chat import (
@@ -294,7 +294,18 @@ class OpenAIService(AbcOpenAIService):
                 await self._submit_nano_task(user=user, image_urls=image_urls, prompt_text=caption)
             except InsufficientBalanceError:
                 try:
-                    await message.answer("*Недостаточно токенов для запроса Nano Banana.*")
+                    await message.answer(
+                        "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
+                        reply_markup=InlineKeyboardMarkup(
+                            inline_keyboard=[
+                                [
+                                    InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
+                                    InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
+                                    InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
+                                ]
+                            ]
+                        ),
+                    )
                 finally:
                     groups.pop(media_group_id, None)
                     NB_MEDIA_GROUPS.pop(lock_key, None)
