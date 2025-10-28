@@ -3,6 +3,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 def payments_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🤝 Реферальная программа 🔥", callback_data="goto:referral")],
         [InlineKeyboardButton(text="🌍 Картой МИР", callback_data="pay:card")],
         [InlineKeyboardButton(text="🚀 Visa • Mastercard", callback_data="pay:card_byn")],
         [InlineKeyboardButton(text="🇷🇺 SberPay • T‑Pay • ЮMoney", callback_data="pay:ru")],

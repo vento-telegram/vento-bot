@@ -29,6 +29,7 @@ from bot.keyboards.payments import (
     ru_bundles_keyboard,
     stars_bundles_keyboard,
 )
+from bot.keyboards.referral import referral_keyboard
 from bot.keyboards.start import (
     start_keyboard,
 )
@@ -726,6 +727,44 @@ async def goto_replenish(
             "👇 Выбери удобный способ пополнения:"),
         reply_markup=payments_keyboard(),
     )
+
+
+@router.callback_query(F.data == "goto:referral")
+async def goto_referral(call: CallbackQuery, bot: Bot):
+    await call.answer()
+    try:
+        me = await bot.get_me()
+        username = me.username or ""
+    except Exception:
+        username = ""
+    # Build deep link with user id as referral payload
+    ref_payload = str(call.from_user.id)
+    deep_link = f"https://t.me/{username}?start={ref_payload}" if username else ""
+    share_text = (
+        "Попробуй этого бота 🤖\n"
+        "Тут все ИИ в одном месте — чат, картинки, видео, музыка!\n"
+        "🔥 Реально удобно, глянь сам!"
+    )
+    from urllib.parse import quote_plus
+    url_param = quote_plus(deep_link) if deep_link else ""
+    text_param = quote_plus(share_text)
+    share_url = f"https://t.me/share/url?url={url_param}&text={text_param}"
+
+    text = (
+        "🤝 *Реферальная программа*\n"
+        "Хочешь больше токенов? Зови друзей и получай бонусы! 🚀\n\n"
+        "👥 *Как это работает:*\n"
+        "1️⃣ Поделись своей уникальной реферальной ссылкой с другом.\n"
+        "2️⃣ Когда он перейдёт по ней и зарегистрируется — ты получаешь *+10 токенов* 💎\n"
+        "3️⃣ Если твой друг купит любой пакет токенов — тебе прилетит ещё *+100 токенов* 🎉\n\n"
+        "🔥 Без ограничений!\n"
+        "Чем больше друзей пригласишь — тем больше токенов получишь.\n\n"
+        "👇 Копируй ссылку с помощью кнопки под этим сообщением и отправляй друзьям!"
+    )
+    try:
+        await call.message.edit_text(text=text, reply_markup=referral_keyboard(share_url))
+    except Exception:
+        await call.message.answer(text=text, reply_markup=referral_keyboard(share_url))
 
 @router.callback_query(F.data == "goto:replenish_broadcast")
 async def goto_replenish_broadcast(
