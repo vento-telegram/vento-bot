@@ -63,11 +63,11 @@ async def start_handler(
                 uname = message.from_user.username if message.from_user.username else None
                 suffix = f" за пользователя {uname}" if uname else ""
                 text = (
-                    f"🎉 Поздравляем, ты получил реферальный бонус{suffix}: *10 токенов*!\n\n"
-                    "Копи бонусные токены или выбирай модель и твори!"
+                    f"🎉 Поздравляем, ты получил реферальный бонус{suffix}: 10 токенов!\n\n"
+                    "🎞️ Копи бонусные токены или выбирай модель и твори!"
                 )
                 from bot.keyboards.referral import referral_bonus_keyboard
-                await bot.send_message(inviter_tid, text, reply_markup=referral_bonus_keyboard())
+                await bot.send_message(inviter_tid, text, reply_markup=referral_bonus_keyboard(), parse_mode=None)
             except Exception as e:
                 logger.exception(e)
     if is_new:

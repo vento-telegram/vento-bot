@@ -1234,10 +1234,10 @@ async def stars_successful_payment(
                                     uname = getattr(user, 'username', None)
                                     suffix = f" за пользователя {uname}" if uname else ""
                                     note = (
-                                        f"🎉 Поздравляем, ты получил реферальный бонус{suffix}: *100 токенов*!\n\n"
-                                        "Копи бонусные токены или выбирай модель и твори!"
+                                        f"🎉 Поздравляем, ты получил реферальный бонус{suffix}: 100 токенов!\n\n"
+                                        "🎞️ Копи бонусные токены или выбирай модель и твори!"
                                     )
-                                    await message.bot.send_message(inviter_tid, note, reply_markup=referral_bonus_keyboard())
+                                    await message.bot.send_message(inviter_tid, note, reply_markup=referral_bonus_keyboard(), parse_mode=None)
                                 except Exception:
                                     pass
             except Exception:

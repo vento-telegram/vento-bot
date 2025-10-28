@@ -97,10 +97,10 @@ async def yookassa_handle(
                                                         uname = getattr(user, 'username', None)
                                                         suffix = f" за пользователя {uname}" if uname else ""
                                                         text = (
-                                                            f"🎉 Поздравляем, ты получил реферальный бонус{suffix}: *100 токенов*!\n\n"
-                                                            "Копи бонусные токены или выбирай модель и твори!"
+                                                            f"🎉 Поздравляем, ты получил реферальный бонус{suffix}: 100 токенов!\n\n"
+                                                            "🎞️ Копи бонусные токены или выбирай модель и твори!"
                                                         )
-                                                        await bot.send_message(inviter_tid, text, reply_markup=referral_bonus_keyboard())
+                                                        await bot.send_message(inviter_tid, text, reply_markup=referral_bonus_keyboard(), parse_mode=None)
                                                     except Exception:
                                                         pass
                                 except Exception:
