@@ -742,15 +742,9 @@ async def goto_referral(call: CallbackQuery, bot: Bot):
     # Build deep link with user id as referral payload
     ref_payload = str(call.from_user.id)
     deep_link = f"https://t.me/{username}?start={ref_payload}" if username else ""
-    share_text = (
-        "Попробуй этого бота 🤖\n"
-        "Тут все ИИ в одном месте — чат, картинки, видео, музыка!\n"
-        "🔥 Реально удобно, глянь сам!"
-    )
     from urllib.parse import quote_plus
     url_param = quote_plus(deep_link) if deep_link else ""
-    text_param = quote_plus(share_text)
-    share_url = f"https://t.me/share/url?url={url_param}&text={text_param}"
+    share_url = f"https://t.me/share/url?url={url_param}"
 
     text = (
         "🤝 *Реферальная программа*\n"
@@ -780,14 +774,8 @@ async def referral_copy(call: CallbackQuery, bot: Bot):
     ref_payload = str(call.from_user.id)
     deep_link = f"https://t.me/{username}?start={ref_payload}" if username else ""
     from urllib.parse import quote_plus
-    share_text = (
-        "Попробуй этого бота 🤖\n"
-        "Тут все ИИ в одном месте — чат, картинки, видео, музыка!\n"
-        "🔥 Реально удобно, глянь сам!"
-    )
     url_param = quote_plus(deep_link) if deep_link else ""
-    text_param = quote_plus(share_text)
-    share_url = f"https://t.me/share/url?url={url_param}&text={text_param}"
+    share_url = f"https://t.me/share/url?url={url_param}"
     link_text = deep_link if deep_link else "Ссылка временно недоступна"
     try:
         await call.message.answer(
@@ -842,14 +830,8 @@ async def referral_stats(
     ref_payload = str(inviter_tid)
     deep_link = f"https://t.me/{username}?start={ref_payload}" if username else ""
     from urllib.parse import quote_plus
-    share_text = (
-        "Попробуй этого бота 🤖\n"
-        "Тут все ИИ в одном месте — чат, картинки, видео, музыка!\n"
-        "🔥 Реально удобно, глянь сам!"
-    )
     url_param = quote_plus(deep_link) if deep_link else ""
-    text_param = quote_plus(share_text)
-    share_url = f"https://t.me/share/url?url={url_param}&text={text_param}"
+    share_url = f"https://t.me/share/url?url={url_param}"
 
     text = (
         "📊 Статистика рефералов\n\n"
