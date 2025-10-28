@@ -14,7 +14,7 @@ def referral_keyboard(share_url: str) -> InlineKeyboardMarkup:
 def referral_bonus_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Выбрать ИИ", callback_data="goto:switch")],
+            [InlineKeyboardButton(text="👾 Выбрать ИИ", callback_data="goto:switch")],
         ]
     )
 
