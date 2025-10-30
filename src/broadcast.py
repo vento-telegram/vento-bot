@@ -14,34 +14,29 @@ from aiogram.exceptions import (
 from aiogram.types import FSInputFile, InputMediaPhoto, InputMediaVideo
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from sqlalchemy import select
-from urllib.parse import quote_plus
 
 from bot.container import Container
 from bot.database.models import UserOrm
-from bot.keyboards.referral import broadcast_ref_keyboard
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("broadcast_sora2")
 
 NEW_MESSAGE_TEXT = (
-    "🎟️ *Бесплатные токены ждут тебя\!*\n\n"
-    "🎉 Теперь ты будешь получать токены просто за приглашения друзей\:\n"
-    "🤝 *\+10 токенов* за каждого, кто перейдёт по твоей ссылке\n"
-    "🏆 *\+100 токенов*, если друг купит любой пакет токенов\n\n"
-    "🚀 Делись ссылкой с друзьями или в своих социальных сетях и копи токены *без ограничений* — всё просто\!\n\n"
-    "👉 Найти свою ссылку ты всегда сможешь в разделе:\n"
-    "*\"🎟️ Больше токенов\" \-\> \"🤝 Реферальная система\"\n\n*"
-    "👇 Жми кнопку и получи бесплатные токены прямо сейчас\!"
+    "😱 *Кот украл пиво*\n\n"
+    "🔥 Промпт для генерации такого видео в *Sora 2* можно найти в нашем канале:\n\n"
+    "💡 *[Vento Промпты](https://t.me/ventoprompt)*\n\n"
+    "👇 Жми кнопку и создавай шедевр\!"
 )
 
-# Per-user keyboard will be generated dynamically inside broadcast()
+REPLY_MARKUP = InlineKeyboardMarkup(
+    inline_keyboard=[[InlineKeyboardButton(text="🎥 Сгенерировать", callback_data="sora2:open")]]
+)
 
 # Desired media order for album broadcast
-MEDIA_FILENAMES = []
-
-
-def _is_video(path: Path) -> bool:
-    return path.suffix.lower() in {".mp4", ".mov"}
+MEDIA_FILENAMES = [
+    "broadcast.mp4",
+]
 
 
 async def fetch_all_chat_ids(container: Container) -> list[int]:
@@ -56,14 +51,14 @@ async def fetch_all_chat_ids(container: Container) -> list[int]:
     return unique_ids
 
 
-async def _send_text(bot: Bot, chat_id: int, reply_markup: InlineKeyboardMarkup | None = None) -> bool:
+async def _send_text(bot: Bot, chat_id: int) -> bool:
     try:
         await bot.send_message(
             chat_id=chat_id,
             text=NEW_MESSAGE_TEXT,
             disable_web_page_preview=True,
             parse_mode=ParseMode.MARKDOWN_V2,
-            reply_markup=reply_markup,
+            reply_markup=REPLY_MARKUP,
         )
         return True
     except TelegramRetryAfter as e:
@@ -76,7 +71,7 @@ async def _send_text(bot: Bot, chat_id: int, reply_markup: InlineKeyboardMarkup 
                 text=NEW_MESSAGE_TEXT,
                 disable_web_page_preview=True,
                 parse_mode=ParseMode.MARKDOWN_V2,
-                reply_markup=reply_markup,
+                reply_markup=REPLY_MARKUP,
             )
             return True
         except Exception as e2:
@@ -123,7 +118,6 @@ async def _send_single(
     chat_id: int,
     is_video: bool,
     media: str | FSInputFile,
-    reply_markup: InlineKeyboardMarkup | None = None,
 ) -> bool:
     try:
         if is_video:
@@ -133,7 +127,7 @@ async def _send_single(
                 caption=NEW_MESSAGE_TEXT,
                 supports_streaming=True,
                 parse_mode=ParseMode.MARKDOWN_V2,
-                reply_markup=reply_markup,
+                reply_markup=REPLY_MARKUP,
             )
         else:
             await bot.send_photo(
@@ -141,7 +135,7 @@ async def _send_single(
                 photo=media,
                 caption=NEW_MESSAGE_TEXT,
                 parse_mode=ParseMode.MARKDOWN_V2,
-                reply_markup=reply_markup,
+                reply_markup=REPLY_MARKUP,
             )
         return True
     except TelegramRetryAfter as e:
@@ -156,7 +150,7 @@ async def _send_single(
                     caption=NEW_MESSAGE_TEXT,
                     supports_streaming=True,
                     parse_mode=ParseMode.MARKDOWN_V2,
-                    reply_markup=reply_markup,
+                    reply_markup=REPLY_MARKUP,
                 )
             else:
                 await bot.send_photo(
@@ -164,7 +158,7 @@ async def _send_single(
                     photo=media,
                     caption=NEW_MESSAGE_TEXT,
                     parse_mode=ParseMode.MARKDOWN_V2,
-                    reply_markup=reply_markup,
+                    reply_markup=REPLY_MARKUP,
                 )
             return True
         except Exception as e2:
@@ -183,12 +177,6 @@ async def _send_single(
 
 async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
     bot: Bot = container.bot()
-    # Resolve bot username once for deep links
-    try:
-        me = await bot.get_me()
-        bot_username = me.username or ""
-    except Exception:
-        bot_username = ""
 
     sem = asyncio.Semaphore(4)  # lower concurrency for media uploads
     success = 0
@@ -212,7 +200,7 @@ async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
         prime_index_map: list[int] = []  # map from media_for_prime index to MEDIA_FILENAMES index
         for idx, path in enumerate(media_paths):
             if path.exists():
-                if _is_video(path):
+                if path.suffix.lower() == ".mp4":
                     media_for_prime.append(InputMediaVideo(media=FSInputFile(path.as_posix())))
                 else:
                     media_for_prime.append(InputMediaPhoto(media=FSInputFile(path.as_posix())))
@@ -237,15 +225,6 @@ async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
                         if sizes:
                             file_ids[target_idx] = sizes[-1].file_id
                 sent_with_media += 1
-                # After album, send user's referral link with keyboard
-                try:
-                    deep_link = f"https://t.me/{bot_username}?start={cid}" if bot_username else ""
-                    url_param = quote_plus(deep_link) if deep_link else ""
-                    share_url = f"https://t.me/share/url?url={url_param}"
-                    markup = broadcast_ref_keyboard(share_url=share_url)
-                    await bot.send_message(cid, f"Ваша реферальная ссылка:\n{deep_link}", reply_markup=markup)
-                except Exception as e:
-                    logger.exception(e)
                 break
             except (TelegramForbiddenError, TelegramBadRequest):
                 continue
@@ -264,13 +243,14 @@ async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
             single_path = media_paths[single_idx]
             for cid in chat_ids:
                 try:
-                    if _is_video(single_path):
+                    if single_path.suffix.lower() == ".mp4":
                         msg = await bot.send_video(
                             chat_id=cid,
                             video=FSInputFile(single_path.as_posix()),
                             caption=NEW_MESSAGE_TEXT,
                             supports_streaming=True,
                             parse_mode=ParseMode.MARKDOWN_V2,
+                            reply_markup=REPLY_MARKUP,
                         )
                         primed_chat = cid
                         file_ids[single_idx] = getattr(getattr(msg, "video", None), "file_id", None)
@@ -282,20 +262,12 @@ async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
                             photo=FSInputFile(single_path.as_posix()),
                             caption=NEW_MESSAGE_TEXT,
                             parse_mode=ParseMode.MARKDOWN_V2,
+                            reply_markup=REPLY_MARKUP,
                         )
                         primed_chat = cid
                         sizes = getattr(msg, "photo", None) or []
                         file_ids[single_idx] = sizes[-1].file_id if sizes else None
                         sent_with_media += 1
-                        # After priming single media, send user's referral link with keyboard
-                        try:
-                            deep_link = f"https://t.me/{bot_username}?start={cid}" if bot_username else ""
-                            url_param = quote_plus(deep_link) if deep_link else ""
-                            share_url = f"https://t.me/share/url?url={url_param}"
-                            markup = broadcast_ref_keyboard(share_url=share_url)
-                            await bot.send_message(cid, f"Ваша реферальная ссылка:\n{deep_link}", reply_markup=markup)
-                        except Exception as e:
-                            logger.exception(e)
                         break
                 except (TelegramForbiddenError, TelegramBadRequest):
                     continue
@@ -328,7 +300,7 @@ async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
                         if target is None:
                             continue
 
-                        if _is_video(path):
+                        if path.suffix.lower() == ".mp4":
                             item = InputMediaVideo(media=target)
                         else:
                             item = InputMediaPhoto(media=target)
@@ -342,65 +314,20 @@ async def broadcast(container: Container, chat_ids: Iterable[int]) -> None:
                         delivered = await _send_album(bot, cid, media_group)
                         if delivered:
                             sent_with_media += 1
-                            try:
-                                deep_link = f"https://t.me/{bot_username}?start={cid}" if bot_username else ""
-                                url_param = quote_plus(deep_link) if deep_link else ""
-                                share_url = f"https://t.me/share/url?url={url_param}"
-                                markup = broadcast_ref_keyboard(share_url=share_url)
-                                await bot.send_message(cid, f"Ваша реферальная ссылка:\n{deep_link}", reply_markup=markup)
-                            except Exception as e:
-                                logger.exception(e)
                 elif len(existing) == 1 and single_idx is not None:
                     path = media_paths[single_idx]
                     if file_ids[single_idx]:
-                        if _is_video(path):
-                            # Build per-user markup
-                            deep_link = f"https://t.me/{bot_username}?start={cid}" if bot_username else ""
-                            url_param = quote_plus(deep_link) if deep_link else ""
-                            share_url = f"https://t.me/share/url?url={url_param}"
-                            markup = broadcast_ref_keyboard(share_url=share_url)
-                            delivered = await _send_single(bot, cid, True, file_ids[single_idx], reply_markup=markup)
+                        if path.suffix.lower() == ".mp4":
+                            delivered = await _send_single(bot, cid, True, file_ids[single_idx])
                         else:
-                            deep_link = f"https://t.me/{bot_username}?start={cid}" if bot_username else ""
-                            url_param = quote_plus(deep_link) if deep_link else ""
-                            share_url = f"https://t.me/share/url?url={url_param}"
-                            markup = broadcast_ref_keyboard(share_url=share_url)
-                            delivered = await _send_single(bot, cid, False, file_ids[single_idx], reply_markup=markup)
-                        if delivered:
-                            try:
-                                await bot.send_message(cid, f"Ваша реферальная ссылка:\n{deep_link}", reply_markup=markup)
-                            except Exception as e:
-                                logger.exception(e)
+                            delivered = await _send_single(bot, cid, False, file_ids[single_idx])
                     elif path.exists():
-                        if _is_video(path):
-                            deep_link = f"https://t.me/{bot_username}?start={cid}" if bot_username else ""
-                            url_param = quote_plus(deep_link) if deep_link else ""
-                            share_url = f"https://t.me/share/url?url={url_param}"
-                            markup = broadcast_ref_keyboard(share_url=share_url)
-                            delivered = await _send_single(bot, cid, True, FSInputFile(path.as_posix()), reply_markup=markup)
+                        if path.suffix.lower() == ".mp4":
+                            delivered = await _send_single(bot, cid, True, FSInputFile(path.as_posix()))
                         else:
-                            deep_link = f"https://t.me/{bot_username}?start={cid}" if bot_username else ""
-                            url_param = quote_plus(deep_link) if deep_link else ""
-                            share_url = f"https://t.me/share/url?url={url_param}"
-                            markup = broadcast_ref_keyboard(share_url=share_url)
-                            delivered = await _send_single(bot, cid, False, FSInputFile(path.as_posix()), reply_markup=markup)
-                        if delivered:
-                            try:
-                                await bot.send_message(cid, f"Ваша реферальная ссылка:\n{deep_link}", reply_markup=markup)
-                            except Exception as e:
-                                logger.exception(e)
+                            delivered = await _send_single(bot, cid, False, FSInputFile(path.as_posix()))
                 else:
-                    # Text-only: add per-user markup
-                    deep_link = f"https://t.me/{bot_username}?start={cid}" if bot_username else ""
-                    url_param = quote_plus(deep_link) if deep_link else ""
-                    share_url = f"https://t.me/share/url?url={url_param}"
-                    markup = broadcast_ref_keyboard(share_url=share_url)
-                    delivered = await _send_text(bot, cid, reply_markup=markup)
-                    # Also send the raw deep link for easy copy
-                    try:
-                        await bot.send_message(cid, f"Ваша реферальная ссылка:\n{deep_link}", reply_markup=markup)
-                    except Exception as e:
-                        logger.exception(e)
+                    delivered = await _send_text(bot, cid)
 
                 success += int(delivered)
                 total += 1
