@@ -300,9 +300,13 @@ class OpenAIService(AbcOpenAIService):
                             inline_keyboard=[
                                 [
                                     InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
+                                ],
+                                [
                                     InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
+                                ],
+                                [
                                     InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
-                                ]
+                                ],
                             ]
                         ),
                     )
