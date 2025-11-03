@@ -31,9 +31,13 @@ async def suno_handle(
         logger.exception("Suno webhook: bad JSON body")
         return web.json_response({"ok": False, "error": "bad json"}, status=400)
 
-    user_id = request.query.get("user_id")
-    if not user_id:
+    user_id_raw = request.query.get("user_id")
+    if not user_id_raw:
         return web.json_response({"ok": False, "error": "no user_id"}, status=400)
+    try:
+        chat_id = int(user_id_raw)
+    except (TypeError, ValueError):
+        return web.json_response({"ok": False, "error": "bad user_id"}, status=400)
 
     code = body.get("code")
     data = body.get("data") or {}
@@ -53,11 +57,11 @@ async def suno_handle(
                 audio_url = t.get("audio_url")
                 title = t.get("title")
                 await bot.send_audio(
-                    user_id, audio_url, caption=caption, title=title
+                    chat_id, audio_url, caption=caption, title=title
                 )
 
             key = StorageKey(
-                bot_id=bot.id, chat_id=int(user_id), user_id=int(user_id)
+                bot_id=bot.id, chat_id=chat_id, user_id=chat_id
             )
             fsm = FSMContext(storage=dp.storage, key=key)
             await fsm.update_data(
@@ -69,7 +73,7 @@ async def suno_handle(
             )
 
             await bot.send_message(
-                user_id,
+                chat_id,
                 "✅ Вернись /start, чтобы выбрать новый режим и задать новую задачу.",
             )
         elif code == 200:
@@ -81,21 +85,21 @@ async def suno_handle(
                 code,
                 callback_type,
             )
-            await bot.send_message(user_id, support_text, parse_mode=None)
+            await bot.send_message(chat_id, support_text, parse_mode=None)
             try:
                 amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.suno_music]))
-                await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.suno_refund)
+                await user_service.add_tokens_by_telegram_id(chat_id, amount, TransactionReasonEnum.suno_refund)
             except Exception:
-                logger.exception("Failed to refund tokens for Suno error user=%s", user_id)
+                logger.exception("Failed to refund tokens for Suno error user=%s", chat_id)
     except Exception:
-        logger.exception("Error sending Suno result to user %s", user_id)
+        logger.exception("Error sending Suno result to user %s", chat_id)
         try:
-            await bot.send_message(user_id, support_text, parse_mode=None)
+            await bot.send_message(chat_id, support_text, parse_mode=None)
             try:
                 amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.suno_music]))
-                await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.suno_refund)
+                await user_service.add_tokens_by_telegram_id(chat_id, amount, TransactionReasonEnum.suno_refund)
             except Exception:
-                logger.exception("Failed to refund tokens for Suno error user=%s", user_id)
+                logger.exception("Failed to refund tokens for Suno error user=%s", chat_id)
         except Exception:
             pass
 

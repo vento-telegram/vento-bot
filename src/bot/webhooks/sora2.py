@@ -28,9 +28,13 @@ async def sora2_handle(
         logger.exception("Sora2 webhook: bad JSON body")
         return web.json_response({"ok": False, "error": "bad json"}, status=400)
 
-    user_id = request.query.get("user_id")
-    if not user_id:
+    user_id_raw = request.query.get("user_id")
+    if not user_id_raw:
         return web.json_response({"ok": False, "error": "no user_id"}, status=400)
+    try:
+        chat_id = int(user_id_raw)
+    except (TypeError, ValueError):
+        return web.json_response({"ok": False, "error": "bad user_id"}, status=400)
 
     code = body.get("code")
     data = body.get("data") or {}
@@ -59,16 +63,16 @@ async def sora2_handle(
         if code == 200 and state == "success" and result_urls:
             caption = "🎬 Твоё видео готово!\n\n✨ Создано с помощью [Vento](https://t.me/vento_toolbot)"
             try:
-                await bot.send_video(user_id, result_urls[0], caption=caption)
+                await bot.send_video(chat_id, result_urls[0], caption=caption)
             except Exception:
-                await bot.send_message(user_id, f"Ссылка: {result_urls[0]}")
+                await bot.send_message(chat_id, f"Ссылка: {result_urls[0]}")
             for extra_url in (result_urls[1:] or []):
                 try:
-                    await bot.send_video(user_id, extra_url, caption=caption)
+                    await bot.send_video(chat_id, extra_url, caption=caption)
                 except Exception:
-                    await bot.send_message(user_id, f"Ссылка: {extra_url}")
+                    await bot.send_message(chat_id, f"Ссылка: {extra_url}")
         elif code == 200 and state in {"waiting"}:
-            await bot.send_message(user_id, "Задача Sora 2 выполняется... Ещё немного и всё будет готово.")
+            await bot.send_message(chat_id, "Задача Sora 2 выполняется... Ещё немного и всё будет готово.")
         else:
             msg = (data.get("failMsg") or body.get("msg") or "").strip()
             if msg:
@@ -84,24 +88,24 @@ async def sora2_handle(
                     "• отправить только текстовое описание без изображения.\n\n"
                     "После правки просто пришли запрос ещё раз."
                 )
-                await bot.send_message(user_id, text, parse_mode=None)
+                await bot.send_message(chat_id, text, parse_mode=None)
                 try:
                     amount = int((await settings_service.get_value(price_key)) or price_default)
-                    await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
+                    await user_service.add_tokens_by_telegram_id(chat_id, amount, TransactionReasonEnum.sora2_refund)
                 except Exception:
-                    logger.exception("Failed to refund tokens for Sora2 photorealistic error user=%s", user_id)
+                    logger.exception("Failed to refund tokens for Sora2 photorealistic error user=%s", chat_id)
             elif ("violate" in low and "polic" in low) or ("content may violate openai" in low):
                 text = (
                     "🚫 Контент не прошёл проверку политики OpenAI.\n\n"
                     "Попробуй переформулировать запрос без тем: насилие, эротика/нагота, несовершеннолетние, опасные или незаконные действия, личные данные, дискриминация и т.п.\n\n"
                     "Сделай описание нейтральнее и отправь снова."
                 )
-                await bot.send_message(user_id, text, parse_mode=None)
+                await bot.send_message(chat_id, text, parse_mode=None)
                 try:
                     amount = int((await settings_service.get_value(price_key)) or price_default)
-                    await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
+                    await user_service.add_tokens_by_telegram_id(chat_id, amount, TransactionReasonEnum.sora2_refund)
                 except Exception:
-                    logger.exception("Failed to refund tokens for Sora2 policy error user=%s", user_id)
+                    logger.exception("Failed to refund tokens for Sora2 policy error user=%s", chat_id)
             elif "third-party" in low:
                 text = (
                     "🚫 Запрос затрагивает сходство реальных людей (third‑party likeness).\n\n"
@@ -112,12 +116,12 @@ async def sora2_handle(
                     "• использовать Veo3;\n"
                     "• описать образ обобщённо: ‘молодой мужчина’ вместо имени."
                 )
-                await bot.send_message(user_id, text, parse_mode=None)
+                await bot.send_message(chat_id, text, parse_mode=None)
                 try:
                     amount = int((await settings_service.get_value(price_key)) or price_default)
-                    await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
+                    await user_service.add_tokens_by_telegram_id(chat_id, amount, TransactionReasonEnum.sora2_refund)
                 except Exception:
-                    logger.exception("Failed to refund tokens for Sora2 likeness error user=%s", user_id)
+                    logger.exception("Failed to refund tokens for Sora2 likeness error user=%s", chat_id)
             elif ("nudity" in low) or ("sexuality" in low) or ("erotic" in low):
                 text = (
                     "🚫 Запрос содержит наготу или сексуальный/эротический контент.\n\n"
@@ -127,23 +131,23 @@ async def sora2_handle(
                     "• добавить: ‘без эротического контента’, ‘без наготы’, ‘PG‑13’;\n"
                     "• строго исключить несовершеннолетних."
                 )
-                await bot.send_message(user_id, text, parse_mode=None)
+                await bot.send_message(chat_id, text, parse_mode=None)
                 try:
                     amount = int((await settings_service.get_value(price_key)) or price_default)
-                    await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
+                    await user_service.add_tokens_by_telegram_id(chat_id, amount, TransactionReasonEnum.sora2_refund)
                 except Exception:
-                    logger.exception("Failed to refund tokens for Sora2 NSFW error user=%s", user_id)
+                    logger.exception("Failed to refund tokens for Sora2 NSFW error user=%s", chat_id)
             else:
-                await bot.send_message(user_id, support_text, parse_mode=None)
+                await bot.send_message(chat_id, support_text, parse_mode=None)
                 try:
                     amount = int((await settings_service.get_value(price_key)) or price_default)
-                    await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.sora2_refund)
+                    await user_service.add_tokens_by_telegram_id(chat_id, amount, TransactionReasonEnum.sora2_refund)
                 except Exception:
-                    logger.exception("Failed to refund tokens for Sora2 error user=%s", user_id)
+                    logger.exception("Failed to refund tokens for Sora2 error user=%s", chat_id)
     except Exception:
-        logger.exception("Error sending Sora2 webhook result to user %s", user_id)
+        logger.exception("Error sending Sora2 webhook result to user %s", chat_id)
         try:
-            await bot.send_message(user_id, support_text, parse_mode=None)
+            await bot.send_message(chat_id, support_text, parse_mode=None)
         except Exception:
             pass
 

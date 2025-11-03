@@ -30,9 +30,13 @@ async def nano_banana_handle(
 
     logger.info(f"Nano Banana webhook: {body}")
 
-    user_id = request.query.get("user_id")
-    if not user_id:
+    user_id_raw = request.query.get("user_id")
+    if not user_id_raw:
         return web.json_response({"ok": False, "error": "no user_id"}, status=400)
+    try:
+        chat_id = int(user_id_raw)
+    except (TypeError, ValueError):
+        return web.json_response({"ok": False, "error": "bad user_id"}, status=400)
 
     code = body.get("code")
     data = body.get("data") or {}
@@ -60,11 +64,11 @@ async def nano_banana_handle(
     try:
         if code == 200 and state == "success" and result_urls:
             caption = "🏞️ Твоё изображение готово!\n\n✨ Cоздано с помощью [Vento](https://t.me/vento_toolbot)"
-            await bot.send_photo(user_id, result_urls[0], caption=caption)
+            await bot.send_photo(chat_id, result_urls[0], caption=caption)
             for extra_url in result_urls[1:]:
-                await bot.send_photo(user_id, extra_url, caption=caption)
+                await bot.send_photo(chat_id, extra_url, caption=caption)
         elif code == 200 and state in {"waiting"}:
-            await bot.send_message(user_id, "Задача создаётся... Ещё немного.")
+            await bot.send_message(chat_id, "Задача создаётся... Ещё немного.")
         else:
             logger.warning(
                 "Nano Banana webhook: non-success or missing results: code=%s fail_code=%s state=%s error=%r",
@@ -77,7 +81,7 @@ async def nano_banana_handle(
             logger.info(normalized_error_message)
             if "flagged as sensitive" in normalized_error_message:
                 await bot.send_message(
-                    user_id,
+                    chat_id,
                     "🤐 Nano Banana отклонила запрос, потому что распознала чувствительное содержимое (цензура).\n\n"
                     "Пожалуйста, измените описание: избегайте запрещённых тем и используйте более нейтральные формулировки.",
                     parse_mode=None,
@@ -85,31 +89,31 @@ async def nano_banana_handle(
                 handled_error = True
             elif "no image content found in response" in normalized_error_message:
                 await bot.send_message(
-                    user_id,
+                    chat_id,
                     "🤐 Nano Banana не поняла запрос и не смогла создать изображение.\n\n"
                     "Пожалуйста, измените формулировку: опишите сцену подробнее, уточните стиль или добавьте контекст.",
                     parse_mode=None,
                 )
                 handled_error = True
             elif fail_code == '422':
-                await bot.send_message(user_id, support_text, parse_mode=None)
+                await bot.send_message(chat_id, support_text, parse_mode=None)
                 handled_error = True
             if not handled_error:
-                await bot.send_message(user_id, support_text, parse_mode=None)
+                await bot.send_message(chat_id, support_text, parse_mode=None)
             try:
                 amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana]))
-                await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.nano_banana_refund)
+                await user_service.add_tokens_by_telegram_id(chat_id, amount, TransactionReasonEnum.nano_banana_refund)
             except Exception:
-                logger.exception("Failed to refund tokens for Nano Banana error user=%s", user_id)
+                logger.exception("Failed to refund tokens for Nano Banana error user=%s", chat_id)
     except Exception:
-        logger.exception("Error sending Nano Banana result to user %s", user_id)
+        logger.exception("Error sending Nano Banana result to user %s", chat_id)
         try:
-            await bot.send_message(user_id, support_text, parse_mode=None)
+            await bot.send_message(chat_id, support_text, parse_mode=None)
             try:
                 amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana]))
-                await user_service.add_tokens_by_telegram_id(int(user_id), amount, TransactionReasonEnum.nano_banana_refund)
+                await user_service.add_tokens_by_telegram_id(chat_id, amount, TransactionReasonEnum.nano_banana_refund)
             except Exception:
-                logger.exception("Failed to refund tokens for Nano Banana error user=%s", user_id)
+                logger.exception("Failed to refund tokens for Nano Banana error user=%s", chat_id)
         except Exception:
             pass
 
