@@ -23,5 +23,6 @@ class AbcOpenAIService(ABC):
         message: Message,
         state: FSMContext,
         user: UserEntity,
+        image_size: str,
     ) -> None:
         ...

@@ -121,8 +121,10 @@ class OpenAIService(AbcOpenAIService):
         message: Message,
         state: FSMContext,
         user: UserEntity,
+        image_size: str,
     ) -> None:
         logger.info("START")
+        selected_image_size = image_size or "auto"
         request_price = int(await self._settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana]))
         if user.balance < request_price:
             raise InsufficientBalanceError
@@ -175,12 +177,14 @@ class OpenAIService(AbcOpenAIService):
 
                 expires_at = now + quiet_seconds
                 logger.info(f"expires at: {expires_at}")
+                group_image_size = group.get("image_size") or selected_image_size
 
                 group.update({
                     "file_ids": file_ids,
                     "caption": caption,
                     "expires_at": expires_at,
                     "finalized": False,
+                    "image_size": group_image_size,
                 })
                 logger.info(f"group updated: {group}")
                 NB_MEDIA_GROUPS[lock_key] = group
@@ -222,6 +226,7 @@ class OpenAIService(AbcOpenAIService):
             user=user,
             image_urls=image_urls,
             prompt_text=prompt_text,
+            image_size=selected_image_size,
         )
         await message.answer(
             "🧑‍🎨 *Работаю над изображением...*\n\n"
@@ -269,6 +274,7 @@ class OpenAIService(AbcOpenAIService):
             logger.info(f"caption: {caption}")
             image_urls: list[str] = []
             prompt_text = (message.caption or "").strip()
+            group_image_size = group.get("image_size") or "auto"
             for fid in file_ids:
                 try:
                     url = await self._get_telegram_file_url(message.bot, fid)
@@ -291,7 +297,7 @@ class OpenAIService(AbcOpenAIService):
 
             try:
                 logger.info("submit")
-                await self._submit_nano_task(user=user, image_urls=image_urls, prompt_text=caption)
+                await self._submit_nano_task(user=user, image_urls=image_urls, prompt_text=caption, image_size=group_image_size)
             except InsufficientBalanceError:
                 try:
                     await message.answer(
@@ -339,13 +345,13 @@ class OpenAIService(AbcOpenAIService):
         except Exception:
             logger.exception("Unexpected error in media group finalizer")
 
-    async def _submit_nano_task(self, user: UserEntity, image_urls: list[str], prompt_text: str) -> None:
+    async def _submit_nano_task(self, user: UserEntity, image_urls: list[str], prompt_text: str, image_size: str) -> None:
         model_name = "google/nano-banana-edit" if image_urls else "google/nano-banana"
 
         input_obj: dict[str, Any] = {
             "prompt": prompt_text,
             "output_format": "png",
-            "image_size": "auto",
+            "image_size": image_size or "auto",
         }
         if image_urls:
             input_obj["image_urls"] = image_urls

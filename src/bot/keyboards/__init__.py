@@ -7,6 +7,10 @@ from .suno import (
     suno_prompt_keyboard,
     suno_input_mode_keyboard,
 )
+from .nano import (
+    nano_format_keyboard,
+    nano_main_settings_keyboard,
+)
 from .veo import (
     veo_aspect_keyboard,
     veo_quality_keyboard,

@@ -25,6 +25,7 @@ from bot.keyboards.suno import (
     suno_main_settings_keyboard,
     suno_prompt_keyboard,
 )
+from bot.keyboards.nano import nano_main_settings_keyboard
 from bot.utils.telegram_format import prepare_telegram_messages_from_markdown
 from bot.settings import settings
 
@@ -194,8 +195,16 @@ async def common_message_handler(
             await status_msg.edit_text("*☹️ OpenAI отклонил твой запрос*\n\nПожалуйста, попробуй изменить его.")
 
     elif mode == BotModeEnum.nano_banana:
+        state_data = await state.get_data()
+        image_size = state_data.get("nano_format")
+        if not image_size:
+            await message.answer(
+                "Сначала выбери формат изображения Nano Banana.",
+                reply_markup=nano_main_settings_keyboard(image_size),
+            )
+            return
         try:
-            await openai_service.submit_nano_banana_request(message, state, user)
+            await openai_service.submit_nano_banana_request(message, state, user, image_size)
         except InsufficientBalanceError:
             await message.answer(
                 "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",

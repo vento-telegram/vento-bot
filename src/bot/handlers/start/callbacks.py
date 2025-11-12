@@ -45,6 +45,11 @@ from bot.keyboards.veo import (
     veo_main_settings_keyboard,
     veo_quality_keyboard,
 )
+from bot.keyboards.nano import (
+    NANO_FORMAT_OPTIONS,
+    nano_format_keyboard,
+    nano_main_settings_keyboard,
+)
 from bot.keyboards.sora2 import (
     sora2_aspect_keyboard,
     sora2_main_settings_keyboard,
@@ -58,6 +63,14 @@ from bot.settings import settings
 from sqlalchemy import select, func
 
 router = Router()
+
+NANO_MODE_TEXT = (
+    "📏 Выбери формат картинки. \n\n"
+    "🖊️ Отправь текст, чтобы создать изображение.\n\n"
+    "🖼️ Отправь фото с подписью, чтобы отредактировать изображение.\n\n"
+    "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start\n\n"
+)
+NANO_CHOOSE_FORMAT_TEXT = "Выбери формат изображения для Nano Banana:"
 
 # Helper: check if user has ever purchased any token bundle
 from sqlalchemy import select
@@ -673,16 +686,15 @@ async def set_mode_nano_banana(
     call: CallbackQuery,
     state: FSMContext,
 ):
-    await state.update_data(mode=BotModeEnum.nano_banana, history=[])
-    await call.answer("Режим Nano Banana активирован")
+    await state.update_data(mode=BotModeEnum.nano_banana, history=[], nano_format=None)
+    await call.answer("Nano Banana выбран")
     try:
         await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.nano_banana))
     except Exception:
         pass
     await call.message.answer(
-        "🖊️ Отправь текст, чтобы создать изображение.\n\n"
-        "🖼️ Отправь фото с подписью, чтобы отредактировать изображение.\n\n"
-        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+        NANO_MODE_TEXT,
+        reply_markup=nano_main_settings_keyboard(None),
     )
 
 @router.callback_query(F.data == "nano_banana:open")
@@ -690,13 +702,79 @@ async def open_nano_banana_noedit(
     call: CallbackQuery,
     state: FSMContext,
 ):
-    await state.update_data(mode=BotModeEnum.nano_banana, history=[])
-    await call.answer("Режим Nano Banana активирован")
+    data = await state.get_data()
+    current_format = data.get("nano_format")
+    await state.update_data(mode=BotModeEnum.nano_banana, history=[], nano_format=current_format)
+    await call.answer("Nano Banana выбран")
     await call.message.answer(
-        "🖊️ Отправь текст, чтобы создать изображение.\n\n"
-        "🖼️ Отправь фото с подписью, чтобы отредактировать изображение.\n\n"
-        "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
+        NANO_MODE_TEXT,
+        reply_markup=nano_main_settings_keyboard(current_format),
     )
+
+
+@router.callback_query(F.data == "nano:open:format")
+async def nano_open_format(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    data = await state.get_data()
+    current_format = data.get("nano_format")
+    await call.answer()
+    try:
+        await call.message.edit_text(
+            NANO_CHOOSE_FORMAT_TEXT,
+            reply_markup=nano_format_keyboard(current_format),
+        )
+    except Exception:
+        try:
+            await call.message.edit_reply_markup(reply_markup=nano_format_keyboard(current_format))
+        except Exception:
+            pass
+
+
+@router.callback_query(F.data == "nano:main")
+async def nano_back_to_main(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    data = await state.get_data()
+    current_format = data.get("nano_format")
+    await call.answer()
+    try:
+        await call.message.edit_text(
+            NANO_MODE_TEXT,
+            reply_markup=nano_main_settings_keyboard(current_format),
+        )
+    except Exception:
+        try:
+            await call.message.edit_reply_markup(reply_markup=nano_main_settings_keyboard(current_format))
+        except Exception:
+            pass
+
+
+@router.callback_query(F.data.startswith("nano:format:"))
+async def nano_set_format(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    raw = call.data or ""
+    prefix = "nano:format:"
+    format_value = raw[len(prefix):] if raw.startswith(prefix) else raw.split(":", maxsplit=2)[-1]
+    if format_value not in NANO_FORMAT_OPTIONS:
+        await call.answer("Недоступный формат", show_alert=True)
+        return
+    await state.update_data(nano_format=format_value)
+    await call.answer(f"Формат: {format_value}")
+    try:
+        await call.message.edit_text(
+            NANO_MODE_TEXT,
+            reply_markup=nano_main_settings_keyboard(format_value),
+        )
+    except Exception:
+        try:
+            await call.message.edit_reply_markup(reply_markup=nano_main_settings_keyboard(format_value))
+        except Exception:
+            pass
 
 @router.callback_query(F.data == "set_mode:suno_music")
 async def set_mode_suno_music(
