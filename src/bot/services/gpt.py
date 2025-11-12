@@ -348,10 +348,15 @@ class OpenAIService(AbcOpenAIService):
     async def _submit_nano_task(self, user: UserEntity, image_urls: list[str], prompt_text: str, image_size: str) -> None:
         model_name = "google/nano-banana-edit" if image_urls else "google/nano-banana"
 
+        effective_image_size = image_size or "auto"
+        if effective_image_size == "original" and not image_urls:
+            # "Original" only applies to edit requests where user provided an image
+            effective_image_size = "auto"
+
         input_obj: dict[str, Any] = {
             "prompt": prompt_text,
             "output_format": "png",
-            "image_size": image_size or "auto",
+            "image_size": effective_image_size,
         }
         if image_urls:
             input_obj["image_urls"] = image_urls
