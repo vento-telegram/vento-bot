@@ -349,15 +349,21 @@ class OpenAIService(AbcOpenAIService):
         model_name = "google/nano-banana-edit" if image_urls else "google/nano-banana"
 
         effective_image_size = image_size or "auto"
-        if effective_image_size == "original" and not image_urls:
-            # "Original" only applies to edit requests where user provided an image
-            effective_image_size = "auto"
+        include_image_size = True
+        if effective_image_size == "original":
+            if image_urls:
+                # The KIE API rejects "original" for edit jobs if we pass it explicitly.
+                include_image_size = False
+            else:
+                # "Original" only has meaning for edit requests – fall back to auto for generation.
+                effective_image_size = "auto"
 
         input_obj: dict[str, Any] = {
             "prompt": prompt_text,
             "output_format": "png",
-            "image_size": effective_image_size,
         }
+        if include_image_size:
+            input_obj["image_size"] = effective_image_size
         if image_urls:
             input_obj["image_urls"] = image_urls
 
