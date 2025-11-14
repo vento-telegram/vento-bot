@@ -52,12 +52,13 @@ async def start_handler(
     user, is_new = await user_service.is_user_new(message.from_user, ref_from=ref_from)
     # Notify inviter on new signup bonus (+10)
     if is_new:
-        logger.info(f"ref_from: {ref_from}, int: {int(ref_from)}, ")
         inviter_tid: int | None = None
-        try:
-            inviter_tid = int(ref_from) if ref_from else None
-        except Exception:
-            inviter_tid = None
+        if ref_from:
+            try:
+                inviter_tid = int(ref_from)
+            except (TypeError, ValueError):
+                inviter_tid = None
+        logger.info("ref_from=%s, inviter_tid=%s", ref_from, inviter_tid)
         if inviter_tid and inviter_tid != message.from_user.id:
             try:
                 uname = message.from_user.username if message.from_user.username else None
