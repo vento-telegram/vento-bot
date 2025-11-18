@@ -661,7 +661,7 @@ async def set_mode_chatgpt(
     except Exception:
         pass
     await call.message.answer(
-        "🤖 Теперь на твои сообщения будет отвечать *GPT-5*.\n\n"
+        "🤖 Теперь на твои сообщения будет отвечать *GPT-5.1*.\n\n"
         "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start"
     )
 
