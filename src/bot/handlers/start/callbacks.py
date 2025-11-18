@@ -1457,7 +1457,7 @@ async def goto_switch(
 
     text = (
         "👾 *Выбор ИИ*\n\n"
-        f"🤖 *GPT‑5* | *{gpt_price}* токенов\n"
+        f"🤖 *GPT‑5.1* | *{gpt_price}* токенов\n"
         "Самый продвинутый ИИ-чат.\n\n"
         f"⚡ *GPT‑5 Mini* | *{mini_price}* токен\n"
         "Быстрые и экономные ответы.\n\n"

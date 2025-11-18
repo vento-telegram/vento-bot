@@ -3,7 +3,7 @@ from enum import StrEnum, auto
 
 class BotModeEnum(StrEnum):
     passive = "Не выбран"
-    gpt = "GPT-5"
+    gpt = "GPT-5.1"
     gpt_mini = "GPT-5 Mini"
     nano_banana = "Nano Banana"
     suno_music = "Suno"
