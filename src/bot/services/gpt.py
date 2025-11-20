@@ -26,6 +26,7 @@ from bot.interfaces.services.subscription import AbcSubscriptionService
 from bot.interfaces.uow import AbcUnitOfWork
 from bot.schemas import GPTMessageResponse
 from bot.settings import settings
+from bot.utils.mode import normalize_mode
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,10 @@ class OpenAIService(AbcOpenAIService):
         user: UserEntity
     ) -> GPTMessageResponse:
         state_data = await state.get_data()
-        mode: BotModeEnum = state_data.get("mode")
+        raw_mode = state_data.get("mode", BotModeEnum.passive)
+        mode = normalize_mode(raw_mode)
+        if raw_mode not in (None, "") and raw_mode != mode:
+            await state.update_data(mode=mode)
         request_price = int(await self._settings_service.get_value(settings_models_mapper[mode]))
         history = state_data.get("history", [])
         charged_tokens = False

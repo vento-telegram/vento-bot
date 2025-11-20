@@ -14,6 +14,7 @@ from bot.interfaces.services.settings import AbcSettingsService
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.services.subscription import AbcSubscriptionService
 from bot.keyboards.start import start_keyboard
+from bot.utils.mode import normalize_mode
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,10 @@ async def start_handler(
     subscription_service: AbcSubscriptionService = Provide[Container.subscription_service],
 ):
     state_data = await state.get_data()
+    raw_mode = state_data.get('mode', BotModeEnum.passive)
+    current_mode = normalize_mode(raw_mode)
+    if raw_mode not in (None, "") and raw_mode != current_mode:
+        await state.update_data(mode=current_mode)
     ref_from: str | None = None
     try:
         raw_text = (message.text or "").strip()
@@ -107,7 +112,6 @@ async def start_handler(
             logger.info(f"Exception while sending message. {e}")
             pass
 
-    current_mode = state_data.get('mode', BotModeEnum.passive)
     daily_bonus = await settings_service.get_value("daily_bonus")
 
     text = (

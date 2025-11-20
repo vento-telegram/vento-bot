@@ -26,6 +26,7 @@ from bot.keyboards.suno import (
     suno_prompt_keyboard,
 )
 from bot.keyboards.nano import nano_main_settings_keyboard
+from bot.utils.mode import normalize_mode
 from bot.utils.telegram_format import prepare_telegram_messages_from_markdown
 from bot.settings import settings
 
@@ -60,7 +61,10 @@ async def common_message_handler(
     if (message.text or "").strip().startswith("/"):
         return
     state_data = await state.get_data()
-    mode = state_data.get("mode")
+    raw_mode = state_data.get("mode", BotModeEnum.passive)
+    mode = normalize_mode(raw_mode)
+    if raw_mode not in (None, "") and raw_mode != mode:
+        await state.update_data(mode=mode)
     user = await user_service.get_user(message.from_user.id)
 
     if user.is_blocked:

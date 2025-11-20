@@ -60,6 +60,7 @@ from bot.keyboards.sora2_pro import (
     sora2pro_main_settings_keyboard,
 )
 from bot.settings import settings
+from bot.utils.mode import normalize_mode
 from sqlalchemy import select, func
 
 router = Router()
@@ -1402,7 +1403,11 @@ async def goto_start(
 
     await state.update_data(history=[])
     user, _ = await service.is_user_new(call.from_user)
-    current_mode = (await state.get_data()).get('mode', BotModeEnum.passive)
+    state_data = await state.get_data()
+    raw_mode = state_data.get('mode', BotModeEnum.passive)
+    current_mode = normalize_mode(raw_mode)
+    if raw_mode not in (None, "") and raw_mode != current_mode:
+        await state.update_data(mode=current_mode)
     daily_bonus = await settings.get_value("daily_bonus")
     text = (
         f"👋 Привет, *{call.from_user.first_name}*!\n\n"
@@ -1446,7 +1451,11 @@ async def goto_switch(
     state: FSMContext,
     settings: AbcSettingsService = Provide[Container.settings_service],
 ):
-    current_mode = (await state.get_data()).get("mode", BotModeEnum.passive)
+    state_data = await state.get_data()
+    raw_mode = state_data.get("mode", BotModeEnum.passive)
+    current_mode = normalize_mode(raw_mode)
+    if raw_mode not in (None, "") and raw_mode != current_mode:
+        await state.update_data(mode=current_mode)
 
     gpt_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt])
     mini_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt_mini])
