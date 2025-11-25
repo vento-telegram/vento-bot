@@ -50,6 +50,11 @@ from bot.keyboards.nano import (
     nano_format_keyboard,
     nano_main_settings_keyboard,
 )
+from bot.keyboards.nano_pro import (
+    NANO_PRO_FORMAT_OPTIONS,
+    nano_pro_format_keyboard,
+    nano_pro_main_settings_keyboard,
+)
 from bot.keyboards.sora2 import (
     sora2_aspect_keyboard,
     sora2_main_settings_keyboard,
@@ -68,10 +73,18 @@ router = Router()
 NANO_MODE_TEXT = (
     "📏 Выбери формат картинки. \n\n"
     "🖊️ Отправь текст, чтобы создать изображение.\n\n"
-    "🖼️ Отправь фото с подписью, чтобы отредактировать изображение.\n\n"
+    "🖼️ Отправь фото (или несколько фото) с подписью, чтобы отредактировать изображение.\n\n"
     "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start\n\n"
 )
 NANO_CHOOSE_FORMAT_TEXT = "Выбери формат изображения для Nano Banana:"
+
+NANO_PRO_MODE_TEXT = (
+    "📏 Выбери формат картинки. \n\n"
+    "🖊️ Отправь текст, чтобы создать изображение.\n\n"
+    "🖼️ Отправь фото (или несколько фото) с подписью, чтобы отредактировать изображение.\n\n"
+    "🔄 Если захочешь сменить режим или очистить контекст — используй команду /start\n\n"
+)
+NANO_PRO_CHOOSE_FORMAT_TEXT = "Выбери формат изображения для Nano Banana Pro:"
 
 # Helper: check if user has ever purchased any token bundle
 from sqlalchemy import select
@@ -698,6 +711,22 @@ async def set_mode_nano_banana(
         reply_markup=nano_main_settings_keyboard(None),
     )
 
+@router.callback_query(F.data == "set_mode:nano_banana_pro")
+async def set_mode_nano_banana_pro(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    await state.update_data(mode=BotModeEnum.nano_banana_pro, history=[], nano_pro_format=None)
+    await call.answer("Nano Banana Pro выбран")
+    try:
+        await call.message.edit_reply_markup(reply_markup=mode_keyboard(BotModeEnum.nano_banana_pro))
+    except Exception:
+        pass
+    await call.message.answer(
+        NANO_PRO_MODE_TEXT,
+        reply_markup=nano_pro_main_settings_keyboard(None),
+    )
+
 @router.callback_query(F.data == "nano_banana:open")
 async def open_nano_banana_noedit(
     call: CallbackQuery,
@@ -710,6 +739,20 @@ async def open_nano_banana_noedit(
     await call.message.answer(
         NANO_MODE_TEXT,
         reply_markup=nano_main_settings_keyboard(current_format),
+    )
+
+@router.callback_query(F.data == "nano_banana_pro:open")
+async def open_nano_banana_pro_noedit(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    data = await state.get_data()
+    current_format = data.get("nano_pro_format")
+    await state.update_data(mode=BotModeEnum.nano_banana_pro, history=[], nano_pro_format=current_format)
+    await call.answer("Nano Banana Pro выбран")
+    await call.message.answer(
+        NANO_PRO_MODE_TEXT,
+        reply_markup=nano_pro_main_settings_keyboard(current_format),
     )
 
 
@@ -774,6 +817,89 @@ async def nano_set_format(
     except Exception:
         try:
             await call.message.edit_reply_markup(reply_markup=nano_main_settings_keyboard(format_value))
+        except Exception:
+            pass
+
+@router.callback_query(F.data == "nano_pro:open")
+async def nano_pro_open(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    data = await state.get_data()
+    current_format = data.get("nano_pro_format")
+    await call.answer()
+    try:
+        await call.message.edit_text(
+            NANO_PRO_MODE_TEXT,
+            reply_markup=nano_pro_main_settings_keyboard(current_format),
+        )
+    except Exception:
+        try:
+            await call.message.edit_reply_markup(reply_markup=nano_pro_main_settings_keyboard(current_format))
+        except Exception:
+            pass
+
+@router.callback_query(F.data == "nano_pro:open:format")
+async def nano_pro_open_format(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    data = await state.get_data()
+    current_format = data.get("nano_pro_format")
+    await call.answer()
+    try:
+        await call.message.edit_text(
+            NANO_PRO_CHOOSE_FORMAT_TEXT,
+            reply_markup=nano_pro_format_keyboard(current_format),
+        )
+    except Exception:
+        try:
+            await call.message.edit_reply_markup(reply_markup=nano_pro_format_keyboard(current_format))
+        except Exception:
+            pass
+
+
+@router.callback_query(F.data == "nano_pro:main")
+async def nano_pro_back_to_main(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    data = await state.get_data()
+    current_format = data.get("nano_pro_format")
+    await call.answer()
+    try:
+        await call.message.edit_text(
+            NANO_PRO_MODE_TEXT,
+            reply_markup=nano_pro_main_settings_keyboard(current_format),
+        )
+    except Exception:
+        try:
+            await call.message.edit_reply_markup(reply_markup=nano_pro_main_settings_keyboard(current_format))
+        except Exception:
+            pass
+
+
+@router.callback_query(F.data.startswith("nano_pro:format:"))
+async def nano_pro_set_format(
+    call: CallbackQuery,
+    state: FSMContext,
+):
+    raw = call.data or ""
+    prefix = "nano_pro:format:"
+    format_value = raw[len(prefix):] if raw.startswith(prefix) else raw.split(":", maxsplit=2)[-1]
+    if format_value not in NANO_PRO_FORMAT_OPTIONS:
+        await call.answer("Недоступный формат", show_alert=True)
+        return
+    await state.update_data(nano_pro_format=format_value)
+    await call.answer(f"Формат: {format_value}")
+    try:
+        await call.message.edit_text(
+            NANO_PRO_MODE_TEXT,
+            reply_markup=nano_pro_main_settings_keyboard(format_value),
+        )
+    except Exception:
+        try:
+            await call.message.edit_reply_markup(reply_markup=nano_pro_main_settings_keyboard(format_value))
         except Exception:
             pass
 
@@ -1460,6 +1586,7 @@ async def goto_switch(
     gpt_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt])
     mini_price = await settings.get_value(settings_models_mapper[BotModeEnum.gpt_mini])
     nano_price = await settings.get_value(settings_models_mapper[BotModeEnum.nano_banana])
+    nano_pro_price = await settings.get_value(settings_models_mapper[BotModeEnum.nano_banana_pro])
     suno_price = await settings.get_value(settings_models_mapper[BotModeEnum.suno_music])
     sora_price = await settings.get_value(settings_models_mapper[BotModeEnum.sora2_video])
     sora_pro_price = await settings.get_value(settings_models_mapper[BotModeEnum.sora2_pro_video])
@@ -1470,8 +1597,10 @@ async def goto_switch(
         "Самый продвинутый ИИ-чат.\n\n"
         f"⚡ *GPT‑5 Mini* | *{mini_price}* токен\n"
         "Быстрые и экономные ответы.\n\n"
-        f"🏞️ *Nano Banana* | *{nano_price}* токенов\n"
-        "Создание и редактирование изображений.\n\n"
+        f"🖼️ *Nano Banana* | *{nano_price}* токенов\n"
+        "Создание и редактирование изображений (модель Google).\n\n"
+        f"🏞️ *Nano Banana Pro* | *{nano_pro_price}* токенов\n"
+        "Улучшенное создание и редактирование изображений.\n\n"
         f"🎵 *Suno* | *{suno_price}* токенов\n"
         "Генерация музыки по стилю, описанию/тексту.\n\n"
         f"📹 *Sora 2* и *Veo 3.1* | *{sora_price}* токенов\n"

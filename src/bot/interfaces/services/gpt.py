@@ -26,3 +26,13 @@ class AbcOpenAIService(ABC):
         image_size: str,
     ) -> None:
         ...
+
+    @abstractmethod
+    async def submit_nano_banana_pro_request(
+        self,
+        message: Message,
+        state: FSMContext,
+        user: UserEntity,
+        image_size: str,
+    ) -> None:
+        ...

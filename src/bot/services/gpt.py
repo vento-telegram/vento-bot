@@ -127,7 +127,7 @@ class OpenAIService(AbcOpenAIService):
         user: UserEntity,
         image_size: str,
     ) -> None:
-        logger.info("START")
+        logger.info("START Nano Banana")
         selected_image_size = image_size or "auto"
         request_price = int(await self._settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana]))
         if user.balance < request_price:
@@ -158,7 +158,7 @@ class OpenAIService(AbcOpenAIService):
             logger.info(f"file id: {file_id}")
 
             # Ensure per-group atomicity across service instances
-            lock_key = f"{message.chat.id}:{media_group_id}"
+            lock_key = f"{message.chat.id}:{media_group_id}:nb"
             lock = NB_GROUP_LOCKS.setdefault(lock_key, asyncio.Lock())
             async with lock:
                 data = await state.get_data()
@@ -189,6 +189,7 @@ class OpenAIService(AbcOpenAIService):
                     "expires_at": expires_at,
                     "finalized": False,
                     "image_size": group_image_size,
+                    "model_type": "nano_banana",
                 })
                 logger.info(f"group updated: {group}")
                 NB_MEDIA_GROUPS[lock_key] = group
@@ -205,6 +206,7 @@ class OpenAIService(AbcOpenAIService):
                     message=message,
                     state=state,
                     user=user,
+                    model_type="nano_banana",
                 )
             )
             return
@@ -237,6 +239,125 @@ class OpenAIService(AbcOpenAIService):
             "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
         )
 
+    async def submit_nano_banana_pro_request(
+        self,
+        message: Message,
+        state: FSMContext,
+        user: UserEntity,
+        image_size: str,
+    ) -> None:
+        logger.info("START Nano Banana Pro")
+        selected_image_size = image_size or "auto"
+        request_price = int(await self._settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana_pro]))
+        if user.balance < request_price:
+            raise InsufficientBalanceError
+
+        has_image = bool(message.photo) or (message.document and (message.document.mime_type or "").lower().startswith("image/"))
+        logger.info(f"has image: {has_image}")
+
+        # Normalize media group id to string and handle concurrency
+        media_group_id_raw = message.media_group_id
+        media_group_id = str(media_group_id_raw) if media_group_id_raw is not None else None
+        if media_group_id:
+            logger.info("media_group found")
+            if not has_image:
+                return
+            loop = asyncio.get_running_loop()
+            now = loop.time()
+            quiet_seconds = 0.5
+            logger.info(f"Got loop time {now}")
+
+            # Extract file id from photo or image document
+            if message.photo:
+                file_id = message.photo[-1].file_id
+            elif message.document and (message.document.mime_type or "").lower().startswith("image/"):
+                file_id = message.document.file_id
+            else:
+                return
+            logger.info(f"file id: {file_id}")
+
+            # Ensure per-group atomicity across service instances
+            lock_key = f"{message.chat.id}:{media_group_id}:nbp"
+            lock = NB_GROUP_LOCKS.setdefault(lock_key, asyncio.Lock())
+            async with lock:
+                data = await state.get_data()
+                logger.info(f"data: {data}")
+                groups = dict(data.get("nb_media_groups") or {})
+                logger.info(f"groups: {groups}")
+                group = dict(groups.get(media_group_id) or NB_MEDIA_GROUPS.get(lock_key) or {})
+                logger.info(f"group: {group}")
+
+                file_ids = list(group.get("file_ids") or [])
+                logger.info(f"file_ids initial: {file_ids}")
+                file_ids.append(file_id)
+                logger.info(f"file_ids appended: {file_ids}")
+
+                # Preserve the first non-empty caption in the group
+                existing_caption = (group.get("caption") or "").strip() or None
+                incoming_caption = (message.caption or "").strip() or None
+                caption = existing_caption or incoming_caption
+                logger.info(f"caption: {caption}")
+
+                expires_at = now + quiet_seconds
+                logger.info(f"expires at: {expires_at}")
+                group_image_size = group.get("image_size") or selected_image_size
+
+                group.update({
+                    "file_ids": file_ids,
+                    "caption": caption,
+                    "expires_at": expires_at,
+                    "finalized": False,
+                    "image_size": group_image_size,
+                    "model_type": "nano_banana_pro",
+                })
+                logger.info(f"group updated: {group}")
+                NB_MEDIA_GROUPS[lock_key] = group
+                groups[media_group_id] = group
+                logger.debug(f"groups updated: {groups}")
+                await state.update_data(nb_media_groups=groups)
+
+            logger.info("Creating task")
+
+            asyncio.create_task(
+                self._finalize_nano_media_group_after_quiet_period(
+                    media_group_id=media_group_id,
+                    scheduled_expires_at=expires_at,
+                    message=message,
+                    state=state,
+                    user=user,
+                    model_type="nano_banana_pro",
+                )
+            )
+            return
+
+        if has_image:
+            if message.photo:
+                url = await self._get_telegram_file_url(message.bot, message.photo[-1].file_id)
+            else:
+                url = await self._get_telegram_file_url(message.bot, message.document.file_id)
+            image_urls = [url]
+            prompt_text = (message.caption or "").strip()
+            if not prompt_text:
+                await message.answer("📜 Добавь подпись к фото с инструкцией для редактирования.")
+                return
+        else:
+            image_urls = []
+            prompt_text = (message.text or "").strip()
+            if not prompt_text:
+                await message.answer("✍️ Напиши промпт для генерации изображения.")
+                return
+
+        await self._submit_nano_pro_task(
+            user=user,
+            image_urls=image_urls,
+            prompt_text=prompt_text,
+            image_size=selected_image_size,
+        )
+        await message.answer(
+            "🧑‍🎨 *Работаю над изображением...*\n\n"
+            "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
+        )
+
     async def _finalize_nano_media_group_after_quiet_period(
         self,
         media_group_id: str,
@@ -244,6 +365,7 @@ class OpenAIService(AbcOpenAIService):
         message: Message,
         state: FSMContext,
         user: UserEntity,
+        model_type: str = "nano_banana",
     ) -> None:
         try:
             loop = asyncio.get_running_loop()
@@ -301,7 +423,11 @@ class OpenAIService(AbcOpenAIService):
 
             try:
                 logger.info("submit")
-                await self._submit_nano_task(user=user, image_urls=image_urls, prompt_text=caption, image_size=group_image_size)
+                # Choose the right submit method based on model type
+                if model_type == "nano_banana_pro":
+                    await self._submit_nano_pro_task(user=user, image_urls=image_urls, prompt_text=caption, image_size=group_image_size)
+                else:
+                    await self._submit_nano_task(user=user, image_urls=image_urls, prompt_text=caption, image_size=group_image_size)
             except InsufficientBalanceError:
                 try:
                     await message.answer(
@@ -327,9 +453,10 @@ class OpenAIService(AbcOpenAIService):
                     await state.update_data(nb_media_groups=groups)
                 return
             except Exception:
-                logger.exception("Failed to submit Nano Banana task for media group")
+                model_name = "Nano Banana Pro" if model_type == "nano_banana_pro" else "Nano Banana"
+                logger.exception(f"Failed to submit {model_name} task for media group")
                 try:
-                    await message.answer("Произошла ошибка при отправке в Nano Banana. Попробуйте ещё раз.")
+                    await message.answer(f"Произошла ошибка при отправке в {model_name}. Попробуйте ещё раз.")
                 finally:
                     groups.pop(media_group_id, None)
                     NB_MEDIA_GROUPS.pop(lock_key, None)
@@ -350,7 +477,59 @@ class OpenAIService(AbcOpenAIService):
             logger.exception("Unexpected error in media group finalizer")
 
     async def _submit_nano_task(self, user: UserEntity, image_urls: list[str], prompt_text: str, image_size: str) -> None:
-        model_name = "google/nano-banana-edit" if image_urls else "google/nano-banana"
+        model_name = "google/nano-banana"
+
+        effective_image_size = image_size or "auto"
+        
+        input_obj: dict[str, Any] = {
+            "prompt": prompt_text,
+            "output_format": "png",
+            "image_size": effective_image_size,
+        }
+        if image_urls:
+            input_obj["image_urls"] = image_urls
+
+        payload = {
+            "model": model_name,
+            "input": input_obj,
+            "callBackUrl": self._build_callback_url_nb(user.telegram_id, "nano_banana"),
+        }
+
+        headers = {
+            "Authorization": f"Bearer {settings.KIE.API_KEY}",
+            "Content-Type": "application/json",
+        }
+        url = f"{settings.KIE.BASE_URL}/api/v1/jobs/createTask"
+        
+        logger.info(f"Submitting Nano Banana task: url={url}, payload={json.dumps(payload, ensure_ascii=False, indent=2)}")
+
+        async with ClientSession() as session:
+            async with session.post(url, json=payload, headers=headers) as resp:
+                result = await resp.json()
+                logger.info(f"Nano Banana API response: status={resp.status}, body={json.dumps(result, ensure_ascii=False)}")
+                if resp.status != 200 or result.get("code") != 200:
+                    msg = result.get("msg") or "Ошибка генерации"
+                    logger.error(f"Nano Banana API error: status={resp.status}, code={result.get('code')}, msg={msg}")
+                    raise InsufficientBalanceError if msg == "Insufficient Credits" else Exception(msg)
+                data = (result or {}).get("data") or {}
+                task_id = data.get("taskId")
+                logger.info(f"Nano Banana task created successfully: task_id={task_id}")
+
+        # Charge tokens immediately upon task creation
+        await self._process_tokens_transaction(
+            user_id=user.id,
+            amount=int(await self._settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana])),
+            reason=TransactionReasonEnum.nano_banana_request,
+            meta=json.dumps({
+                "task_id": task_id,
+                "action": "edit" if image_urls else "create",
+                "prompt": prompt_text or None,
+                "image_urls": image_urls or None,
+            }, ensure_ascii=False),
+        )
+
+    async def _submit_nano_pro_task(self, user: UserEntity, image_urls: list[str], prompt_text: str, image_size: str) -> None:
+        model_name = "nano-banana-pro"
 
         effective_image_size = image_size or "auto"
         include_image_size = True
@@ -374,7 +553,7 @@ class OpenAIService(AbcOpenAIService):
         payload = {
             "model": model_name,
             "input": input_obj,
-            "callBackUrl": self._build_callback_url_nb(user.telegram_id),
+            "callBackUrl": self._build_callback_url_nb(user.telegram_id, "nano_banana_pro"),
         }
 
         headers = {
@@ -382,21 +561,26 @@ class OpenAIService(AbcOpenAIService):
             "Content-Type": "application/json",
         }
         url = f"{settings.KIE.BASE_URL}/api/v1/jobs/createTask"
+        
+        logger.info(f"Submitting Nano Banana Pro task: url={url}, payload={json.dumps(payload, ensure_ascii=False, indent=2)}")
 
         async with ClientSession() as session:
             async with session.post(url, json=payload, headers=headers) as resp:
                 result = await resp.json()
+                logger.info(f"Nano Banana Pro API response: status={resp.status}, body={json.dumps(result, ensure_ascii=False)}")
                 if resp.status != 200 or result.get("code") != 200:
                     msg = result.get("msg") or "Ошибка генерации"
+                    logger.error(f"Nano Banana Pro API error: status={resp.status}, code={result.get('code')}, msg={msg}")
                     raise InsufficientBalanceError if msg == "Insufficient Credits" else Exception(msg)
                 data = (result or {}).get("data") or {}
                 task_id = data.get("taskId")
+                logger.info(f"Nano Banana Pro task created successfully: task_id={task_id}")
 
         # Charge tokens immediately upon task creation
         await self._process_tokens_transaction(
             user_id=user.id,
-            amount=int(await self._settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana])),
-            reason=TransactionReasonEnum.nano_banana_request,
+            amount=int(await self._settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana_pro])),
+            reason=TransactionReasonEnum.nano_banana_pro_request,
             meta=json.dumps({
                 "task_id": task_id,
                 "action": "edit" if image_urls else "create",
@@ -405,11 +589,11 @@ class OpenAIService(AbcOpenAIService):
             }, ensure_ascii=False),
         )
 
-    def _build_callback_url_nb(self, telegram_id: int) -> str:
+    def _build_callback_url_nb(self, telegram_id: int, model_type: str = "nano_banana") -> str:
         base = settings.WEBHOOKS.BASE_URL
         if not base:
-            return f"/webhooks/kie-nano?user_id={telegram_id}"
-        return f"{base}/webhooks/kie-nano?user_id={telegram_id}"
+            return f"/webhooks/kie-nano?user_id={telegram_id}&model={model_type}"
+        return f"{base}/webhooks/kie-nano?user_id={telegram_id}&model={model_type}"
 
     async def _transform_for_gpt(self, message: Message) -> ChatCompletionUserMessageParam:
         if message.photo:
@@ -587,7 +771,7 @@ class OpenAIService(AbcOpenAIService):
                 "\n\n"
                 "Если пользователь просит CОЗДАТЬ или СГЕНЕРИРОВАТЬ медиа (картинку/изображение/логотип/обложку/постер, видео/клип/трейлер/анимацию, музыку/песню/аудио), "
                 "не выполняй это в GPT-режиме. Вежливо сообщи, что для медиа в Vento нужно выбрать другой ИИ, и предложи варианты: "
-                "изображения — 'Nano Banana'; музыка — 'Suno'; видео — 'Veo 3.1' или 'Sora 2'. "
+                "изображения — 'Nano Banana Pro'; музыка — 'Suno'; видео — 'Veo 3.1' или 'Sora 2'. "
                 "Подскажи, как переключиться: нажми «👾 Сменить ИИ» или /start → выбери режим. "
                 "Не рисуй ASCII‑арт и не подменяй результат описанием. Если пользователь подтвердил желание переключиться, можно коротко уточнить сюжет/стиль/формат и ждать смены режима. "
                 "Запросы на АНАЛИЗ изображений (описать/проанализировать фото) разрешены."
@@ -600,7 +784,7 @@ class OpenAIService(AbcOpenAIService):
                 "\n\n"
                 "Если пользователь просит CОЗДАТЬ или СГЕНЕРИРОВАТЬ медиа (картинку/изображение/логотип/обложку/постер, видео/клип/трейлер/анимацию, музыку/песню/аудио), "
                 "не выполняй это в GPT-режиме. Вежливо сообщи, что для медиа в Vento нужно выбрать другой ИИ, и предложи варианты: "
-                "изображения — 'Nano Banana'; музыка — 'Suno'; видео — 'Veo 3.1' или 'Sora 2'. "
+                "изображения — 'Nano Banana Pro'; музыка — 'Suno'; видео — 'Veo 3.1' или 'Sora 2'. "
                 "Подскажи, как переключиться: нажми «👾 Сменить ИИ» или /start → выбери режим. "
                 "Не рисуй ASCII‑арт и не подменяй результат описанием. Если пользователь подтвердил желание переключиться, можно коротко уточнить сюжет/стиль/формат и ждать смены режима. "
                 "Запросы на АНАЛИЗ изображений (описать/проанализировать фото) разрешены."

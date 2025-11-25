@@ -37,6 +37,12 @@ async def nano_banana_handle(
         chat_id = int(user_id_raw)
     except (TypeError, ValueError):
         return web.json_response({"ok": False, "error": "bad user_id"}, status=400)
+    
+    # Determine which model type this callback is for
+    model_type = request.query.get("model", "nano_banana")  # default to nano_banana for backward compat
+    is_pro = model_type == "nano_banana_pro"
+    model_name = "Nano Banana Pro" if is_pro else "Nano Banana"
+    logger.info(f"Webhook for model: {model_name} (type={model_type})")
 
     code = body.get("code")
     data = body.get("data") or {}
@@ -48,13 +54,23 @@ async def nano_banana_handle(
     error_message = raw_error_message if isinstance(raw_error_message, str) else ""
     normalized_error_message = error_message.lower()
 
+    # Log the entire data structure for debugging
+    logger.info(f"Webhook full data structure: {json.dumps(data, ensure_ascii=False, indent=2)}")
+    
     result_urls = None
     try:
         if result_json:
             parsed = json.loads(result_json)
             result_urls = parsed.get("resultUrls")
+            logger.info(f"Parsed resultJson: {parsed}, result_urls: {result_urls}")
+        # Try alternative path: data.resultUrls directly
+        elif "resultUrls" in data:
+            result_urls = data.get("resultUrls")
+            logger.info(f"Found resultUrls directly in data: {result_urls}")
     except Exception:
         logger.exception("Nano Banana webhook: failed to parse resultJson")
+    
+    logger.info(f"Webhook parsed - code: {code}, state: {state}, result_urls: {result_urls}, fail_code: {fail_code}")
 
     support_text = (
         f"🚨 Произошла ошибка при взамодействии с моделью.\n\n"
@@ -62,12 +78,22 @@ async def nano_banana_handle(
     )
 
     try:
-        if code == 200 and state == "success" and result_urls:
+        # Check for success: code 200, state is success/completed/succeeded, and we have result URLs
+        is_success = (
+            code == 200 
+            and state in {"success", "completed", "succeeded"} 
+            and result_urls 
+            and len(result_urls) > 0
+        )
+        
+        logger.info(f"Success check: code={code}, state={state}, result_urls={result_urls}, is_success={is_success}")
+        
+        if is_success:
             caption = "🏞️ Твоё изображение готово!\n\n✨ Cоздано с помощью [Vento](https://t.me/vento_toolbot)"
             await bot.send_photo(chat_id, result_urls[0], caption=caption)
             for extra_url in result_urls[1:]:
                 await bot.send_photo(chat_id, extra_url, caption=caption)
-        elif code == 200 and state in {"waiting"}:
+        elif code == 200 and state in {"waiting", "processing", "pending"}:
             await bot.send_message(chat_id, "Задача создаётся... Ещё немного.")
         else:
             logger.warning(
@@ -82,7 +108,7 @@ async def nano_banana_handle(
             if "flagged as sensitive" in normalized_error_message:
                 await bot.send_message(
                     chat_id,
-                    "🤐 Nano Banana отклонила запрос, потому что распознала чувствительное содержимое (цензура).\n\n"
+                    "🤐 Nano Banana Pro отклонила запрос, потому что распознала чувствительное содержимое (цензура).\n\n"
                     "Пожалуйста, измените описание: избегайте запрещённых тем и используйте более нейтральные формулировки.",
                     parse_mode=None,
                 )
@@ -90,7 +116,7 @@ async def nano_banana_handle(
             elif "no image content found in response" in normalized_error_message:
                 await bot.send_message(
                     chat_id,
-                    "🤐 Nano Banana не поняла запрос и не смогла создать изображение.\n\n"
+                    "🤐 Nano Banana Pro не поняла запрос и не смогла создать изображение.\n\n"
                     "Пожалуйста, измените формулировку: опишите сцену подробнее, уточните стиль или добавьте контекст.",
                     parse_mode=None,
                 )
@@ -101,8 +127,10 @@ async def nano_banana_handle(
             if not handled_error:
                 await bot.send_message(chat_id, support_text, parse_mode=None)
             try:
-                amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana]))
-                await user_service.add_tokens_by_telegram_id(chat_id, amount, TransactionReasonEnum.nano_banana_refund)
+                mode = BotModeEnum.nano_banana_pro if is_pro else BotModeEnum.nano_banana
+                refund_reason = TransactionReasonEnum.nano_banana_pro_refund if is_pro else TransactionReasonEnum.nano_banana_refund
+                amount = int(await settings_service.get_value(settings_models_mapper[mode]))
+                await user_service.add_tokens_by_telegram_id(chat_id, amount, refund_reason)
             except Exception:
                 logger.exception("Failed to refund tokens for Nano Banana error user=%s", chat_id)
     except Exception:
@@ -110,8 +138,10 @@ async def nano_banana_handle(
         try:
             await bot.send_message(chat_id, support_text, parse_mode=None)
             try:
-                amount = int(await settings_service.get_value(settings_models_mapper[BotModeEnum.nano_banana]))
-                await user_service.add_tokens_by_telegram_id(chat_id, amount, TransactionReasonEnum.nano_banana_refund)
+                mode = BotModeEnum.nano_banana_pro if is_pro else BotModeEnum.nano_banana
+                refund_reason = TransactionReasonEnum.nano_banana_pro_refund if is_pro else TransactionReasonEnum.nano_banana_refund
+                amount = int(await settings_service.get_value(settings_models_mapper[mode]))
+                await user_service.add_tokens_by_telegram_id(chat_id, amount, refund_reason)
             except Exception:
                 logger.exception("Failed to refund tokens for Nano Banana error user=%s", chat_id)
         except Exception:

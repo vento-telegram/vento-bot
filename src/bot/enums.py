@@ -6,6 +6,7 @@ class BotModeEnum(StrEnum):
     gpt = "GPT-5.1"
     gpt_mini = "GPT-5 Mini"
     nano_banana = "Nano Banana"
+    nano_banana_pro = "Nano Banana Pro"
     suno_music = "Suno"
     veo_video = "Veo 3.1"
     sora2_video = "Sora 2"
@@ -22,6 +23,8 @@ class TransactionReasonEnum(StrEnum):
     gpt_mini_refund = auto()
     nano_banana_request = auto()
     nano_banana_refund = auto()
+    nano_banana_pro_request = auto()
+    nano_banana_pro_refund = auto()
     suno_request = auto()
     suno_refund = auto()
     purchase_stars = auto()

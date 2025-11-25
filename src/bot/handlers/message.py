@@ -26,6 +26,7 @@ from bot.keyboards.suno import (
     suno_prompt_keyboard,
 )
 from bot.keyboards.nano import nano_main_settings_keyboard
+from bot.keyboards.nano_pro import nano_pro_main_settings_keyboard
 from bot.utils.mode import normalize_mode
 from bot.utils.telegram_format import prepare_telegram_messages_from_markdown
 from bot.settings import settings
@@ -229,6 +230,39 @@ async def common_message_handler(
 
         except Exception:
             logger.exception("Unexpected error in Nano Banana handler")
+            await message.answer("Не удалось отправить запрос. Попробуйте ещё раз позже.")
+
+    elif mode == BotModeEnum.nano_banana_pro:
+        state_data = await state.get_data()
+        image_size = state_data.get("nano_pro_format")
+        if not image_size:
+            await message.answer(
+                "Сначала выбери формат изображения Nano Banana Pro.",
+                reply_markup=nano_pro_main_settings_keyboard(image_size),
+            )
+            return
+        try:
+            await openai_service.submit_nano_banana_pro_request(message, state, user, image_size)
+        except InsufficientBalanceError:
+            await message.answer(
+                "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
+                        ],
+                        [
+                            InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
+                        ],
+                        [
+                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
+                        ],
+                    ]
+                ),
+            )
+
+        except Exception:
+            logger.exception("Unexpected error in Nano Banana Pro handler")
             await message.answer("Не удалось отправить запрос. Попробуйте ещё раз позже.")
 
     elif mode == BotModeEnum.suno_music:

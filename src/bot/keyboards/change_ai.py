@@ -7,7 +7,8 @@ def mode_keyboard(active_mode: str | None = None) -> InlineKeyboardMarkup:
     emoji_mapper = {
         BotModeEnum.gpt: "🤖",
         BotModeEnum.gpt_mini: "⚡",
-        BotModeEnum.nano_banana: "🏞️",
+        BotModeEnum.nano_banana: "🖼️",
+        BotModeEnum.nano_banana_pro: "🏞️",
         BotModeEnum.suno_music: "🎵",
         BotModeEnum.veo_video: "🎬",
         BotModeEnum.sora2_video: "📹",
@@ -27,6 +28,9 @@ def mode_keyboard(active_mode: str | None = None) -> InlineKeyboardMarkup:
         [
             mode_button("Nano Banana", "set_mode:nano_banana", BotModeEnum.nano_banana),
             mode_button("Suno", "set_mode:suno_music", BotModeEnum.suno_music),
+        ],
+        [
+            mode_button("Nano Banana Pro", "set_mode:nano_banana_pro", BotModeEnum.nano_banana_pro),
         ],
         [
             mode_button("Veo 3.1", "set_mode:veo_video", BotModeEnum.veo_video),
