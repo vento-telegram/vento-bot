@@ -96,3 +96,7 @@ class UserService(AbcUserService):
     async def list_admins(self) -> list[UserEntity]:
         async with self._uow:
             return await self._uow.user.list_admins()
+
+    async def list_telegram_ids(self) -> list[int]:
+        async with self._uow:
+            return await self._uow.user.list_telegram_ids()

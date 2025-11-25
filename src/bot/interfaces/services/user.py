@@ -39,3 +39,7 @@ class AbcUserService(ABC):
     @abstractmethod
     async def list_admins(self) -> list[UserEntity]:
         """Return all users with is_admin flag enabled."""
+
+    @abstractmethod
+    async def list_telegram_ids(self) -> list[int]:
+        """Return telegram_id values for all users."""

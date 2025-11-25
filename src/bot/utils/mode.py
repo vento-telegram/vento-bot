@@ -27,3 +27,4 @@ def normalize_mode(value: BotModeEnum | str | None) -> BotModeEnum:
     return BotModeEnum.passive
 
 
+

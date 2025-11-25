@@ -125,3 +125,9 @@ class UserRepo(AbcUserRepo, BaseRepo):
         )
         result = await self.session.execute(stmt)
         return int(result.scalar() or 0)
+
+    async def list_telegram_ids(self) -> list[int]:
+        stmt = select(UserOrm.telegram_id).order_by(UserOrm.id)
+        result = await self.session.execute(stmt)
+        rows = result.scalars().all()
+        return [int(tid) for tid in rows if tid is not None]

@@ -1,11 +1,14 @@
+import csv
 import logging
+from datetime import datetime, timezone
+from io import StringIO
 from typing import Tuple
 
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, BufferedInputFile
 from dependency_injector.wiring import Provide, inject
 
 from bot.container import Container
@@ -38,6 +41,27 @@ async def _ensure_admin(user_service: AbcUserService, telegram_id: int) -> Tuple
     return True, bool(user.is_admin)
 
 
+async def _send_users_csv(message: Message, user_service: AbcUserService) -> None:
+    telegram_ids = await user_service.list_telegram_ids()
+    if not telegram_ids:
+        await message.answer("Пока нет пользователей для экспорта")
+        return
+
+    buffer = StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(["telegram_id"])
+    for telegram_id in telegram_ids:
+        writer.writerow([telegram_id])
+
+    content = buffer.getvalue().encode("utf-8")
+    filename = datetime.now(timezone.utc).strftime("telegram_ids_%Y%m%d_%H%M%SZ.csv")
+
+    await message.answer_document(
+        document=BufferedInputFile(content, filename=filename),
+        caption=f"Всего пользователей: {len(telegram_ids)}",
+    )
+
+
 @router.message(Command("admin"))
 @inject
 async def admin_help(
@@ -53,7 +77,8 @@ async def admin_help(
             "🛠 Админ-команды:\n"
             "/addtokens @username amount — начислить токены\n"
             "/block @username — заблокировать пользователя\n"
-            "/unblock @username — разблокировать пользователя"
+            "/unblock @username — разблокировать пользователя\n"
+            "/userscsv — выгрузить telegram_id всех пользователей в CSV"
         )
     )
 
@@ -159,6 +184,20 @@ async def admin_unblock_command(
         return
     await state.set_state(AdminStates.unblock_user)
     await message.answer("Введите @username пользователя для разблокировки")
+
+
+@router.message(Command("userscsv"))
+@inject
+async def admin_export_user_ids_command(
+    message: Message,
+    user_service: AbcUserService = Provide[Container.user_service],
+):
+    exists, is_admin = await _ensure_admin(user_service, message.from_user.id)
+    if not exists or not is_admin:
+        await message.answer("Недостаточно прав")
+        return
+
+    await _send_users_csv(message, user_service)
 
 
 def _parse_username_and_amount(text: str) -> tuple[str | None, int | None]:

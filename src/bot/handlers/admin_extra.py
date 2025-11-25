@@ -9,7 +9,12 @@ from dependency_injector.wiring import Provide, inject
 
 from bot.container import Container
 from bot.enums import TransactionReasonEnum
-from bot.handlers.admin import router as admin_router, _ensure_admin, AdminStates
+from bot.handlers.admin import (
+    router as admin_router,
+    _ensure_admin,
+    AdminStates,
+    _send_users_csv,
+)
 from bot.interfaces.services.settings import AbcSettingsService
 from bot.interfaces.services.user import AbcUserService
 from bot.interfaces.uow import AbcUnitOfWork
@@ -285,6 +290,23 @@ async def users_today(
         await call.message.answer(text, reply_markup=admin_back_keyboard())
     await call.answer()
 
+
+@admin_router.callback_query(F.data == "admin:users_csv")
+@inject
+async def users_csv_export(
+    call: CallbackQuery,
+    user_service: AbcUserService = Provide[Container.user_service],
+):
+    exists, is_admin = await _ensure_admin(user_service, call.from_user.id)
+    if not exists or not is_admin:
+        await call.answer()
+        return
+    target_message = call.message
+    if target_message is None:
+        await call.answer("Не удалось отправить файл в этот чат", show_alert=True)
+        return
+    await call.answer("Готовлю файл…")
+    await _send_users_csv(target_message, user_service)
 
 
 @admin_router.callback_query(F.data == "admin:active_today")

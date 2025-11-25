@@ -19,6 +19,9 @@ def admin_main_keyboard() -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(text="👥 Всего пользователей", callback_data="admin:users_total"),
         ],
+        [
+            InlineKeyboardButton(text="⬇️ Экспорт telegram_id", callback_data="admin:users_csv"),
+        ],
     ]
     return InlineKeyboardMarkup(inline_keyboard=rows)
 

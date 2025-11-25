@@ -54,3 +54,7 @@ class AbcUserRepo(AbcRepo[UserEntity]):
     @abstractmethod
     async def count_today(self) -> int:
         """Number of users created today (MSK day)."""
+
+    @abstractmethod
+    async def list_telegram_ids(self) -> list[int]:
+        """Return telegram_id values for all users."""
