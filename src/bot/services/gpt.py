@@ -477,7 +477,7 @@ class OpenAIService(AbcOpenAIService):
             logger.exception("Unexpected error in media group finalizer")
 
     async def _submit_nano_task(self, user: UserEntity, image_urls: list[str], prompt_text: str, image_size: str) -> None:
-        model_name = "google/nano-banana"
+        model_name = "google/nano-banana" if not image_urls else "google/nano-banana-edit"
 
         effective_image_size = image_size or "auto"
         
@@ -529,7 +529,7 @@ class OpenAIService(AbcOpenAIService):
         )
 
     async def _submit_nano_pro_task(self, user: UserEntity, image_urls: list[str], prompt_text: str, image_size: str) -> None:
-        model_name = "nano-banana-pro"
+        model_name = "nano-banana-pro" if not image_urls else "google/nano-banana-edit"
 
         effective_image_size = image_size or "auto"
         include_image_size = True
