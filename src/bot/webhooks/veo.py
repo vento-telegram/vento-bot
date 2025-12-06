@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Any
 
 from aiogram import Bot
 from aiohttp import web
@@ -15,31 +16,45 @@ logger = logging.getLogger(__name__)
 
 SUCCESS_STATES = {"success", "completed", "succeeded"}
 PROCESSING_STATES = {"waiting", "processing", "pending", "running"}
+URL_KEYS = {
+    "resultUrl",
+    "resultUrls",
+    "videoUrl",
+    "videoUrls",
+    "originUrl",
+    "originUrls",
+    "url",
+    "urls",
+}
 
 
-def _extract_video_urls(data: dict) -> list[str]:
+def _extract_video_urls(data: dict[str, Any]) -> list[str]:
     urls: list[str] = []
 
-    def _append(value):
-        if isinstance(value, str) and value:
-            urls.append(value)
+    def _collect(value: Any) -> None:
+        if isinstance(value, str):
+            stripped = value.strip()
+            if stripped:
+                urls.append(stripped)
         elif isinstance(value, list):
-            urls.extend([item for item in value if isinstance(item, str) and item])
+            for item in value:
+                _collect(item)
+        elif isinstance(value, dict):
+            for key, nested in value.items():
+                if key in URL_KEYS:
+                    _collect(nested)
+                elif isinstance(nested, (dict, list)):
+                    _collect(nested)
 
     result_json = data.get("resultJson")
     if isinstance(result_json, str) and result_json.strip():
         try:
             parsed = json.loads(result_json)
-            _append(parsed.get("resultUrl"))
-            _append(parsed.get("resultUrls"))
-            _append(parsed.get("videoUrl"))
-            _append(parsed.get("videoUrls"))
+            _collect(parsed)
         except Exception:
             logger.exception("Veo webhook: failed to parse resultJson")
-    _append(data.get("resultUrl"))
-    _append(data.get("resultUrls"))
-    _append(data.get("videoUrl"))
-    _append(data.get("videoUrls"))
+
+    _collect(data)
 
     # De-duplicate while preserving order
     seen = set()
