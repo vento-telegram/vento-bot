@@ -186,7 +186,10 @@ async def veo_handle(
                 try:
                     await bot.send_video(chat_id, url, caption=caption)
                 except Exception:
-                    await bot.send_message(chat_id, f"Ссылка на видео: {url}")
+                    logger.warning(
+                        "Veo webhook: failed to send video",
+                        extra={"user_id": chat_id, "task_id": task_id, "url": url},
+                    )
             logger.info(
                 "Veo webhook success",
                 extra={
