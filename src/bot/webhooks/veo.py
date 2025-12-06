@@ -16,6 +16,12 @@ logger = logging.getLogger(__name__)
 
 SUCCESS_STATES = {"success", "completed", "succeeded"}
 PROCESSING_STATES = {"waiting", "processing", "pending", "running"}
+SUCCESS_MESSAGE_HINTS = {
+    "success",
+    "video generated successfully",
+    "completed successfully",
+    "video generated",
+}
 URL_KEYS = {
     "resultUrl",
     "resultUrls",
@@ -26,6 +32,34 @@ URL_KEYS = {
     "url",
     "urls",
 }
+
+
+def _is_truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if not normalized:
+            return False
+        if normalized.isdigit():
+            return normalized != "0"
+        return normalized in {"true", "yes", "y", "on", "success"}
+    return False
+
+
+def _first_non_empty(*values: Any) -> str | None:
+    for value in values:
+        if value is None:
+            continue
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                continue
+            return stripped
+        return str(value)
+    return None
 
 
 def _extract_video_urls(data: dict[str, Any]) -> list[str]:
@@ -53,6 +87,14 @@ def _extract_video_urls(data: dict[str, Any]) -> list[str]:
             _collect(parsed)
         except Exception:
             logger.exception("Veo webhook: failed to parse resultJson")
+
+    response_payload = data.get("response")
+    if isinstance(response_payload, str) and response_payload.strip():
+        try:
+            parsed_response = json.loads(response_payload)
+            _collect(parsed_response)
+        except Exception:
+            logger.exception("Veo webhook: failed to parse response payload")
 
     _collect(data)
 
@@ -110,9 +152,20 @@ async def veo_handle(
 
     code = body.get("code")
     data = body.get("data") or {}
-    state = (data.get("state") or data.get("status") or "").lower()
+    state_raw = (data.get("state") or data.get("status") or "").strip()
+    state = state_raw.lower()
     task_id = data.get("taskId") or data.get("task_id")
     video_urls = _extract_video_urls(data)
+    success_flag = data.get("successFlag") or data.get("success_flag")
+    success_flag_set = _is_truthy(success_flag)
+    success_msg = False
+    body_msg = (body.get("msg") or body.get("message") or "").strip()
+    msg_error_candidate = None
+    if body_msg:
+        msg_lower = body_msg.lower()
+        success_msg = any(hint in msg_lower for hint in SUCCESS_MESSAGE_HINTS)
+        if not success_msg:
+            msg_error_candidate = body_msg
 
     support_text = (
         "🚨 Произошла ошибка при взаимодействии с Veo3.\n\n"
@@ -120,34 +173,65 @@ async def veo_handle(
     )
 
     try:
-        if code == 200 and state in SUCCESS_STATES and video_urls:
+        success_condition = code == 200 and video_urls and (
+            (state and state in SUCCESS_STATES) or success_flag_set or success_msg
+        )
+        processing_condition = code == 200 and (
+            (state and state in PROCESSING_STATES) or (not state and not success_flag_set and not video_urls)
+        )
+
+        if success_condition:
             caption = "🎬 Твоё видео готово!\n\n✨ Создано с помощью [Vento](https://t.me/vento_toolbot)"
             for url in video_urls:
                 try:
                     await bot.send_video(chat_id, url, caption=caption)
                 except Exception:
                     await bot.send_message(chat_id, f"Ссылка на видео: {url}")
-            logger.info("Veo webhook success", extra={"user_id": chat_id, "task_id": task_id})
-        elif code == 200 and state in PROCESSING_STATES:
+            logger.info(
+                "Veo webhook success",
+                extra={
+                    "user_id": chat_id,
+                    "task_id": task_id,
+                    "state": state_raw,
+                    "success_flag": success_flag,
+                },
+            )
+        elif processing_condition:
             await bot.send_message(chat_id, "🎬 Veo3 ещё работает над роликом. Я пришлю ссылку, как только всё будет готово.")
         else:
-            raw_error = (
-                data.get("failMsg")
-                or data.get("failReason")
-                or body.get("msg")
-                or body.get("message")
-                or body.get("error")
-                or "неизвестная ошибка"
-            )
+            raw_error = _first_non_empty(
+                data.get("failMsg"),
+                data.get("failReason"),
+                data.get("errorMessage"),
+                body.get("error"),
+                msg_error_candidate,
+            ) or "неизвестная ошибка"
             await bot.send_message(
                 chat_id,
                 f"🤐 Veo3 не смог завершить задачу.\n\nОтвет сервиса: {raw_error}",
                 parse_mode=None,
             )
             await _refund_tokens(chat_id, quality, aspect_ratio, settings_service, user_service)
+            try:
+                logger.warning(
+                    "Veo webhook failure payload",
+                    extra={
+                        "body": body,
+                        "query": dict(request.query),
+                    },
+                )
+            except Exception:
+                logger.warning("Veo webhook failure payload (fallback): %s", json.dumps(body, ensure_ascii=False))
             logger.warning(
                 "Veo webhook failure",
-                extra={"user_id": chat_id, "task_id": task_id, "state": state, "error": raw_error},
+                extra={
+                    "user_id": chat_id,
+                    "task_id": task_id,
+                    "state": state_raw,
+                    "success_flag": success_flag,
+                    "video_urls_found": len(video_urls),
+                    "error": raw_error,
+                },
             )
     except Exception:
         logger.exception("Veo webhook: error delivering result to user %s", chat_id)
