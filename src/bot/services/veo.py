@@ -50,7 +50,7 @@ class VeoService(AbcVeoService):
             "Content-Type": "application/json",
         }
         generation_type = "REFERENCE_2_VIDEO" if image_urls else "TEXT_2_VIDEO"
-        model_name = "veo3_quality" if quality == "improved" else "veo3_fast"
+        model_name = "veo3" if quality == "improved" else "veo3_fast"
         callback_url = self._build_callback_url(user.telegram_id, quality, aspect_ratio)
         payload: dict[str, Any] = {
             "prompt": prompt,
@@ -101,7 +101,7 @@ class VeoService(AbcVeoService):
                         await message.answer(f"☹️ Не удалось запустить генерацию Veo3: {msg}")
                         logger.warning(
                             "veo_request_failed_to_start",
-                            extra={"user_id": user.id, "status": resp.status, "msg": msg},
+                            extra={"user_id": user.id, "status": resp.status, "error_msg": msg},
                         )
                         return
 
