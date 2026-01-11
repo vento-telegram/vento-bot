@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from aiogram import Router
@@ -34,6 +35,296 @@ from bot.settings import settings
 logger = logging.getLogger(__name__)
 
 router = Router()
+
+# State holders for Sora media groups (albums)
+SORA_GROUP_LOCKS: dict[str, asyncio.Lock] = {}
+SORA_MEDIA_GROUPS: dict[str, dict] = {}
+SORA_MEDIA_GROUP_QUIET_SECONDS = 0.6
+
+
+async def _run_sora2_request(
+    message: Message,
+    state: FSMContext,
+    user,
+    prompt: str,
+    image_urls: list[str] | None,
+    aspect: str,
+    sora2_service: AbcSora2Service,
+) -> None:
+    status_msg = await message.answer(
+        "🎬 *Работаю над видео...*\n\n"
+        "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
+    )
+    try:
+        await sora2_service.submit_sora2_request(
+            message,
+            state,
+            user,
+            prompt=prompt,
+            image_urls=image_urls or None,
+            aspect_ratio=aspect,
+        )
+    except InsufficientBalanceError:
+        try:
+            await status_msg.edit_text(
+                "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
+                        ],
+                        [
+                            InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
+                        ],
+                        [
+                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
+                        ],
+                    ]
+                ),
+            )
+        except Exception:
+            await message.answer(
+                "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
+                        ],
+                        [
+                            InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
+                        ],
+                        [
+                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
+                        ],
+                    ]
+                ),
+            )
+        return
+    except Exception:
+        logger.exception("Unexpected error in Sora2 handler")
+        try:
+            await status_msg.edit_text("Не удалось отправить запрос в Sora 2. Попробуй позже.")
+        except Exception:
+            try:
+                await message.answer("Не удалось отправить запрос в Sora 2. Попробуй позже.")
+            except Exception:
+                pass
+
+
+async def _run_sora2_pro_request(
+    message: Message,
+    state: FSMContext,
+    user,
+    prompt: str,
+    image_urls: list[str] | None,
+    aspect: str,
+    n_frames: str,
+    sora2_pro_service: AbcSora2ProService,
+) -> None:
+    status_msg = await message.answer(
+        "🎥 *Работаю над видео...*\n\n"
+        "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
+    )
+    try:
+        await sora2_pro_service.submit_sora2_pro_request(
+            message,
+            state,
+            user,
+            prompt=prompt,
+            image_urls=image_urls or None,
+            aspect_ratio=aspect,
+            n_frames=n_frames,
+        )
+    except InsufficientBalanceError:
+        try:
+            await status_msg.edit_text(
+                "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
+                        ],
+                        [
+                            InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
+                        ],
+                        [
+                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
+                        ],
+                    ]
+                ),
+            )
+        except Exception:
+            await message.answer(
+                "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
+                        ],
+                        [
+                            InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
+                        ],
+                        [
+                            InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
+                        ],
+                    ]
+                ),
+            )
+        return
+    except Exception:
+        logger.exception("Unexpected error in Sora2 Pro handler")
+        try:
+            await status_msg.edit_text("Ошибка при отправке запроса в Sora 2 Pro. Напишите в поддержку.")
+        except Exception:
+            try:
+                await message.answer("Ошибка при отправке запроса в Sora 2 Pro. Напишите в поддержку.")
+            except Exception:
+                pass
+
+
+async def _finalize_sora_media_group_after_quiet_period(
+    media_group_id: str,
+    scheduled_expires_at: float,
+    message: Message,
+    state: FSMContext,
+    user,
+    mode: BotModeEnum,
+    sora2_service: AbcSora2Service,
+    sora2_pro_service: AbcSora2ProService,
+) -> None:
+    try:
+        loop = asyncio.get_running_loop()
+        delay = max(0.0, scheduled_expires_at - loop.time())
+        if delay:
+            await asyncio.sleep(delay)
+
+        lock_key = f"{message.chat.id}:{media_group_id}:{mode.value}"
+        data = await state.get_data()
+        groups = dict(data.get("sora_media_groups") or {})
+        group = groups.get(media_group_id) or SORA_MEDIA_GROUPS.get(lock_key)
+        if not group:
+            return
+        if group.get("finalized"):
+            return
+        if float(group.get("expires_at") or 0.0) != float(scheduled_expires_at):
+            return
+        if group.get("mode") != mode.value:
+            return
+
+        file_ids = list(group.get("file_ids") or [])
+        caption = (group.get("caption") or "").strip()
+
+        # Cleanup state before heavy work to avoid double processing
+        group["finalized"] = True
+        groups.pop(media_group_id, None)
+        SORA_MEDIA_GROUPS.pop(lock_key, None)
+        await state.update_data(sora_media_groups=groups)
+
+        if not caption:
+            await message.answer("Добавь подпись к изображениям (текстовый запрос).")
+            return
+
+        image_urls: list[str] = []
+        for fid in file_ids:
+            try:
+                url = await _get_telegram_file_url(message.bot, fid)
+                if url:
+                    image_urls.append(url)
+            except Exception:
+                logger.exception("Failed to get file URL for Sora media group item")
+
+        if not image_urls:
+            await message.answer("Не удалось получить изображения. Попробуй ещё раз.")
+            return
+
+        state_data = await state.get_data()
+        if mode == BotModeEnum.sora2_video:
+            aspect = state_data.get("sora_aspect")
+            if not aspect:
+                await message.answer("✋ Сначала выбери формат: 16:9 или 9:16", reply_markup=sora2_aspect_keyboard(aspect))
+                return
+            await _run_sora2_request(message, state, user, caption, image_urls, aspect, sora2_service)
+        elif mode == BotModeEnum.sora2_pro_video:
+            aspect = state_data.get("sora_pro_aspect")
+            n_frames = state_data.get("sora_pro_frames")
+            if not aspect:
+                await message.answer("📐 Выбери соотношение сторон: 16:9 или 9:16", reply_markup=sora2pro_aspect_keyboard(aspect))
+                return
+            if n_frames not in {"10", "15"}:
+                await message.answer("⏱️ Выбери длительность ролика: 10 или 15 сек", reply_markup=sora2pro_duration_keyboard(n_frames))
+                return
+            await _run_sora2_pro_request(message, state, user, caption, image_urls, aspect, n_frames, sora2_pro_service)
+    except Exception:
+        logger.exception("Failed to finalize Sora media group")
+
+
+async def _handle_sora_media_group_item(
+    message: Message,
+    state: FSMContext,
+    user,
+    mode: BotModeEnum,
+    sora2_service: AbcSora2Service,
+    sora2_pro_service: AbcSora2ProService,
+) -> bool:
+    media_group_id_raw = message.media_group_id
+    media_group_id = str(media_group_id_raw) if media_group_id_raw is not None else None
+    has_image = bool(message.photo) or (message.document and (message.document.mime_type or "").lower().startswith("image/"))
+    if not media_group_id or not has_image:
+        return False
+
+    loop = asyncio.get_running_loop()
+    now = loop.time()
+    quiet_seconds = SORA_MEDIA_GROUP_QUIET_SECONDS
+
+    if message.photo:
+        file_id = message.photo[-1].file_id
+    elif message.document and (message.document.mime_type or "").lower().startswith("image/"):
+        file_id = message.document.file_id
+    else:
+        return False
+
+    lock_key = f"{message.chat.id}:{media_group_id}:{mode.value}"
+    lock = SORA_GROUP_LOCKS.setdefault(lock_key, asyncio.Lock())
+    async with lock:
+        data = await state.get_data()
+        groups = dict(data.get("sora_media_groups") or {})
+        group = dict(groups.get(media_group_id) or SORA_MEDIA_GROUPS.get(lock_key) or {})
+
+        file_ids = list(group.get("file_ids") or [])
+        file_ids.append(file_id)
+
+        existing_caption = (group.get("caption") or "").strip() or None
+        incoming_caption = (message.caption or "").strip() or None
+        caption = existing_caption or incoming_caption
+
+        expires_at = now + quiet_seconds
+        group.update(
+            {
+                "file_ids": file_ids,
+                "caption": caption,
+                "expires_at": expires_at,
+                "finalized": False,
+                "mode": mode.value,
+            }
+        )
+
+        SORA_MEDIA_GROUPS[lock_key] = group
+        groups[media_group_id] = group
+        await state.update_data(sora_media_groups=groups)
+
+    asyncio.create_task(
+        _finalize_sora_media_group_after_quiet_period(
+            media_group_id=media_group_id,
+            scheduled_expires_at=expires_at,
+            message=message,
+            state=state,
+            user=user,
+            mode=mode,
+            sora2_service=sora2_service,
+            sora2_pro_service=sora2_pro_service,
+        )
+    )
+    return True
 
 
 async def _get_telegram_file_url(bot, file_id: str) -> str:
@@ -462,9 +753,22 @@ async def common_message_handler(
 
         aspect = state_data.get("sora_aspect")
 
+        has_image = bool(message.photo) or (message.document and (message.document.mime_type or "").lower().startswith("image/"))
+        # Collect media group items to allow multiple images (albums)
+        handled_group = await _handle_sora_media_group_item(
+            message=message,
+            state=state,
+            user=user,
+            mode=BotModeEnum.sora2_video,
+            sora2_service=sora2_service,
+            sora2_pro_service=sora2_pro_service,
+        )
+        if handled_group:
+            return
+
         image_urls: list[str] = []
         prompt: str = ""
-        if message.photo:
+        if has_image and message.photo:
             try:
                 url = await _get_telegram_file_url(message.bot, message.photo[-1].file_id)
                 image_urls = [url]
@@ -475,7 +779,7 @@ async def common_message_handler(
                 await message.answer("Добавь описание к изображению (подпись)")
                 return
             prompt = _cap
-        elif message.document and (message.document.mime_type or "").lower().startswith("image/"):
+        elif has_image and message.document and (message.document.mime_type or "").lower().startswith("image/"):
             try:
                 url = await _get_telegram_file_url(message.bot, message.document.file_id)
                 image_urls = [url]
@@ -489,7 +793,7 @@ async def common_message_handler(
         else:
             text = (message.text or "").strip()
             if not text:
-                await message.answer("Пришли текст или картинку с описанием")
+                await message.answer("Пришли текст или одну/несколько картинок с описанием")
                 return
             prompt = text
 
@@ -497,64 +801,15 @@ async def common_message_handler(
             await message.answer("✋ Сначала выбери формат: 16:9 или 9:16", reply_markup=sora2_aspect_keyboard(aspect))
             return
 
-        status_msg = await message.answer(
-            "🎬 *Работаю над видео...*\n\n"
-            "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
+        await _run_sora2_request(
+            message=message,
+            state=state,
+            user=user,
+            prompt=prompt,
+            image_urls=image_urls or None,
+            aspect=aspect,
+            sora2_service=sora2_service,
         )
-        try:
-            await sora2_service.submit_sora2_request(
-                message,
-                state,
-                user,
-                prompt=prompt,
-                image_urls=image_urls or None,
-                aspect_ratio=aspect,
-            )
-        except InsufficientBalanceError:
-            try:
-                await status_msg.edit_text(
-                    "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
-                    reply_markup=InlineKeyboardMarkup(
-                        inline_keyboard=[
-                            [
-                                InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
-                            ],
-                            [
-                                InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
-                            ],
-                            [
-                                InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
-                            ],
-                        ]
-                    ),
-                )
-            except Exception:
-                await message.answer(
-                    "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
-                    reply_markup=InlineKeyboardMarkup(
-                        inline_keyboard=[
-                            [
-                                InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
-                            ],
-                            [
-                                InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
-                            ],
-                            [
-                                InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
-                            ],
-                        ]
-                    ),
-                )
-            return
-        except Exception:
-            logger.exception("Unexpected error in Sora2 handler")
-            try:
-                await status_msg.edit_text("Не удалось отправить запрос в Sora 2. Попробуй позже.")
-            except Exception:
-                try:
-                    await message.answer("Не удалось отправить запрос в Sora 2. Попробуй позже.")
-                except Exception:
-                    pass
 
     elif mode == BotModeEnum.sora2_pro_video:
         state_data = await state.get_data()
@@ -562,9 +817,21 @@ async def common_message_handler(
         aspect = state_data.get("sora_pro_aspect")
         n_frames = state_data.get("sora_pro_frames")
 
+        has_image = bool(message.photo) or (message.document and (message.document.mime_type or "").lower().startswith("image/"))
+        handled_group = await _handle_sora_media_group_item(
+            message=message,
+            state=state,
+            user=user,
+            mode=BotModeEnum.sora2_pro_video,
+            sora2_service=sora2_service,
+            sora2_pro_service=sora2_pro_service,
+        )
+        if handled_group:
+            return
+
         image_urls: list[str] = []
         prompt: str = ""
-        if message.photo:
+        if has_image and message.photo:
             try:
                 url = await _get_telegram_file_url(message.bot, message.photo[-1].file_id)
                 image_urls = [url]
@@ -575,7 +842,7 @@ async def common_message_handler(
                 await message.answer("Добавьте подпись к изображению (текстовый запрос)")
                 return
             prompt = _cap
-        elif message.document and (message.document.mime_type or "").lower().startswith("image/"):
+        elif has_image and message.document and (message.document.mime_type or "").lower().startswith("image/"):
             try:
                 url = await _get_telegram_file_url(message.bot, message.document.file_id)
                 image_urls = [url]
@@ -589,7 +856,7 @@ async def common_message_handler(
         else:
             text = (message.text or "").strip()
             if not text:
-                await message.answer("Пришлите текст запроса или изображение с подписью")
+                await message.answer("Пришлите текст запроса или одно/несколько изображений с подписью")
                 return
             prompt = text
 
@@ -600,65 +867,16 @@ async def common_message_handler(
             await message.answer("⏱️ Выбери длительность ролика: 10 или 15 сек", reply_markup=sora2pro_duration_keyboard(n_frames))
             return
 
-        status_msg = await message.answer(
-            "🎥 *Работаю над видео...*\n\n"
-            "Я пришлю результат, как только он будет готов. Это может занять несколько минут."
+        await _run_sora2_pro_request(
+            message=message,
+            state=state,
+            user=user,
+            prompt=prompt,
+            image_urls=image_urls or None,
+            aspect=aspect,
+            n_frames=n_frames,
+            sora2_pro_service=sora2_pro_service,
         )
-        try:
-            await sora2_pro_service.submit_sora2_pro_request(
-                message,
-                state,
-                user,
-                prompt=prompt,
-                image_urls=image_urls or None,
-                aspect_ratio=aspect,
-                n_frames=n_frames,
-            )
-        except InsufficientBalanceError:
-            try:
-                await status_msg.edit_text(
-                    "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
-                    reply_markup=InlineKeyboardMarkup(
-                        inline_keyboard=[
-                            [
-                                InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
-                            ],
-                            [
-                                InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
-                            ],
-                            [
-                                InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
-                            ],
-                        ]
-                    ),
-                )
-            except Exception:
-                await message.answer(
-                    "*☹️ Недостаточно токенов*\n\nТы можешь пополнить баланс, выбрать другую модель или пригласить друга через реферальную программу и получить *бесплатные токены*.",
-                    reply_markup=InlineKeyboardMarkup(
-                        inline_keyboard=[
-                            [
-                                InlineKeyboardButton(text="🎟️ Больше токенов", callback_data="goto:replenish"),
-                            ],
-                            [
-                                InlineKeyboardButton(text="🔥 Реферальная программа", callback_data="goto:referral"),
-                            ],
-                            [
-                                InlineKeyboardButton(text="👾 Сменить модель", callback_data="goto:switch"),
-                            ],
-                        ]
-                    ),
-                )
-            return
-        except Exception:
-            logger.exception("Unexpected error in Sora2 Pro handler")
-            try:
-                await status_msg.edit_text("Ошибка при отправке запроса в Sora 2 Pro. Напишите в поддержку.")
-            except Exception:
-                try:
-                    await message.answer("Ошибка при отправке запроса в Sora 2 Pro. Напишите в поддержку.")
-                except Exception:
-                    pass
 
     elif mode == BotModeEnum.passive or not mode:
         await message.answer(
