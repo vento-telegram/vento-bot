@@ -27,17 +27,6 @@ class UserService(AbcUserService):
                 logger.info(f"New user registered: {user.telegram_id}")
                 updated = await self._update_balance(user.id, int(start_bonus), TransactionReasonEnum.welcome_bonus)
                 user = updated if updated else user
-                # Referral signup bonus to inviter (+10) if referral present
-                inviter_tid: int | None = None
-                try:
-                    inviter_tid = int(ref_from) if ref_from else None
-                except Exception:
-                    inviter_tid = None
-                if inviter_tid and inviter_tid != user.telegram_id:
-                    inviter = await self._uow.user.get_by_telegram_id(inviter_tid)
-                    if inviter:
-                        meta_tag = f"referred:{user.telegram_id}"
-                        await self._update_balance(inviter.id, 10, TransactionReasonEnum.referral_signup_bonus, meta=meta_tag)
 
         return user, is_new
 

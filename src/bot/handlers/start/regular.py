@@ -55,27 +55,6 @@ async def start_handler(
         ref_from = None
 
     user, is_new = await user_service.is_user_new(message.from_user, ref_from=ref_from)
-    # Notify inviter on new signup bonus (+10)
-    if is_new:
-        inviter_tid: int | None = None
-        if ref_from:
-            try:
-                inviter_tid = int(ref_from)
-            except (TypeError, ValueError):
-                inviter_tid = None
-        logger.info("ref_from=%s, inviter_tid=%s", ref_from, inviter_tid)
-        if inviter_tid and inviter_tid != message.from_user.id:
-            try:
-                uname = message.from_user.username if message.from_user.username else None
-                suffix = f" за пользователя {uname}" if uname else ""
-                text = (
-                    f"🎉 Поздравляем, ты получил реферальный бонус{suffix}: 10 токенов!\n\n"
-                    "🎞️ Копи бонусные токены или выбирай модель и твори!"
-                )
-                from bot.keyboards.referral import referral_bonus_keyboard
-                await bot.send_message(inviter_tid, text, reply_markup=referral_bonus_keyboard(), parse_mode=None)
-            except Exception as e:
-                logger.exception(e)
     if is_new:
         await state.update_data(history=[], mode=BotModeEnum.passive)
         start_bonus = await settings_service.get_value("start_bonus")
